@@ -1,4 +1,4 @@
-package code
+package de.fhwedel.antscout
 package lib
 
 import net.liftweb._

@@ -1,4 +1,4 @@
-package code
+package de.fhwedel.antscout
 
 import java.io.File
 import junit.framework._

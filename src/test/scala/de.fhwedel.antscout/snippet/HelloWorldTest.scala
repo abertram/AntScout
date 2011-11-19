@@ -1,4 +1,4 @@
-package code
+package de.fhwedel.antscout
 package snippet
 
 import org.specs._
@@ -11,7 +11,7 @@ import net.liftweb.common._
 import org.specs.matcher._
 import org.specs.specification._
 import Helpers._
-import lib._
+import de.fhwedel.antscout.lib._
 
 
 class HelloWorldTestSpecsAsTest extends JUnit4(HelloWorldTestSpecs)

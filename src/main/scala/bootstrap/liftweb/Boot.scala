@@ -6,6 +6,7 @@ import common._
 import http._
 import sitemap._
 import Loc._
+import de.fhwedel.antscout.ApplicationController
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -14,7 +15,9 @@ import Loc._
 class Boot {
     def boot {
         // where to search snippet
-        LiftRules.addToPackages("code")
+        LiftRules.addToPackages("de.fhwedel.antscout.antscout")
+
+        ApplicationController.start()
 
         // Build SiteMap
         val entries = List(
