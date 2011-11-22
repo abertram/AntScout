@@ -15,7 +15,7 @@ import de.fhwedel.antscout.ApplicationController
 class Boot {
     def boot {
         // where to search snippet
-        LiftRules.addToPackages("de.fhwedel.antscout.antscout")
+        LiftRules.addToPackages("de.fhwedel.antscout")
 
         ApplicationController.start()
 

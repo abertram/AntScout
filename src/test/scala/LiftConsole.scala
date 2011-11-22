@@ -1,5 +1,5 @@
 import bootstrap.liftweb.Boot
-import scala.tools.nsc.MainGenericRunner
+// import scala.tools.nsc.MainGenericRunner
 
 object LiftConsole {
   def main(args : Array[String]) {
@@ -8,7 +8,7 @@ object LiftConsole {
     // Boot your project
     b.boot
     // Now run the MainGenericRunner to get your repl
-    MainGenericRunner.main(args)
+    // MainGenericRunner.main(args)
     // After the repl exits, then exit the scala script
     exit(0)
   }

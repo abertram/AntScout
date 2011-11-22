@@ -8,4 +8,4 @@ package openstreetmap
  * Time: 15:13
  */
 
-class Way(id: Int, name: String,  nodes: Vector[Node]) { }
+class Way(id: Int, name: String, nodes: Vector[Node]) { }
