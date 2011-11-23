@@ -46,8 +46,7 @@ class OsmMap(mapData: Elem) {
                 case _ => ""
             }
             val nodes = parseNodes(way \ "nd")
-            val length = nodes.zip(nodes.tail).map(n => n._1.distanceTo(n._2)).sum
-            Tuple2(id, new Way(id, length, name, nodes))
+            Tuple2(id, new Way(id, name, nodes))
         }): _*)
     }
 }
