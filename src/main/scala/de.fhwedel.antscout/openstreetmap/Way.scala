@@ -24,8 +24,11 @@ object Way {
             }): _*)
         }
         val id = (way \ "@id").text.toInt
-        val nodes = parseNodes(way \ "nd")
-        val name: String = (way \ "tag" \ "@k" find (_.text == "name")) getOrElse ""
-        new Way(id, name, nodes)
+        val wayNodes = parseNodes(way \ "nd")
+        val name = (way \ "tag" \ "@k" find (_.text == "name")) match {
+            case Some(node) => node.text
+            case _ => ""
+        }
+        new Way(id, name, wayNodes)
     }
 }
