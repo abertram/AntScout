@@ -77,3 +77,18 @@ class Node(val id: Int, val geographicCoordinate: GeographicCoordinate) {
 
     override def toString = "[%d] %s".format(id, geographicCoordinate)
 }
+
+object Node {
+    val logger = Logger(classOf[Node])
+
+    def parseNode(node: xml.Node): Node = {
+        val id = (node \ "@id").text.toInt
+        logger.assertLog(id < 1, id.toString)
+        val latitude = (node \ "@lat").text.toFloat
+        logger.assertLog(latitude <= -90.0 && latitude >= 90.0, id.toString)
+        val longitude = (node \ "@lon").text.toFloat
+        logger.assertLog(longitude <= -180.0 && longitude >= 180.0, id.toString)
+        val geographicCoordinate = new GeographicCoordinate(latitude, longitude)
+        new Node(id, geographicCoordinate)
+    }
+}
