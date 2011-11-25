@@ -32,7 +32,7 @@ class WayTest extends FunSuite with ShouldMatchers {
         way.nodes(0) should equal (node1)
         way.nodes(1) should equal (node2)
         way.name should  be ("Test way")
-        way.speed should be (1.)
+        way.maxSpeed should be (1.)
     }
 
     test("parseWay, no name") {
@@ -53,7 +53,7 @@ class WayTest extends FunSuite with ShouldMatchers {
     test("parseWay, no maxspeed tag") {
         val nodes = IntMap()
         val way = Way.parseWay(<way id="1"/>, nodes)
-        way.speed should  be (Way.DefaultSpeeds(""))
+        way.maxSpeed should  be (Way.DefaultSpeeds(""))
     }
 
     test("parseWay, empty maxspeed tag") {
@@ -62,7 +62,7 @@ class WayTest extends FunSuite with ShouldMatchers {
             <way id="1">
                 <tag k="maxspeed" v=""/>
             </way>, nodes)
-        way.speed should  be (Way.DefaultSpeeds(""))
+        way.maxSpeed should  be (Way.DefaultSpeeds(""))
     }
 
     test("parseWay, maxspeed is not a number") {
@@ -71,7 +71,7 @@ class WayTest extends FunSuite with ShouldMatchers {
             <way id="1">
                 <tag k="maxspeed" v="maxspeed"/>
             </way>, nodes)
-        way.speed should  be (Way.DefaultSpeeds(""))
+        way.maxSpeed should  be (Way.DefaultSpeeds(""))
     }
 
     test("parseWay, no maxspeed tag, speed from highway tag") {
@@ -80,7 +80,7 @@ class WayTest extends FunSuite with ShouldMatchers {
             <way id="1">
                 <tag k="highway" v="motorway"/>
             </way>, nodes)
-        way.speed should  be (Way.DefaultSpeeds("motorway"))
+        way.maxSpeed should  be (Way.DefaultSpeeds("motorway"))
     }
 
     test("parseWay, empty maxspeed tag, speed from highway tag") {
@@ -90,7 +90,7 @@ class WayTest extends FunSuite with ShouldMatchers {
                 <tag k="highway" v="motorway"/>
                 <tag k="maxspeed" v=""/>
             </way>, nodes)
-        way.speed should  be (Way.DefaultSpeeds("motorway"))
+        way.maxSpeed should  be (Way.DefaultSpeeds("motorway"))
     }
 
     test("parseWay, maxspeed is not a number, speed from highway tag") {
@@ -100,7 +100,7 @@ class WayTest extends FunSuite with ShouldMatchers {
                 <tag k="highway" v="motorway"/>
                 <tag k="maxspeed" v="maxspeed"/>
             </way>, nodes)
-        way.speed should  be (Way.DefaultSpeeds("motorway"))
+        way.maxSpeed should  be (Way.DefaultSpeeds("motorway"))
     }
 
 // Tests zur Berechnung von Tunnel-Längen

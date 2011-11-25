@@ -12,7 +12,7 @@ import net.liftweb.common.Logger
  * Time: 15:13
  */
 
-class Way(val id: Int, val name: String, val nodes: Vector[Node], val speed: Double) {
+class Way(val id: Int, val name: String, val nodes: Vector[Node], val maxSpeed: Double) {
     val logger = Logger(getClass)
 
     val length = nodes.length match {
@@ -25,19 +25,19 @@ class Way(val id: Int, val name: String, val nodes: Vector[Node], val speed: Dou
 }
 
 object Way {
-    val DefaultSpeeds = Map[String, Double](
-        "motorway" -> 130,
-        "motorway_link" -> 80,
-        "trunk" -> 100.,
-        "trunk_link" -> 60.,
-        "primary" -> 100.,
-        "primary_link" -> 60.,
-        "secondary" -> 70.,
-        "tertiary" -> 50.,
-        "residental" -> 50.,
-        "service" -> 3.,
-        "track" -> 30.,
-        "" -> 50.
+    val DefaultSpeeds = Map(
+        "motorway" -> 130.0,
+        "motorway_link" -> 80.0,
+        "trunk" -> 100.0,
+        "trunk_link" -> 60.0,
+        "primary" -> 100.0,
+        "primary_link" -> 60.0,
+        "secondary" -> 70.0,
+        "tertiary" -> 50.0,
+        "residental" -> 50.0,
+        "service" -> 3.0,
+        "track" -> 30.0,
+        "" -> 50.0
     )
     val logger = Logger(getClass)
 
@@ -52,7 +52,7 @@ object Way {
         val wayNodes = parseNodes(way \ "nd")
         val tags = Map(way \ "tag" map (tag => ((tag \ "@k").text, (tag \ "@v").text)): _*)
         val name = tags.getOrElse("name", "")
-        def speedFromMaxSpeedTag: Option[Double] = {
+        def maxSpeedFromMaxSpeedTag: Option[Double] = {
             tags.getOrElse("maxspeed", "") match {
                 case value if value != "" => {
                     try {
@@ -72,10 +72,10 @@ object Way {
                     None
             }
         }
-        def speedFromHighwayTag: Option[Double] = {
+        def maxSpeedFromHighwayTag: Option[Double] = {
             DefaultSpeeds.get(tags.getOrElse("highway", ""))
         }
-        val speed: Double = speedFromMaxSpeedTag orElse speedFromHighwayTag getOrElse DefaultSpeeds("")
-        new Way(id, name, wayNodes, speed)
+        val maxSpeed: Double = maxSpeedFromMaxSpeedTag orElse maxSpeedFromHighwayTag getOrElse DefaultSpeeds("")
+        new Way(id, name, wayNodes, maxSpeed)
     }
 }
