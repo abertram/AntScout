@@ -17,7 +17,8 @@ class Node(val id: Int, val geographicCoordinate: GeographicCoordinate) {
     /**
       * Berechnet die geographischen Entfernung zu einem anderen Knoten.
       *
-      * Die Berechnung basiert auf der Vincenty-Formel (http://en.wikipedia.org/wiki/Vincenty%27s_formulae).
+      * Die Berechnung basiert auf der Vincenty-Formel (http://en.wikipedia.org/wiki/Vincenty%27s_formulae) inklusive
+      * Vincenty's Modifizierung (http://en.wikipedia.org/wiki/Vincenty%27s_formulae#Vincenty.27s_modification).
       *
       * @param that Knoten, zu dem der Abstand berechnet werden soll.
       * @return Geographischer Abstand in Metern oder 0, wenn der Abstand nicht berechnet werden konnte.
@@ -68,8 +69,10 @@ class Node(val id: Int, val geographicCoordinate: GeographicCoordinate) {
                 val cosSigma = iterationResult.get._4
                 val sigma = iterationResult.get._5
                 val uSquared = cosSquaredAlpha * (pow(a, 2) - pow(b, 2)) / pow(b, 2)
-                val A = 1 + uSquared / 16384 * (4096 + uSquared * (-768 + uSquared * (320 - 175 * uSquared)))
-                val B = uSquared / 1024 * (256 * uSquared * (-128 + uSquared * (74 -47 * uSquared)))
+                val sqrtOfOnePlusUSquared = sqrt(1 + uSquared)
+                val k1 = (sqrtOfOnePlusUSquared - 1) / (sqrtOfOnePlusUSquared + 1)
+                val A = (1 + 1 / 4 * pow(k1, 2)) / (1 - k1)
+                val B = k1 * (1 - 3/8 * pow(k1, 2))
                 val deltaSigma = B * sinSigma * (cos2SigmaM + B / 4 * (cosSigma * (-1 + 2 * pow(cos2SigmaM, 2)) - B / 6 * cos2SigmaM * (-3 + 4 * pow(sinSigma, 2)) * (-3 + 4 * pow(cos2SigmaM, 2))))
                 b * A * (sigma - deltaSigma)
         }
