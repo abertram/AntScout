@@ -102,4 +102,58 @@ class WayTest extends FunSuite with ShouldMatchers {
             </way>, nodes)
         way.speed should  be (Way.DefaultSpeeds("motorway"))
     }
+
+// Tests zur Berechnung von Tunnel-Längen
+/*
+    test("Elbtunnel") {
+        val node1 = new Node(1, new GeographicCoordinate(53.5537094f, 9.8971024f))
+        val node2 = new Node(2, new GeographicCoordinate(53.5510178f, 9.898565f))
+        val node3 = new Node(3, new GeographicCoordinate(53.5473983f, 9.9030333f))
+        val node4 = new Node(4, new GeographicCoordinate(53.537068f, 9.9284762f))
+        val node5 = new Node(5, new GeographicCoordinate(53.5358357f, 9.9304749f))
+        val nodes = List[Node](node1, node2, node3, node4, node5)
+        val length = nodes.zip(nodes.tail).map(n => n._1 distanceTo n._2).sum
+        val tunnelLength = nodes.zip(nodes.tail).map(n => {
+            val theta1 = math.Pi / 2 - n._1.geographicCoordinate.latitude.toRadians
+            val lambda1 = n._1.geographicCoordinate.longitude.toRadians
+            val theta2 = math.Pi / 2 - n._2.geographicCoordinate.latitude.toRadians
+            val lambda2 = n._2.geographicCoordinate.longitude.toRadians
+            val dX = math.cos(theta2) * math.cos(lambda2) - math.cos(theta1) * math.cos(lambda1)
+            val dY = math.cos(theta2) * math.sin(lambda2) - math.cos(theta1) * math.sin(lambda1)
+            math.sqrt(math.pow(dX, 2) + math.pow(dY, 2)) * 6371009
+        }).sum
+        // 3325 m
+        length should be (tunnelLength)
+    }
+
+    test("Lærdalstunnel") {
+        val nodes = List(
+            new Node(1, new GeographicCoordinate(61.0641471f, 7.5030956f)),
+            new Node(2, new GeographicCoordinate(61.0638896f, 7.501791f)),
+            new Node(3, new GeographicCoordinate(61.0634245f, 7.5000229f)),
+            new Node(4, new GeographicCoordinate(61.0626812f, 7.4979544f)),
+            new Node(5, new GeographicCoordinate(61.061672f, 7.4956198f)),
+            new Node(6, new GeographicCoordinate(61.0606129f, 7.4934483f)),
+            new Node(7, new GeographicCoordinate(60.9483141f, 7.315854f)),
+            new Node(8, new GeographicCoordinate(60.9401439f, 7.3021211f)),
+            new Node(9, new GeographicCoordinate(60.9270505f, 7.2784318f)),
+            new Node(10, new GeographicCoordinate(60.9233801f, 7.2710504f)),
+            new Node(11, new GeographicCoordinate(60.9202098f, 7.2641839f)),
+            new Node(12, new GeographicCoordinate(60.9001381f, 7.2177495f)),
+            new Node(13, new GeographicCoordinate(60.8994911f, 7.2162217f)),
+            new Node(14, new GeographicCoordinate(60.898907f, 7.2147322f)))
+        val length = nodes.zip(nodes.tail).map(n => n._1 distanceTo n._2).sum
+        val tunnelLength = nodes.zip(nodes.tail).map(n => {
+            val theta1 = math.Pi / 2 - n._1.geographicCoordinate.latitude.toRadians
+            val lambda1 = n._1.geographicCoordinate.longitude.toRadians
+            val theta2 = math.Pi / 2 - n._2.geographicCoordinate.latitude.toRadians
+            val lambda2 = n._2.geographicCoordinate.longitude.toRadians
+            val dX = math.cos(theta2) * math.cos(lambda2) - math.cos(theta1) * math.cos(lambda1)
+            val dY = math.cos(theta2) * math.sin(lambda2) - math.cos(theta1) * math.sin(lambda1)
+            math.sqrt(math.pow(dX, 2) + math.pow(dY, 2)) * 6371009
+        }).sum
+        // 24509 m
+        length should be (tunnelLength)
+    }
+*/
 }
