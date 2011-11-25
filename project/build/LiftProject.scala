@@ -16,7 +16,7 @@ class LiftProject(info: ProjectInfo) extends DefaultWebProject(info) {
     "net.liftweb" %% "lift-webkit" % liftVersion.value.toString % "compile",
     "org.mortbay.jetty" % "jetty" % "6.1.26" % "test",
     "junit" % "junit" % "4.7" % "test",
-    "ch.qos.logback" % "logback-classic" % "0.9.26",
+    "ch.qos.logback" % "logback-classic" % "1.0.0",
     "org.scala-lang" % "scala-compiler" % "2.9.1",
     "org.scala-tools.testing" %% "specs" % "1.6.8" % "test",
     "org.scalatest" %% "scalatest" % "1.6.1" % "test"
