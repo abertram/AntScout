@@ -15,7 +15,7 @@ class Node(val id: Int, val geographicCoordinate: GeographicCoordinate) {
     val logger = Logger(classOf[Node])
 
     /**
-      * Berechnet die geographischen Entfernung zu einem anderen Knoten.
+      * Berechnet die geographische Entfernung zu einem anderen Knoten.
       *
       * Die Berechnung basiert auf der Vincenty-Formel (http://en.wikipedia.org/wiki/Vincenty%27s_formulae) inklusive
       * Vincenty's Modifizierung (http://en.wikipedia.org/wiki/Vincenty%27s_formulae#Vincenty.27s_modification).
