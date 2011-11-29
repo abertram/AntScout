@@ -13,8 +13,8 @@ import collection.immutable.IntMap
 
 class WayTest extends FunSuite with ShouldMatchers {
     test("parseWay, valid way") {
-        val node1 = new Node(1, new GeographicCoordinate(1.0f, 1.0f))
-        val node2 = new Node(2, new GeographicCoordinate(2.0f, 2.0f))
+        val node1 = new Node(1, new GeographicCoordinate(1.0, 1.0))
+        val node2 = new Node(2, new GeographicCoordinate(2.0, 2.0))
         val nodes = IntMap(
             1 -> node1,
             2 -> node2

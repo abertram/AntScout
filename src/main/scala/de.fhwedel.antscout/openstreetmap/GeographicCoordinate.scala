@@ -8,6 +8,6 @@ package openstreetmap
  * Time: 11:40
  */
 
-class GeographicCoordinate(val latitude: Float, val longitude: Float) {
+class GeographicCoordinate(val latitude: Double, val longitude: Double) {
     override def toString = "%f, %f" format (latitude, longitude)
 }
