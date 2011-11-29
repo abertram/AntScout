@@ -10,4 +10,4 @@ import xml.Elem
  * Time: 09:57
  */
 
-case class OsmMapDataResponse(osmMapData: Elem) { }
+case class OsmMapDataResponse(osmMapData: Elem) {}

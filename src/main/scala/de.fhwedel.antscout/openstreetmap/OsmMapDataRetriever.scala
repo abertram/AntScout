@@ -14,20 +14,20 @@ import xml.XML
  */
 
 object OsmMapDataRetriever extends Actor {
-    val logger = Logger(getClass)
+  val logger = Logger(getClass)
 
-    def act() {
-        logger.debug("act")
-        react {
-            case OsmMapDataRequest(requestor) =>
-                logger.debug("OsmMapDataRequest")
-                val osmMapData = retrieveMapData
-                requestor ! OsmMapDataResponse(osmMapData)
-        }
+  def act() {
+    logger.debug("act")
+    react {
+      case OsmMapDataRequest(requestor) =>
+        logger.debug("OsmMapDataRequest")
+        val osmMapData = retrieveMapData
+        requestor ! OsmMapDataResponse(osmMapData)
     }
+  }
 
-    def retrieveMapData = {
-        val url = new URL("http://www.overpass-api.de/api/xapi?*[bbox=9.94088,53.75444,9.9512,53.75726]")
-        XML.load(url.openStream())
-    }
+  def retrieveMapData = {
+    val url = new URL("http://www.overpass-api.de/api/xapi?*[bbox=9.94088,53.75444,9.9512,53.75726]")
+    XML.load(url.openStream())
+  }
 }

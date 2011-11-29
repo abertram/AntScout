@@ -10,4 +10,4 @@ import actors.Actor
  * Time: 09:47
  */
 
-case class OsmMapDataRequest(requestor: Actor) { }
+case class OsmMapDataRequest(requestor: Actor) {}

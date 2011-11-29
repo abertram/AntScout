@@ -9,5 +9,5 @@ package openstreetmap
  */
 
 class GeographicCoordinate(val latitude: Double, val longitude: Double) {
-    override def toString = "%f, %f" format (latitude, longitude)
+  override def toString = "%f, %f" format(latitude, longitude)
 }

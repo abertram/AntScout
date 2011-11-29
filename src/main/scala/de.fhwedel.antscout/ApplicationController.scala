@@ -2,7 +2,7 @@ package de.fhwedel.antscout
 
 import net.liftweb.common.Logger
 import actors.Actor
-import openstreetmap.{OsmMapDataResponse, OsmMapDataRequest, OsmMapDataRetriever}
+import openstreetmap.{OsmMap, OsmMapDataResponse, OsmMapDataRequest, OsmMapDataRetriever}
 
 /**
  * Created by IntelliJ IDEA.
@@ -12,15 +12,17 @@ import openstreetmap.{OsmMapDataResponse, OsmMapDataRequest, OsmMapDataRetriever
  */
 
 object ApplicationController extends Actor {
-    val logger = Logger(getClass)
+  val logger = Logger(getClass)
 
-    def act() {
-        logger.debug("Starting OsmMapDataRetriever")
-        OsmMapDataRetriever.start()
-        OsmMapDataRetriever ! OsmMapDataRequest(this)
-        react {
-            case OsmMapDataResponse(osmMapData) =>
-                logger.debug("OsmMapDataResponse")
-        }
+  def act() {
+    logger.debug("Starting OsmMapDataRetriever")
+    OsmMapDataRetriever.start()
+    OsmMapDataRetriever ! OsmMapDataRequest(this)
+    react {
+      case OsmMapDataResponse(osmMapData) => {
+        logger.debug("OsmMapDataResponse")
+        new OsmMap(osmMapData)
+      }
     }
+  }
 }

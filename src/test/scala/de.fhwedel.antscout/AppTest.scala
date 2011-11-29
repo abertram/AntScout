@@ -13,7 +13,7 @@ object AppTest {
     suite
   }
 
-  def main(args : Array[String]) {
+  def main(args: Array[String]) {
     junit.textui.TestRunner.run(suite)
   }
 }
@@ -27,6 +27,7 @@ class AppTest extends TestCase("app") {
    * Rigourous Tests :-)
    */
   def testOK() = assertTrue(true)
+
   // def testKO() = assertTrue(false);
 
   /**
