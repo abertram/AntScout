@@ -11,8 +11,7 @@ import net.liftweb.common.Logger
  * Time: 11:36
  */
 
-class Node(val id: Int, val geographicCoordinate: GeographicCoordinate) {
-  val logger = Logger(classOf[Node])
+class Node(val id: Int, val geographicCoordinate: GeographicCoordinate) extends Logger {
 
   /**
    * Berechnet die geographische Entfernung zu einem anderen Knoten.
@@ -90,12 +89,11 @@ class Node(val id: Int, val geographicCoordinate: GeographicCoordinate) {
   override def toString = "[%d] %s".format(id, geographicCoordinate)
 }
 
-object Node {
-  val logger = Logger(getClass)
+object Node extends Logger {
 
   def parseNode(node: xml.Node): Node = {
     val id = (node \ "@id").text.toInt
-    logger.assertLog(id < 1, id.toString)
+    assertLog(id < 1, id.toString)
     val latitude = (node \ "@lat").text.toFloat
     require(latitude > -90.0 && latitude < 90.0, "Node %d: invalid latitude" format id)
     val longitude = (node \ "@lon").text.toFloat

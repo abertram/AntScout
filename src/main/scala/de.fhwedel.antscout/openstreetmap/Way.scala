@@ -12,14 +12,13 @@ import net.liftweb.common.Logger
  * Time: 15:13
  */
 
-class Way(val id: Int, val name: String, val nodes: Vector[Node], val maxSpeed: Double) {
-  val logger = Logger(getClass)
+class Way(val id: Int, val name: String, val nodes: Vector[Node], val maxSpeed: Double) extends Logger {
 
   val length = nodes.length match {
     case nodesLength if nodesLength >= 2 =>
       nodes.zip(nodes.tail).map(n => n._1.distanceTo(n._2)).sum
     case _ =>
-      logger.warn("Way %d has less than two nodes" format id)
+      warn("Way %d has less than two nodes" format id)
       0.0
   }
 
@@ -33,7 +32,7 @@ class Way(val id: Int, val name: String, val nodes: Vector[Node], val maxSpeed: 
   override def hashCode() = id
 }
 
-object Way {
+object Way extends Logger {
   val DefaultSpeeds = Map(
     "motorway" -> 130.0,
     "motorway_link" -> 80.0,
@@ -48,7 +47,6 @@ object Way {
     "track" -> 30.0,
     "" -> 50.0
   )
-  val logger = Logger(getClass)
 
   def parseWay(way: xml.Node, nodes: IntMap[Node]): Way = {
     def parseNodes(wayNodes: NodeSeq): Vector[Node] = {
@@ -68,11 +66,11 @@ object Way {
             Some(value.toDouble)
           } catch {
             case numberFormatException: NumberFormatException => {
-              logger.warn("Way %d: max speed is not a number" format id)
+              warn("Way %d: max speed is not a number" format id)
               None
             }
             case exception: Exception => {
-              logger.warn("Way %d: exception while parsing max speed of way %d" format id, exception)
+              warn("Way %d: exception while parsing max speed of way %d" format id, exception)
               None
             }
           }

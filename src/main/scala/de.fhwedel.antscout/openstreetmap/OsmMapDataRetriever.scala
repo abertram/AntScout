@@ -13,14 +13,13 @@ import xml.XML
  * Time: 08:09
  */
 
-object OsmMapDataRetriever extends Actor {
-  val logger = Logger(getClass)
+object OsmMapDataRetriever extends Actor with Logger {
 
   def act() {
-    logger.debug("act")
+    debug("act")
     react {
       case OsmMapDataRequest(requestor) =>
-        logger.debug("OsmMapDataRequest")
+        debug("OsmMapDataRequest")
         val osmMapData = retrieveMapData
         requestor ! OsmMapDataResponse(osmMapData)
     }
