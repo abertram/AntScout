@@ -78,6 +78,15 @@ class Node(val id: Int, val geographicCoordinate: GeographicCoordinate) {
     }
   }
 
+  override def equals(that: Any) = {
+    that match {
+      case node: Node => this.id == node.id
+      case _ => false
+    }
+  }
+
+  override def hashCode() = id
+
   override def toString = "[%d] %s".format(id, geographicCoordinate)
 }
 

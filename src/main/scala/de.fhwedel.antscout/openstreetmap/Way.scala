@@ -22,6 +22,15 @@ class Way(val id: Int, val name: String, val nodes: Vector[Node], val maxSpeed: 
       logger.warn("Way %d has less than two nodes" format id)
       0.0
   }
+
+  override def equals(that: Any) = {
+    that match {
+      case way: Way => id == way.id
+      case _ => false
+    }
+  }
+
+  override def hashCode() = id
 }
 
 object Way {
