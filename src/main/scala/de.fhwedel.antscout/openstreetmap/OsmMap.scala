@@ -2,8 +2,9 @@ package de.fhwedel.antscout
 package openstreetmap
 
 import net.liftweb.common.Logger
-import collection.immutable.IntMap
 import xml.{NodeSeq, Elem}
+import collection.immutable.{Set, HashSet, IntMap}
+import collection.{Iterable, Seq}
 
 /**
  * Created by IntelliJ IDEA.
@@ -16,6 +17,7 @@ class OsmMap(mapData: Elem) {
   val logger = Logger(getClass)
   val nodes = parseNodes(mapData \ "node")
   val ways = parseWays(mapData \ "way")
+  val nodeWays = OsmMap createNodeWays (nodes.values, ways.values)
 
   def parseNodes(nodes: NodeSeq) = {
     logger.debug("Parsing nodes")
@@ -31,5 +33,14 @@ class OsmMap(mapData: Elem) {
       val id = (way \ "@id").text.toInt
       Tuple2(id, Way.parseWay(way, nodes))
     }): _*)
+  }
+}
+
+object OsmMap extends Logger {
+  def createNodeWays(nodes: Iterable[Node], ways: Iterable[Way]) = {
+    debug("Creating node ways")
+    nodes map (node => {
+      (node id, (ways filter (way => way.nodes contains node)) toSet)
+    }) toMap
   }
 }
