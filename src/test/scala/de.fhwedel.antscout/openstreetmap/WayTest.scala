@@ -47,7 +47,7 @@ class WayTest extends FunSuite with ShouldMatchers {
       <way id="1">
           <tag k="name" v=" "/>
       </way>, nodes)
-    way.name should be("")
+    way.name.trim() should be ('empty)
   }
 
   test("parseWay, no maxspeed tag") {
