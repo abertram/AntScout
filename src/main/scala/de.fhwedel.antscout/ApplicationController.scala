@@ -2,7 +2,7 @@ package de.fhwedel.antscout
 
 import net.liftweb.common.Logger
 import actors.Actor
-import openstreetmap.{OsmMap, OsmMapDataResponse, OsmMapDataRequest, OsmMapDataRetriever}
+import osm.{OsmMap, OsmMapDataResponse, OsmMapDataRequest, OsmMapDataRetriever}
 
 /**
  * Created by IntelliJ IDEA.
