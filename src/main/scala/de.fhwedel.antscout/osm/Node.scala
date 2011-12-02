@@ -1,5 +1,5 @@
 package de.fhwedel.antscout
-package openstreetmap
+package osm
 
 import scala.math._
 import net.liftweb.common.Logger

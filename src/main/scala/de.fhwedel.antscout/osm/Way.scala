@@ -1,5 +1,5 @@
 package de.fhwedel.antscout
-package openstreetmap
+package osm
 
 import xml.NodeSeq
 import collection.immutable.IntMap
