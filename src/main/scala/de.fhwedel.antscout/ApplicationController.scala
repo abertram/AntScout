@@ -21,7 +21,7 @@ object ApplicationController extends Actor {
     react {
       case OsmMapDataResponse(osmMapData) => {
         logger.debug("OsmMapDataResponse")
-        new OsmMap(osmMapData)
+        OsmMap(osmMapData)
       }
     }
   }

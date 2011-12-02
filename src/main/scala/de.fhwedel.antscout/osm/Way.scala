@@ -48,7 +48,7 @@ object Way extends Logger {
     "" -> 50.0
   )
 
-  def parseWay(way: xml.Node, nodes: IntMap[Node]): Way = {
+  def parseWay(way: xml.Node, nodes: Map[Int, Node]): Way = {
     def parseNodes(wayNodes: NodeSeq): Vector[Node] = {
       Vector[Node](wayNodes.map(wayNode => {
         val id = (wayNode \ "@ref").text.toInt

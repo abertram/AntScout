@@ -13,29 +13,33 @@ import collection.{Iterable, Seq}
  * Time: 09:58
  */
 
-class OsmMap(mapData: Elem) extends Logger {
-  val nodes = parseNodes(mapData \ "node")
-  val ways = parseWays(mapData \ "way")
+class OsmMap(val nodes: Map[Int, Node], val ways: Map[Int, Way]) extends Logger {
   val nodeWays = OsmMap createNodeWays (nodes.values, ways.values)
-
-  def parseNodes(nodes: NodeSeq) = {
-    debug("Parsing nodes")
-    IntMap[Node](nodes.map(node => {
-      val id = (node \ "@id").text.toInt
-      Tuple2(id, Node.parseNode(node))
-    }): _*)
-  }
-
-  def parseWays(ways: NodeSeq) = {
-    debug("Parsing ways")
-    IntMap[Way](ways.map(way => {
-      val id = (way \ "@id").text.toInt
-      Tuple2(id, Way.parseWay(way, nodes))
-    }): _*)
-  }
 }
 
 object OsmMap extends Logger {
+  def apply(osmData: Elem) = {
+    val nodes = parseNodes(osmData \ "node")
+    val ways = parseWays(osmData \ "way", nodes)
+    new OsmMap(nodes, ways)
+  }
+
+  def parseNodes(nodes: NodeSeq) = {
+    debug("Parsing nodes")
+    nodes.map(node => {
+      val id = (node \ "@id").text.toInt
+      (id, Node.parseNode(node))
+    }) toMap
+  }
+
+  def parseWays(ways: NodeSeq, nodes: Map[Int, Node]) = {
+    debug("Parsing ways")
+    ways.map(way => {
+      val id = (way \ "@id").text.toInt
+      (id, Way.parseWay(way, nodes))
+    }) toMap
+  }
+
   def createNodeWays(nodes: Iterable[Node], ways: Iterable[Way]) = {
     debug("Creating node ways")
     nodes map (node => {
