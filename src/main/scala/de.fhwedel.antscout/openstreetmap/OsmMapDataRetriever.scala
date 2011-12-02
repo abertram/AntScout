@@ -1,4 +1,5 @@
-package de.fhwedel.antscout.osm
+package de.fhwedel.antscout
+package openstreetmap
 
 import net.liftweb.common.Logger
 import actors.Actor

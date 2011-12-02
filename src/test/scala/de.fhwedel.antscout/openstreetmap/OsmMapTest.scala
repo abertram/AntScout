@@ -1,4 +1,4 @@
-package de.fhwedel.antscout.osm
+package de.fhwedel.antscout.openstreetmap
 
 import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers
