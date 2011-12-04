@@ -11,10 +11,11 @@ import map.Way
  * Time: 12:07
  */
 
-class AntWay(id: String, val nodes: Seq[AntNode]) extends Way(id)
+class AntWay(id: String, val startNode: AntNode, val endNode: AntNode, val length: Double) extends Way(id)
 
 object AntWay {
   def apply(id: String, nodes: Seq[OsmNode]) = {
-    new AntWay(id, Seq(AntNode(nodes.head id), AntNode(nodes.last id)))
+    val length = nodes.zip(nodes.tail).map(n => n._1.distanceTo(n._2)).sum
+    new AntWay(id, AntNode(nodes.head id), AntNode(nodes.last id), length)
   }
 }

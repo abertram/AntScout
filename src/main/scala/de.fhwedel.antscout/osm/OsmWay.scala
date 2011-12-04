@@ -12,16 +12,7 @@ import map.Way
  * Time: 15:13
  */
 
-class OsmWay(id: String, val name: String, val nodes: Vector[OsmNode], val maxSpeed: Double) extends Way(id) {
-
-  val length = nodes.length match {
-    case nodesLength if nodesLength >= 2 =>
-      nodes.zip(nodes.tail).map(n => n._1.distanceTo(n._2)).sum
-    case _ =>
-      warn("OsmWay %d has less than two nodes" format id)
-      0.0
-  }
-}
+class OsmWay(id: String, val name: String, val nodes: Vector[OsmNode], val maxSpeed: Double) extends Way(id)
 
 object OsmWay extends Logger {
   val DefaultSpeeds = Map(
