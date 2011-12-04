@@ -1,7 +1,7 @@
 package de.fhwedel.antscout
 package antnet
 
-import osm.{Way, Node, OsmMap}
+import osm.{OsmWay, OsmNode, OsmMap}
 import net.liftweb.common.Logger
 
 /**
@@ -28,8 +28,8 @@ object AntMap extends Logger {
     new AntMap(antNodes, antWays)
   }
 
-  def convertOsmWayToAntWays(osmWay: Way, intersections: Seq[Node]) = {
-    def createAntWays(antWayNodes: Seq[Node], remainNodes: Seq[Node], antWays: Iterable[AntWay]): Iterable[AntWay] = {
+  def convertOsmWayToAntWays(osmWay: OsmWay, intersections: Seq[OsmNode]) = {
+    def createAntWays(antWayNodes: Seq[OsmNode], remainNodes: Seq[OsmNode], antWays: Iterable[AntWay]): Iterable[AntWay] = {
       (antWayNodes, remainNodes) match {
         case (Nil, _) =>
           antWays

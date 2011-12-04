@@ -12,15 +12,15 @@ import collection.immutable.IntMap
  * Time: 18:20
  */
 
-class WayTest extends FunSuite with ShouldMatchers {
+class OsmWayTest extends FunSuite with ShouldMatchers {
   test("parseWay, valid way") {
-    val node1 = new Node(1, new GeographicCoordinate(1.0, 1.0))
-    val node2 = new Node(2, new GeographicCoordinate(2.0, 2.0))
+    val node1 = new OsmNode(1, new GeographicCoordinate(1.0, 1.0))
+    val node2 = new OsmNode(2, new GeographicCoordinate(2.0, 2.0))
     val nodes = IntMap(
       1 -> node1,
       2 -> node2
     )
-    val way = Way.parseWay(
+    val way = OsmWay.parseWay(
       <way id="1">
           <nd ref="1"/>
           <nd ref="2"/>
@@ -38,13 +38,13 @@ class WayTest extends FunSuite with ShouldMatchers {
 
   test("parseWay, no name") {
     val nodes = IntMap()
-    val way = Way.parseWay(<way id="1"/>, nodes)
+    val way = OsmWay.parseWay(<way id="1"/>, nodes)
     way.name should be("")
   }
 
   test("parseWay, empty name") {
     val nodes = IntMap()
-    val way = Way.parseWay(
+    val way = OsmWay.parseWay(
       <way id="1">
           <tag k="name" v=" "/>
       </way>, nodes)
@@ -53,55 +53,55 @@ class WayTest extends FunSuite with ShouldMatchers {
 
   test("parseWay, no maxspeed tag") {
     val nodes = IntMap()
-    val way = Way.parseWay(<way id="1"/>, nodes)
-    way.maxSpeed should be(Way.DefaultSpeeds(""))
+    val way = OsmWay.parseWay(<way id="1"/>, nodes)
+    way.maxSpeed should be(OsmWay.DefaultSpeeds(""))
   }
 
   test("parseWay, empty maxspeed tag") {
     val nodes = IntMap()
-    val way = Way.parseWay(
+    val way = OsmWay.parseWay(
       <way id="1">
           <tag k="maxspeed" v=" "/>
       </way>, nodes)
-    way.maxSpeed should be(Way.DefaultSpeeds(""))
+    way.maxSpeed should be(OsmWay.DefaultSpeeds(""))
   }
 
   test("parseWay, maxspeed is not a number") {
     val nodes = IntMap()
-    val way = Way.parseWay(
+    val way = OsmWay.parseWay(
       <way id="1">
           <tag k="maxspeed" v="maxspeed"/>
       </way>, nodes)
-    way.maxSpeed should be(Way.DefaultSpeeds(""))
+    way.maxSpeed should be(OsmWay.DefaultSpeeds(""))
   }
 
   test("parseWay, no maxspeed tag, speed from highway tag") {
     val nodes = IntMap()
-    val way = Way.parseWay(
+    val way = OsmWay.parseWay(
       <way id="1">
           <tag k="highway" v="motorway"/>
       </way>, nodes)
-    way.maxSpeed should be(Way.DefaultSpeeds("motorway"))
+    way.maxSpeed should be(OsmWay.DefaultSpeeds("motorway"))
   }
 
   test("parseWay, empty maxspeed tag, speed from highway tag") {
     val nodes = IntMap()
-    val way = Way.parseWay(
+    val way = OsmWay.parseWay(
       <way id="1">
           <tag k="highway" v="motorway"/>
           <tag k="maxspeed" v=" "/>
       </way>, nodes)
-    way.maxSpeed should be(Way.DefaultSpeeds("motorway"))
+    way.maxSpeed should be(OsmWay.DefaultSpeeds("motorway"))
   }
 
   test("parseWay, maxspeed is not a number, speed from highway tag") {
     val nodes = IntMap()
-    val way = Way.parseWay(
+    val way = OsmWay.parseWay(
       <way id="1">
           <tag k="highway" v="motorway"/>
           <tag k="maxspeed" v="maxspeed"/>
       </way>, nodes)
-    way.maxSpeed should be(Way.DefaultSpeeds("motorway"))
+    way.maxSpeed should be(OsmWay.DefaultSpeeds("motorway"))
   }
 
   // Tests zur Berechnung von Tunnel-Längen

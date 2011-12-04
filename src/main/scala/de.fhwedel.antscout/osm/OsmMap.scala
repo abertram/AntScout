@@ -12,7 +12,7 @@ import collection.immutable.Map
  * Time: 09:58
  */
 
-class OsmMap(val nodes: Map[Int, Node], val ways: Map[Int, Way]) {
+class OsmMap(val nodes: Map[Int, OsmNode], val ways: Map[String, OsmWay]) {
   def intersections = {
     nodes.values filter (node => {
       (ways.values filter (way => way.nodes contains node)).size > 1
@@ -27,9 +27,9 @@ object OsmMap extends Logger {
     new OsmMap(nodes, ways)
   }
 
-  def apply(nodes: Map[Int, Node], ways: Map[Int, Way]) = new OsmMap(nodes, ways)
+  def apply(nodes: Map[Int, OsmNode], ways: Map[String, OsmWay]) = new OsmMap(nodes, ways)
   
-  def apply(nodes: Iterable[Node], ways: Iterable[Way]) = {
+  def apply(nodes: Iterable[OsmNode], ways: Iterable[OsmWay]) = {
     val osmNodes = nodes.map(node => {
       (node.id, node)
     }).toMap
@@ -43,15 +43,15 @@ object OsmMap extends Logger {
     debug("Parsing nodes")
     nodes.map(node => {
       val id = (node \ "@id").text.toInt
-      (id, Node.parseNode(node))
+      (id, OsmNode.parseNode(node))
     }) toMap
   }
 
-  def parseWays(ways: NodeSeq, nodes: Map[Int, Node]) = {
+  def parseWays(ways: NodeSeq, nodes: Map[Int, OsmNode]) = {
     debug("Parsing ways")
     ways.map(way => {
-      val id = (way \ "@id").text.toInt
-      (id, Way.parseWay(way, nodes))
+      val id = (way \ "@id").text
+      (id, OsmWay.parseWay(way, nodes))
     }) toMap
   }
 }

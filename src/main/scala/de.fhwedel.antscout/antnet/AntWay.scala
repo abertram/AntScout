@@ -1,7 +1,8 @@
 package de.fhwedel.antscout
 package antnet
 
-import osm.Node
+import osm.OsmNode
+import map.Way
 
 /**
  * Created by IntelliJ IDEA.
@@ -10,12 +11,10 @@ import osm.Node
  * Time: 12:07
  */
 
-class AntWay(val id: String, val nodes: Seq[AntNode]) {
-
-}
+class AntWay(id: String, val nodes: Seq[AntNode]) extends Way(id)
 
 object AntWay {
-  def apply(id: String, nodes: Seq[Node]) = {
+  def apply(id: String, nodes: Seq[OsmNode]) = {
     new AntWay(id, Seq(AntNode(nodes.head id), AntNode(nodes.last id)))
   }
 }

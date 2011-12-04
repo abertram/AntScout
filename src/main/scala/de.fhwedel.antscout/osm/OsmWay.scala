@@ -2,8 +2,8 @@ package de.fhwedel.antscout
 package osm
 
 import xml.NodeSeq
-import collection.immutable.IntMap
 import net.liftweb.common.Logger
+import map.Way
 
 /**
  * Created by IntelliJ IDEA.
@@ -12,27 +12,18 @@ import net.liftweb.common.Logger
  * Time: 15:13
  */
 
-class Way(val id: Int, val name: String, val nodes: Vector[Node], val maxSpeed: Double) extends Logger {
+class OsmWay(id: String, val name: String, val nodes: Vector[OsmNode], val maxSpeed: Double) extends Way(id) {
 
   val length = nodes.length match {
     case nodesLength if nodesLength >= 2 =>
       nodes.zip(nodes.tail).map(n => n._1.distanceTo(n._2)).sum
     case _ =>
-      warn("Way %d has less than two nodes" format id)
+      warn("OsmWay %d has less than two nodes" format id)
       0.0
   }
-
-  override def equals(that: Any) = {
-    that match {
-      case way: Way => id == way.id
-      case _ => false
-    }
-  }
-
-  override def hashCode() = id
 }
 
-object Way extends Logger {
+object OsmWay extends Logger {
   val DefaultSpeeds = Map(
     "motorway" -> 130.0,
     "motorway_link" -> 80.0,
@@ -48,14 +39,14 @@ object Way extends Logger {
     "" -> 50.0
   )
 
-  def parseWay(way: xml.Node, nodes: Map[Int, Node]): Way = {
-    def parseNodes(wayNodes: NodeSeq): Vector[Node] = {
-      Vector[Node](wayNodes.map(wayNode => {
+  def parseWay(way: xml.Node, nodes: Map[Int, OsmNode]): OsmWay = {
+    def parseNodes(wayNodes: NodeSeq): Vector[OsmNode] = {
+      Vector[OsmNode](wayNodes.map(wayNode => {
         val id = (wayNode \ "@ref").text.toInt
         nodes(id)
       }): _*)
     }
-    val id = (way \ "@id").text.toInt
+    val id = (way \ "@id").text
     val wayNodes = parseNodes(way \ "nd")
     val tags = Map(way \ "tag" map (tag => ((tag \ "@k").text, (tag \ "@v").text)): _*)
     val name = tags.getOrElse("name", "")
@@ -66,11 +57,11 @@ object Way extends Logger {
             Some(value.toDouble)
           } catch {
             case numberFormatException: NumberFormatException => {
-              warn("Way %d: max speed is not a number" format id)
+              warn("OsmWay %s: max speed is not a number" format id)
               None
             }
             case exception: Exception => {
-              warn("Way %d: exception while parsing max speed of way %d" format id, exception)
+              warn("OsmWay %s: exception while parsing max speed of way %d" format id, exception)
               None
             }
           }
@@ -83,6 +74,6 @@ object Way extends Logger {
       DefaultSpeeds.get(tags.getOrElse("highway", ""))
     }
     val maxSpeed: Double = maxSpeedFromMaxSpeedTag orElse maxSpeedFromHighwayTag getOrElse DefaultSpeeds("")
-    new Way(id, name, wayNodes, maxSpeed)
+    new OsmWay(id, name, wayNodes, maxSpeed)
   }
 }

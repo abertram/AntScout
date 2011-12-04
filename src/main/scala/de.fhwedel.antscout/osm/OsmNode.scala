@@ -3,6 +3,7 @@ package osm
 
 import scala.math._
 import net.liftweb.common.Logger
+import map.Node
 
 /**
  * Created by IntelliJ IDEA.
@@ -11,7 +12,7 @@ import net.liftweb.common.Logger
  * Time: 11:36
  */
 
-class Node(val id: Int, val geographicCoordinate: GeographicCoordinate) extends Logger {
+class OsmNode(id: Int, val geographicCoordinate: GeographicCoordinate) extends Node(id) {
 
   /**
    * Berechnet die geographische Entfernung zu einem anderen Knoten.
@@ -22,7 +23,7 @@ class Node(val id: Int, val geographicCoordinate: GeographicCoordinate) extends 
    * @param that Knoten, zu dem der Abstand berechnet werden soll.
    * @return Geographischer Abstand in Metern oder 0, wenn der Abstand nicht berechnet werden konnte.
    */
-  def distanceTo(that: Node) = {
+  def distanceTo(that: OsmNode) = {
     val a = 6378137.0
     val f = 1 / 298.257223563
     val b = (1 - f) * a
@@ -77,21 +78,12 @@ class Node(val id: Int, val geographicCoordinate: GeographicCoordinate) extends 
     }
   }
 
-  override def equals(that: Any) = {
-    that match {
-      case node: Node => this.id == node.id
-      case _ => false
-    }
-  }
-
-  override def hashCode() = id
-
   override def toString = "[%d] %s".format(id, geographicCoordinate)
 }
 
-object Node extends Logger {
+object OsmNode extends Logger {
 
-  def parseNode(node: xml.Node): Node = {
+  def parseNode(node: xml.Node): OsmNode = {
     val id = (node \ "@id").text.toInt
     assertLog(id < 1, id.toString)
     val latitude = (node \ "@lat").text.toFloat
@@ -99,6 +91,6 @@ object Node extends Logger {
     val longitude = (node \ "@lon").text.toFloat
     require(longitude > -180.0 && longitude < 180.0, "Node %d: invalid longitude" format id)
     val geographicCoordinate = new GeographicCoordinate(latitude, longitude)
-    new Node(id, geographicCoordinate)
+    new OsmNode(id, geographicCoordinate)
   }
 }

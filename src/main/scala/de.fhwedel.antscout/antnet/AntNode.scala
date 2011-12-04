@@ -1,7 +1,8 @@
 package de.fhwedel.antscout
 package antnet
 
-import osm.Node
+import osm.OsmNode
+import map.Node
 
 
 /**
@@ -11,10 +12,10 @@ import osm.Node
  * Time: 12:06
  */
 
-class AntNode(val id: Int) { }
+class AntNode(id: Int) extends Node(id)
 
 object AntNode {
   def apply(id: Int) = new AntNode(id)
 
-  implicit def toAntNode(node: Node) = new AntNode(node id)
+  implicit def toAntNode(node: OsmNode) = new AntNode(node id)
 }
