@@ -13,6 +13,12 @@ import collection.immutable.Map
  */
 
 class OsmMap(val nodes: Map[Int, OsmNode], val ways: Map[String, OsmWay]) {
+  def nodeWaysMap = {
+    nodes.values.map(node => {
+      (node, (ways.values.filter(way => way.nodes.contains(node))).toIterable)
+    }).toMap
+  }
+  
   def intersections = {
     nodes.values filter (node => {
       (ways.values filter (way => way.nodes contains node)).size > 1

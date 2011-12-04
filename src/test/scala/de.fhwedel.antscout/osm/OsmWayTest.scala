@@ -104,6 +104,56 @@ class OsmWayTest extends FunSuite with ShouldMatchers {
     way.maxSpeed should be(OsmWay.DefaultSpeeds("motorway"))
   }
 
+  test("parseWay, oneway = yes") {
+    val node1 = new OsmNode(1, new GeographicCoordinate(1.0, 1.0))
+    val node2 = new OsmNode(2, new GeographicCoordinate(2.0, 2.0))
+    val nodes = Map(1 -> node1, 2 -> node2)
+    val way = OsmWay.parseWay(
+      <way id="1">
+          <nd ref="1"/>
+          <nd ref="2"/>
+          <tag k="highway" v="motorway"/>
+          <tag k="maxspeed" v="1"/>
+          <tag k="name" v="Test way"/>
+          <tag k="oneway" v="yes"/>
+      </way>, nodes)
+    way.isInstanceOf[OsmOneWay] should be (true)
+  }
+
+  test("parseWay, oneway = no") {
+    val node1 = new OsmNode(1, new GeographicCoordinate(1.0, 1.0))
+    val node2 = new OsmNode(2, new GeographicCoordinate(2.0, 2.0))
+    val nodes = Map(1 -> node1, 2 -> node2)
+    val way = OsmWay.parseWay(
+      <way id="1">
+          <nd ref="1"/>
+          <nd ref="2"/>
+          <tag k="highway" v="motorway"/>
+          <tag k="maxspeed" v="1"/>
+          <tag k="name" v="Test way"/>
+          <tag k="oneway" v="no"/>
+      </way>, nodes)
+    way.isInstanceOf[OsmWay] should be (true)
+  }
+
+  test("parseWay, oneway = -1") {
+    val node1 = new OsmNode(1, new GeographicCoordinate(1.0, 1.0))
+    val node2 = new OsmNode(2, new GeographicCoordinate(2.0, 2.0))
+    val nodes = Map(1 -> node1, 2 -> node2)
+    val way = OsmWay.parseWay(
+      <way id="1">
+          <nd ref="1"/>
+          <nd ref="2"/>
+          <tag k="highway" v="motorway"/>
+          <tag k="maxspeed" v="1"/>
+          <tag k="name" v="Test way"/>
+          <tag k="oneway" v="-1"/>
+      </way>, nodes)
+    way.isInstanceOf[OsmOneWay] should be (true)
+    way.nodes(0) should equal (node2)
+    way.nodes(1) should equal (node1)
+  }
+
   // Tests zur Berechnung von Tunnel-Längen
   /*
       test("Elbtunnel") {

@@ -65,6 +65,15 @@ object OsmWay extends Logger {
       DefaultSpeeds.get(tags.getOrElse("highway", ""))
     }
     val maxSpeed: Double = maxSpeedFromMaxSpeedTag orElse maxSpeedFromHighwayTag getOrElse DefaultSpeeds("")
-    new OsmWay(id, name, wayNodes, maxSpeed)
+    val oneWay = tags.getOrElse("oneway", "")
+    oneWay match {
+      case "yes" | "true" | "1" => new OsmOneWay(id, name, wayNodes, maxSpeed)
+      case "-1" => new OsmOneWay(id, name, wayNodes.reverse, maxSpeed)
+      case "no" | "false" | "0" => new OsmWay(id, name, wayNodes, maxSpeed)
+      case _ => {
+        warn("Way %s, unknonw oneway value: %s".format(id, oneWay))
+        new OsmWay(id, name, wayNodes, maxSpeed)
+      }
+    }
   }
 }
