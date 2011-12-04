@@ -28,7 +28,7 @@ class OsmWayTest extends FunSuite with ShouldMatchers {
           <tag k="maxspeed" v="1"/>
           <tag k="name" v="Test way"/>
       </way>, nodes)
-    way.id should be(1)
+    way.id should be("1")
     way.nodes should have length (2)
     way.nodes(0) should equal(node1)
     way.nodes(1) should equal(node2)
