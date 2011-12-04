@@ -39,7 +39,7 @@ object AntMap extends Logger {
           createAntWays(Nil, Nil, Seq(AntWay(("%d-%d" format (osmWay.id, antWays.size + 1)), antWayNodes reverse)) ++ antWays)
         case (_,  Seq(head, tail @ _*)) =>
           if (intersections contains head)
-            createAntWays(Vector(head), tail, Seq(AntWay(("%d-%d" format (osmWay.id, antWays.size + 1)), (Vector(head) ++ antWayNodes) reverse)) ++ antWays)
+            createAntWays(Vector(head), tail, Seq(AntWay(("%s-%d" format (osmWay.id, antWays.size + 1)), (Vector(head) ++ antWayNodes) reverse)) ++ antWays)
           else
             createAntWays(Vector(head) ++ antWayNodes, tail, antWays)
       }

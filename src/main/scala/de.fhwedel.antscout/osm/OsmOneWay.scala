@@ -8,4 +8,4 @@ package osm
  * Time: 15:49
  */
 
-class OsmOneWay(id: String, name: String, nodes: Vector[OsmNode], maxSpeed: Double) extends OsmWay(id, name, nodes, maxSpeed)
+class OsmOneWay(id: Int, name: String, nodes: Vector[OsmNode], maxSpeed: Double) extends OsmWay(id, name, nodes, maxSpeed)

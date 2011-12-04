@@ -12,7 +12,7 @@ import map.Way
  * Time: 15:13
  */
 
-class OsmWay(id: String, val name: String, val nodes: Vector[OsmNode], val maxSpeed: Double) extends Way(id)
+class OsmWay(id: Int, val name: String, val nodes: Vector[OsmNode], val maxSpeed: Double) extends Way(id.toString)
 
 object OsmWay extends Logger {
   val DefaultSpeeds = Map(
@@ -37,7 +37,7 @@ object OsmWay extends Logger {
         nodes(id)
       }): _*)
     }
-    val id = (way \ "@id").text
+    val id = (way \ "@id").text.toInt
     val wayNodes = parseNodes(way \ "nd")
     val tags = Map(way \ "tag" map (tag => ((tag \ "@k").text, (tag \ "@v").text)): _*)
     val name = tags.getOrElse("name", "")
