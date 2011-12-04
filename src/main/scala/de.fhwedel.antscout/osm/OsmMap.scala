@@ -12,7 +12,13 @@ import collection.immutable.Map
  * Time: 09:58
  */
 
-class OsmMap(val nodes: Map[Int, Node], val ways: Map[Int, Way])
+class OsmMap(val nodes: Map[Int, Node], val ways: Map[Int, Way]) {
+  def intersections = {
+    nodes.values filter (node => {
+      (ways.values filter (way => way.nodes contains node)).size > 1
+    })
+  }
+}
 
 object OsmMap extends Logger {
   def apply(osmData: Elem) = {
@@ -22,6 +28,16 @@ object OsmMap extends Logger {
   }
 
   def apply(nodes: Map[Int, Node], ways: Map[Int, Way]) = new OsmMap(nodes, ways)
+  
+  def apply(nodes: Iterable[Node], ways: Iterable[Way]) = {
+    val osmNodes = nodes.map(node => {
+      (node.id, node)
+    }).toMap
+    val osmWays = ways.map(way => {
+      (way.id, way)
+    }).toMap
+    new OsmMap(osmNodes, osmWays)
+  }
 
   def parseNodes(nodes: NodeSeq) = {
     debug("Parsing nodes")
