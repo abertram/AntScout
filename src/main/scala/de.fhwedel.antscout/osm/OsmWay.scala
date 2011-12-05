@@ -72,8 +72,8 @@ object OsmWay extends Logger {
       case "yes" | "true" | "1" => new OsmOneWay(id, name, wayNodes, maxSpeed)
       case "-1" => new OsmOneWay(id, name, wayNodes.reverse, maxSpeed)
       case "no" | "false" | "0" => new OsmWay(id, name, wayNodes, maxSpeed)
-      case _ => {
-        warn("Way %s, unknonw oneway value: %s".format(id, oneWay))
+      case value: String if (!value.isEmpty) => {
+        warn("Way %s, unknonw oneway value \"%s\"".format(id, oneWay))
         new OsmWay(id, name, wayNodes, maxSpeed)
       }
     }
