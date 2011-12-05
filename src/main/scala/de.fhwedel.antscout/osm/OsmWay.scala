@@ -31,14 +31,16 @@ object OsmWay extends Logger {
   )
 
   def parseWay(way: xml.Node, nodes: Map[Int, OsmNode]): OsmWay = {
-    def parseNodes(wayNodes: NodeSeq): Vector[OsmNode] = {
+    def parseNodes(wayId: Int, wayNodes: NodeSeq): Vector[OsmNode] = {
       Vector[OsmNode](wayNodes.map(wayNode => {
         val id = (wayNode \ "@ref").text.toInt
-        nodes(id)
-      }): _*)
+        if (!nodes.contains(id))
+          warn("Way %d, invalid node reference %d".format(wayId, id))
+        nodes.get(id)
+      }).filter(_.isDefined).map(_.get): _*)
     }
     val id = (way \ "@id").text.toInt
-    val wayNodes = parseNodes(way \ "nd")
+    val wayNodes = parseNodes(id, way \ "nd")
     val tags = Map(way \ "tag" map (tag => ((tag \ "@k").text, (tag \ "@v").text)): _*)
     val name = tags.getOrElse("name", "")
     def maxSpeedFromMaxSpeedTag: Option[Double] = {
