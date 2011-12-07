@@ -9,12 +9,7 @@ package map
  */
 
 class Node(val id: Int) {
-  override def equals(that: Any) = {
-    that match {
-      case node: Node => this.id == node.id
-      case _ => false
-    }
-  }
+  override def equals(that: Any) = that.isInstanceOf[Node] && this.id == that.asInstanceOf[Node].id
 
   override def hashCode = id
 }
