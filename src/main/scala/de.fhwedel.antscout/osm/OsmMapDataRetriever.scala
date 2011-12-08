@@ -5,6 +5,7 @@ import net.liftweb.common.Logger
 import actors.Actor
 import java.net.URL
 import xml.XML
+import net.liftweb.util.TimeHelpers
 
 /**
  * Created by IntelliJ IDEA.
@@ -26,7 +27,11 @@ object OsmMapDataRetriever extends Actor with Logger {
   }
 
   def retrieveMapData = {
-    val url = new URL("http://www.overpass-api.de/api/xapi?*[bbox=9.94088,53.75444,9.9512,53.75726]")
-    XML.load(url.openStream())
+    info("Retrieving OSM map data")
+    val url = new URL("http://www.overpass-api.de/api/xapi?map?bbox=9.6559,53.5274,9.9896,53.678")
+    val (time, mapData) = TimeHelpers.calcTime(XML.load(url.openStream()))
+    info("OSM map data retrieved in %d milliseconds".format(time))
+    mapData
   }
 }
+
