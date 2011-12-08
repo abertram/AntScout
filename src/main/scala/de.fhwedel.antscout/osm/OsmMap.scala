@@ -4,6 +4,7 @@ package osm
 import net.liftweb.common.Logger
 import xml.{NodeSeq, Elem}
 import collection.immutable.Map
+import net.liftweb.util.TimeHelpers
 
 /**
  * Created by IntelliJ IDEA.
@@ -12,7 +13,7 @@ import collection.immutable.Map
  * Time: 09:58
  */
 
-class OsmMap(val nodes: Map[Int, OsmNode], val ways: Map[String, OsmWay]) {
+class OsmMap(val nodes: Map[Int, OsmNode], val ways: Map[String, OsmWay]) extends Logger {
   def nodeWaysMap = {
     nodes.values.map(node => {
       (node, (ways.values.filter(way => way.nodes.contains(node))).toIterable)
@@ -20,9 +21,10 @@ class OsmMap(val nodes: Map[Int, OsmNode], val ways: Map[String, OsmWay]) {
   }
   
   def intersections = {
-    nodes.values filter (node => {
+    info("Computing intersections")
+    nodes.values.filter (node => {
       (ways.values filter (way => way.nodes contains node)).size > 1
-    })
+    }).seq
   }
 }
 
@@ -46,18 +48,23 @@ object OsmMap extends Logger {
   }
 
   def parseNodes(nodes: NodeSeq) = {
-    debug("Parsing nodes")
-    nodes.map(node => {
+    info("Parsing nodes")
+    val (time, osmNodes) = TimeHelpers.calcTime(nodes.map(node => {
       val id = (node \ "@id").text.toInt
       (id, OsmNode.parseNode(node))
-    }) toMap
+    }) toMap)
+    info("%d nodes parsed in %d milliseconds".format(osmNodes.size, time))
+    osmNodes
   }
 
   def parseWays(ways: NodeSeq, nodes: Map[Int, OsmNode]) = {
-    debug("Parsing ways")
-    ways.map(way => {
+    info("Parsing ways")
+    val (time, osmWays) = TimeHelpers.calcTime(ways.map(way => {
       val id = (way \ "@id").text
       (id, OsmWay.parseWay(way, nodes))
-    }) toMap
+    }) toMap)
+    info("%d ways parsed in %d milliseconds".format(osmWays.size, time))
+    osmWays
   }
 }
+
