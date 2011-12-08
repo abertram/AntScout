@@ -1,5 +1,6 @@
 package de.fhwedel.antscout
 
+import antnet.AntMap
 import net.liftweb.common.Logger
 import actors.Actor
 import osm.{OsmMap, OsmMapDataResponse, OsmMapDataRequest, OsmMapDataRetriever}
@@ -21,7 +22,8 @@ object ApplicationController extends Actor {
     react {
       case OsmMapDataResponse(osmMapData) => {
         logger.debug("OsmMapDataResponse")
-        OsmMap(osmMapData)
+        val osmMap = OsmMap(osmMapData)
+        AntMap(osmMap)
       }
     }
   }
