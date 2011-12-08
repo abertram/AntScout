@@ -3,6 +3,7 @@ package antnet
 
 import osm.{OsmWay, OsmNode, OsmMap}
 import net.liftweb.common.Logger
+import net.liftweb.util.TimeHelpers
 
 /**
  * Created by IntelliJ IDEA.
@@ -11,24 +12,69 @@ import net.liftweb.common.Logger
  * Time: 12:07
  */
 
-class AntMap(val nodes: Map[Int, AntNode], val ways: Map[String, AntWay])
+class AntMap(val nodes: Map[Int, AntNode], val ways: Map[String, AntWay]) extends Logger {
+  val incomingWays = computeIncomingWays
+  val outgoingWays = computeOutgoingWays
+
+  private def computeIncomingWays = {
+    info("Computing incoming ways")  
+    val (time, incomingWays) = TimeHelpers.calcTime(nodes.values.map {node =>
+      val incomingWays = ways.values.filter {way =>
+        way match {
+          case antOneWay: AntOneWay => antOneWay.endNode == node
+          case _ => way.startNode == node || way.endNode == node
+        }
+      }
+      (node, incomingWays)
+    }.toMap)
+    info("Incoming ways computed in %d".format(time))
+    incomingWays
+  }
+
+  def computeOutgoingWays = {
+    info("Computing outgoing ways")
+    val (time, outgoingWays) = TimeHelpers.calcTime(nodes.values.map {node =>
+      val incomingWays = ways.values.filter {way =>
+        way match {
+          case antOneWay: AntOneWay => antOneWay.startNode == node
+          case _ => way.startNode == node || way.endNode == node
+        }
+      }
+      (node, incomingWays)
+    }.toMap)
+    info("Outgoing ways computed in %d".format(time))
+    outgoingWays
+  }
+}
 
 object AntMap extends Logger {
-  def apply(osmMap: OsmMap) = {
-    val intersections = osmMap.intersections
-    val antNodes = intersections.map (node => {
-      (node id, AntNode(node id))
-    }).toMap
-    val ways: Iterable[AntWay] = osmMap.ways.values.map (way => {
-      convertOsmWayToAntWays(way, intersections toSeq)
-    }).flatten
-    val antWays: Map[String, AntWay] = ways.map (way => {
+  def apply(nodes: Iterable[AntNode], ways: Iterable[AntWay]) = {
+    val antNodes = nodes.map {node =>
+      (node.id, node)
+    }.toMap
+    val antWays = ways.map {way =>
       (way.id, way)
-    }).toMap
+    }.toMap
     new AntMap(antNodes, antWays)
   }
 
-  def convertOsmWayToAntWays(osmWay: OsmWay, intersections: Seq[OsmNode]) = {
+  def apply(osmMap: OsmMap) = {
+    info("Creating ant nodes")
+    val (nodesTime, nodes) = TimeHelpers.calcTime(osmMap.intersections.map (node => {
+      (node id, AntNode(node id))
+    }).toMap)
+    info("Ant nodes created in %d ms".format(nodesTime))
+    info("Creating ant ways")
+    val (waysTime, ways) = TimeHelpers.calcTime(osmMap.ways.values.map (way => {
+      convertOsmWayToAntWays(way, nodes)
+    }).flatten.map (way => {
+      (way.id, way)
+    }).toMap)
+    info("Ant ways created in %d ms".format(waysTime))
+    new AntMap(nodes, ways)
+  }
+
+  def convertOsmWayToAntWays(osmWay: OsmWay, antNodes: Map[Int, AntNode]) = {
     def createAntWays(antWayNodes: Seq[OsmNode], remainNodes: Seq[OsmNode], antWays: Iterable[AntWay]): Iterable[AntWay] = {
       (antWayNodes, remainNodes) match {
         case (Nil, _) =>
@@ -36,14 +82,14 @@ object AntMap extends Logger {
         case (Seq(node), Nil) =>
           antWays
         case (_, Nil) =>
-          createAntWays(Nil, Nil, Seq(AntWay(("%d-%d" format (osmWay.id, antWays.size + 1)), antWayNodes reverse)) ++ antWays)
+          createAntWays(Nil, Nil, Seq(AntWay(osmWay, antWays.size + 1, antWayNodes reverse, antNodes)) ++ antWays)
         case (_,  Seq(head, tail @ _*)) =>
-          if (intersections contains head)
-            createAntWays(Vector(head), tail, Seq(AntWay(("%s-%d" format (osmWay.id, antWays.size + 1)), (Vector(head) ++ antWayNodes) reverse)) ++ antWays)
+          if (antNodes.contains(head.id))
+            createAntWays(Vector(head), tail, Seq(AntWay(osmWay, antWays.size + 1, (Vector(head) ++ antWayNodes) reverse, antNodes)) ++ antWays)
           else
             createAntWays(Vector(head) ++ antWayNodes, tail, antWays)
       }
     }
-    createAntWays(Vector(osmWay.nodes head), osmWay.nodes tail, Vector.empty[AntWay])
+    createAntWays(Vector(osmWay.nodes head), osmWay.nodes tail, Iterable.empty[AntWay])
   }
 }
