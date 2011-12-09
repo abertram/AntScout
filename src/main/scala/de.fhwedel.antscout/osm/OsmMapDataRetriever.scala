@@ -28,7 +28,7 @@ object OsmMapDataRetriever extends Actor with Logger {
 
   def retrieveMapData = {
     info("Retrieving OSM map data")
-    val url = new URL("http://www.overpass-api.de/api/xapi?map?bbox=9.6559,53.5274,9.9896,53.678")
+    val url = new URL("http://www.overpass-api.de/api/xapi?way[bbox=9.6559,53.5274,9.9896,53.678][highway=motorway|motorway_link|trunk|trunk_link|primary|primary_link|secondary|tertiary|residential|service|track]")
     val (time, mapData) = TimeHelpers.calcTime(XML.load(url.openStream()))
     info("OSM map data retrieved in %d milliseconds".format(time))
     mapData
