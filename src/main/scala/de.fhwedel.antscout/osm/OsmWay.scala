@@ -34,8 +34,8 @@ object OsmWay extends Logger {
     def parseNodes(wayId: Int, wayNodes: NodeSeq): Vector[OsmNode] = {
       Vector[OsmNode](wayNodes.map(wayNode => {
         val id = (wayNode \ "@ref").text.toInt
-        if (!nodes.contains(id))
-          warn("Way %d, invalid node reference %d".format(wayId, id))
+//        if (!nodes.contains(id))
+//          warn("Way %d, invalid node reference %d".format(wayId, id))
         nodes.get(id)
       }).filter(_.isDefined).map(_.get): _*)
     }
@@ -50,11 +50,11 @@ object OsmWay extends Logger {
             Some(value.toDouble)
           } catch {
             case numberFormatException: NumberFormatException => {
-              warn("OsmWay %s: max speed is not a number" format id)
+              warn("Way %s: max speed \"%s\" is not a number" format(id, value))
               None
             }
             case exception: Exception => {
-              warn("OsmWay %s: exception while parsing max speed of way %d" format id, exception)
+              warn("Way %s: exception while parsing max speed \"%s\" of way %d" format(id, value), exception)
               None
             }
           }
