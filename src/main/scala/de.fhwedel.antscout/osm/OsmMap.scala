@@ -14,17 +14,20 @@ import net.liftweb.util.TimeHelpers
  */
 
 class OsmMap(val nodes: Map[Int, OsmNode], val ways: Map[String, OsmWay]) extends Logger {
-  def nodeWaysMap = {
-    nodes.values.map(node => {
-      (node, (ways.values.filter(way => way.nodes.contains(node))).toIterable)
-    }).toMap
+  val nodeWaysMap = {
+    info("Computing node ways map")
+    val (time, result) = TimeHelpers.calcTime(nodes.values.par.map(node => {
+      (node, (ways.values.par.filter(way => way.nodes.contains(node))).seq.toIterable)
+    }).seq.toMap)
+    info("Node ways map computed in %d ms)".format(time))
+    result
   }
   
-  def intersections = {
+  val intersections = {
     info("Computing intersections")
-    nodes.values.filter (node => {
-      (ways.values filter (way => way.nodes contains node)).size > 1
-    }).seq
+    val (time, result) = TimeHelpers.calcTime(nodeWaysMap.par.filter(_._2.size > 1).seq.keys)
+    info("Intersections computes in %d ms".format(time))
+    result
   }
 }
 
