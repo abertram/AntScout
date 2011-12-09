@@ -27,7 +27,7 @@ class AntMap(val nodes: Map[Int, AntNode], val ways: Map[String, AntWay]) extend
       }
       (node, incomingWays)
     }.toMap)
-    info("Incoming ways computed in %d".format(time))
+    info("Incoming ways computed in %d ms".format(time))
     incomingWays
   }
 
@@ -42,7 +42,7 @@ class AntMap(val nodes: Map[Int, AntNode], val ways: Map[String, AntWay]) extend
       }
       (node, incomingWays)
     }.toMap)
-    info("Outgoing ways computed in %d".format(time))
+    info("Outgoing ways computed in %d ms".format(time))
     outgoingWays
   }
 }
@@ -63,14 +63,14 @@ object AntMap extends Logger {
     val (nodesTime, nodes) = TimeHelpers.calcTime(osmMap.intersections.map (node => {
       (node id, AntNode(node id))
     }).toMap)
-    info("Ant nodes created in %d ms".format(nodesTime))
+    info("%d ant nodes created in %d ms".format(nodes.size, nodesTime))
     info("Creating ant ways")
     val (waysTime, ways) = TimeHelpers.calcTime(osmMap.ways.values.map (way => {
       convertOsmWayToAntWays(way, nodes)
     }).flatten.map (way => {
       (way.id, way)
     }).toMap)
-    info("Ant ways created in %d ms".format(waysTime))
+    info("%d ant ways created in %d ms".format(ways.size, waysTime))
     new AntMap(nodes, ways)
   }
 
@@ -82,11 +82,21 @@ object AntMap extends Logger {
         case (Seq(node), Nil) =>
           antWays
         case (_, Nil) =>
-          createAntWays(Nil, Nil, Seq(AntWay(osmWay, antWays.size + 1, antWayNodes reverse, antNodes)) ++ antWays)
+          AntWay(osmWay, antWays.size + 1, antWayNodes reverse, antNodes) match {
+            case None =>
+              createAntWays(Nil, Nil, antWays)
+            case antWay: AntWay =>
+              createAntWays(Nil, Nil, Seq(antWay) ++ antWays)
+          }
         case (_,  Seq(head, tail @ _*)) =>
-          if (antNodes.contains(head.id))
-            createAntWays(Vector(head), tail, Seq(AntWay(osmWay, antWays.size + 1, (Vector(head) ++ antWayNodes) reverse, antNodes)) ++ antWays)
-          else
+          if (antNodes.contains(head.id)) {
+            AntWay(osmWay, antWays.size + 1, (Seq(head) ++ antWayNodes).reverse, antNodes) match {
+              case None =>
+                createAntWays(Vector(head), tail, antWays)
+              case Some(antWay) =>
+                createAntWays(Vector(head), tail, Seq(antWay) ++ antWays)
+            }
+          } else
             createAntWays(Vector(head) ++ antWayNodes, tail, antWays)
       }
     }
