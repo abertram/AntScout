@@ -3,10 +3,10 @@
         <encoder>
             <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
-        <file>log/log</file>
+        <file>log/AntScout.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- daily rollover -->
-            <fileNamePattern>log.%d</fileNamePattern>
+            <fileNamePattern>log/AntScout-%d.log</fileNamePattern>
         </rollingPolicy>
     </appender>
 
