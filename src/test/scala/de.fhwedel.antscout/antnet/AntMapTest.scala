@@ -150,4 +150,33 @@ class AntMapTest extends FunSuite with ShouldMatchers {
     antMap.neighbours(nodes(5)) should have size (1)
     antMap.neighbours(nodes(5)) should contain (nodes(3))
   }
+
+  test("neighbours with oneway") {
+    val nodes = (0 to 5).map(AntNode(_))
+    val way1 = AntWay(1, nodes(0), nodes(1))
+    val way2 = AntWay(2, nodes(1), nodes(2))
+    val way3 = AntWay(3, nodes(2), nodes(3))
+    val way4 = AntWay(4, nodes(3), nodes(4))
+    val way5 = AntOneWay(5, nodes(4), nodes(1))
+    val way6 = AntWay(6, nodes(3), nodes(5))
+    val ways = Iterable(way1, way2, way3, way4, way5, way6)
+    val antMap = AntMap(nodes, ways)
+    antMap.neighbours(nodes(0)) should have size (1)
+    antMap.neighbours(nodes(0)) should contain (nodes(1))
+    antMap.neighbours(nodes(1)) should have size (2)
+    antMap.neighbours(nodes(1)) should contain (nodes(0))
+    antMap.neighbours(nodes(1)) should contain (nodes(2))
+    antMap.neighbours(nodes(2)) should have size (2)
+    antMap.neighbours(nodes(2)) should contain (nodes(1))
+    antMap.neighbours(nodes(2)) should contain (nodes(3))
+    antMap.neighbours(nodes(3)) should have size (3)
+    antMap.neighbours(nodes(3)) should contain (nodes(2))
+    antMap.neighbours(nodes(3)) should contain (nodes(4))
+    antMap.neighbours(nodes(3)) should contain (nodes(5))
+    antMap.neighbours(nodes(4)) should have size (2)
+    antMap.neighbours(nodes(4)) should contain (nodes(1))
+    antMap.neighbours(nodes(4)) should contain (nodes(3))
+    antMap.neighbours(nodes(5)) should have size (1)
+    antMap.neighbours(nodes(5)) should contain (nodes(3))
+  }
 }
