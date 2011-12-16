@@ -12,7 +12,9 @@ import net.liftweb.common.Logger
  * Time: 12:07
  */
 
-class AntWay(id: String, val startNode: AntNode, val endNode: AntNode, val length: Double) extends Way(id)
+class AntWay(id: String, val startNode: AntNode, val endNode: AntNode, val length: Double) extends Way(id) {
+  override def toString = "#%s #%d - #%d".format(id, startNode.id, endNode.id)
+}
 
 object AntWay extends Logger {
   def apply(id: Int, startNode: AntNode, endNode: AntNode) = new AntWay(id.toString, startNode, endNode, 0.0)

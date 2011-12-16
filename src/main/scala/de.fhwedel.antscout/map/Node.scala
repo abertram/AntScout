@@ -17,4 +17,6 @@ class Node(val id: Int) {
   }
 
   override def hashCode = id
+
+  override def toString = "#%d".format(id)
 }

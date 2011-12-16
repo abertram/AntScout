@@ -19,4 +19,6 @@ class Way(val id: String) extends Logger {
   }
 
   override def hashCode = id.hashCode
+
+  override def toString = "#%s".format(id)
 }
