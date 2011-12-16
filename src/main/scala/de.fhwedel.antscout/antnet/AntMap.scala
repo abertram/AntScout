@@ -13,8 +13,12 @@ import net.liftweb.util.TimeHelpers
  */
 
 class AntMap(val nodes: Map[Int, AntNode], val ways: Map[String, AntWay]) extends Logger {
-  val incomingWays = computeIncomingWays
-  val outgoingWays = computeOutgoingWays
+  val incomingWays: Map[AntNode, Iterable[AntWay]] = computeIncomingWays
+  val outgoingWays: Map[AntNode, Iterable[AntWay]] = computeOutgoingWays
+  /**
+   * Direkte Nachbarn eines Knoten.
+   */
+  val neighbours: Map[AntNode, Set[AntNode]] = computeNeighbours
 
   private def computeIncomingWays = {
     info("Computing incoming ways")  
@@ -44,6 +48,30 @@ class AntMap(val nodes: Map[Int, AntNode], val ways: Map[String, AntWay]) extend
     }.toMap)
     info("Outgoing ways computed in %d ms".format(time))
     outgoingWays
+  }
+
+  /**
+   * Berechnet die direkten Nachbarn eines Knoten.
+   */
+  def computeNeighbours = {
+    def createNeighbour(startNode: AntNode, endNode: AntNode, neighbours: Map[AntNode, Set[AntNode]]): Map[AntNode, Set[AntNode]] = {
+      neighbours + (startNode -> (neighbours.getOrElse(startNode, Set(endNode)) + endNode))
+    }
+    def computeNeighboursRecursive(ways: List[AntWay], neighbours: Map[AntNode, Set[AntNode]]): Map[AntNode, Set[AntNode]] = {
+      ways match {
+        case Nil =>
+          neighbours
+        case head :: tail =>
+          head match {
+            case oneWay: AntOneWay =>
+              computeNeighboursRecursive(tail, createNeighbour(oneWay.startNode, oneWay.endNode, neighbours))
+            case way: AntWay =>
+              val newNeighbours = createNeighbour(way.startNode, way.endNode, createNeighbour(way.endNode, way.startNode, neighbours))
+              computeNeighboursRecursive(tail, newNeighbours)
+          }
+      }
+    }
+    computeNeighboursRecursive(ways.values.toList, Map.empty)
   }
 }
 
