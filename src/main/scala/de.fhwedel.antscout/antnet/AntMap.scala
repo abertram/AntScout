@@ -4,6 +4,7 @@ package antnet
 import osm.{OsmWay, OsmNode, OsmMap}
 import net.liftweb.common.Logger
 import net.liftweb.util.TimeHelpers
+import scala.collection.mutable.{Map => MutableMap}
 
 /**
  * Created by IntelliJ IDEA.
@@ -19,33 +20,34 @@ class AntMap(val nodes: Map[Int, AntNode], val ways: Map[String, AntWay]) extend
    * Direkte Nachbarn eines Knoten.
    */
   val neighbours: Map[AntNode, Set[AntNode]] = computeNeighbours
+  val reachableNodes: Map[AntNode, Set[AntNode]] = computeReachableNodes
 
   private def computeIncomingWays = {
     info("Computing incoming ways")  
-    val (time, incomingWays) = TimeHelpers.calcTime(nodes.values.map {node =>
-      val incomingWays = ways.values.filter {way =>
+    val (time, incomingWays) = TimeHelpers.calcTime(nodes.values.par.map {node =>
+      val incomingWays = ways.values.par.filter {way =>
         way match {
           case antOneWay: AntOneWay => antOneWay.endNode == node
           case _ => way.startNode == node || way.endNode == node
         }
       }
-      (node, incomingWays)
-    }.toMap)
+      (node, incomingWays.seq)
+    }.seq.toMap)
     info("Incoming ways computed in %d ms".format(time))
     incomingWays
   }
 
   def computeOutgoingWays = {
     info("Computing outgoing ways")
-    val (time, outgoingWays) = TimeHelpers.calcTime(nodes.values.map {node =>
-      val incomingWays = ways.values.filter {way =>
+    val (time, outgoingWays) = TimeHelpers.calcTime(nodes.values.par.map {node =>
+      val incomingWays = ways.values.par.filter {way =>
         way match {
           case antOneWay: AntOneWay => antOneWay.startNode == node
           case _ => way.startNode == node || way.endNode == node
         }
       }
-      (node, incomingWays)
-    }.toMap)
+      (node, incomingWays.seq)
+    }.seq.toMap)
     info("Outgoing ways computed in %d ms".format(time))
     outgoingWays
   }
@@ -57,6 +59,7 @@ class AntMap(val nodes: Map[Int, AntNode], val ways: Map[String, AntWay]) extend
     def createNeighbour(startNode: AntNode, endNode: AntNode, neighbours: Map[AntNode, Set[AntNode]]): Map[AntNode, Set[AntNode]] = {
       neighbours + (startNode -> (neighbours.getOrElse(startNode, Set(endNode)) + endNode))
     }
+    @scala.annotation.tailrec
     def computeNeighboursRecursive(ways: List[AntWay], neighbours: Map[AntNode, Set[AntNode]]): Map[AntNode, Set[AntNode]] = {
       ways match {
         case Nil =>
@@ -64,14 +67,46 @@ class AntMap(val nodes: Map[Int, AntNode], val ways: Map[String, AntWay]) extend
         case head :: tail =>
           head match {
             case oneWay: AntOneWay =>
-              computeNeighboursRecursive(tail, createNeighbour(oneWay.startNode, oneWay.endNode, neighbours))
+              val endNodeNeighbours = neighbours.getOrElse(oneWay.endNode, Set.empty[AntNode])
+              val newNeighbours = createNeighbour(oneWay.startNode, oneWay.endNode, neighbours + (oneWay.endNode -> endNodeNeighbours))
+              computeNeighboursRecursive(tail, newNeighbours)
             case way: AntWay =>
               val newNeighbours = createNeighbour(way.startNode, way.endNode, createNeighbour(way.endNode, way.startNode, neighbours))
               computeNeighboursRecursive(tail, newNeighbours)
           }
       }
     }
-    computeNeighboursRecursive(ways.values.toList, Map.empty)
+    info("Computing neighbours")
+    val (time, neighbours) = TimeHelpers.calcTime(computeNeighboursRecursive(ways.values.toList, Map.empty))
+    info("Neighbours computed in %d ms".format(time))
+    neighbours
+  }
+
+  /**
+   * Berechnet alle Knoten, die von einem Knoten erreichbar sind.
+   */
+  def computeReachableNodes = {
+    info("Computing reachable nodes")
+    val (time, reachableNodes) = TimeHelpers.calcTime({
+      val reachableNodes = MutableMap.empty[AntNode, Set[AntNode]]
+      neighbours.map(kv => reachableNodes += (kv._1 -> kv._2))
+      // über alle Knoten iterieren
+      nodes.values.foreach(node => {
+        // Update-Kandidaten ermitteln
+        // es sollen alle Knotenmengen erweitert werden, die vom aktuellen Knoten erreichbar sind
+        val updateCandidates = reachableNodes.filter(_._2.contains(node))
+        // über alle Update-Kandidaten iterieren
+        updateCandidates.foreach(updateCandidate => {
+          // erreichbare Knoten setzen sich aus den aktuell erreichbaren Knoten des Update-Kandidaten und den erreichbaren Knoten des Knoten zusammen
+          // der Quell-Knoten wird herausgefiltert, um Kreise zu vermeiden
+          val newReachableNodes = (reachableNodes(node) ++ updateCandidate._2).filter(_ != updateCandidate._1)
+          reachableNodes += updateCandidate._1 -> newReachableNodes
+        })
+      })
+      reachableNodes.toMap
+    })
+    info("Reachable nodes computed in %d ms".format(time))
+    reachableNodes
   }
 }
 
