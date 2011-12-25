@@ -20,7 +20,7 @@ class AntMap(val nodes: Map[Int, AntNode], val ways: Map[String, AntWay]) extend
    * Direkte Nachbarn eines Knoten.
    */
   val neighbours: Map[AntNode, Set[AntNode]] = computeNeighbours
-  val reachableNodes: Map[AntNode, Set[AntNode]] = computeReachableNodes
+  // val reachableNodes: Map[AntNode, Set[AntNode]] = computeReachableNodes
 
   private def computeIncomingWays = {
     info("Computing incoming ways")  
@@ -94,12 +94,12 @@ class AntMap(val nodes: Map[Int, AntNode], val ways: Map[String, AntWay]) extend
       nodes.values.foreach(node => {
         // Update-Kandidaten ermitteln
         // es sollen alle Knotenmengen erweitert werden, die vom aktuellen Knoten erreichbar sind
-        val updateCandidates = reachableNodes.filter(_._2.contains(node))
+        val updateCandidates = reachableNodes.par.filter(_._2.contains(node))
         // über alle Update-Kandidaten iterieren
         updateCandidates.foreach(updateCandidate => {
           // erreichbare Knoten setzen sich aus den aktuell erreichbaren Knoten des Update-Kandidaten und den erreichbaren Knoten des Knoten zusammen
           // der Quell-Knoten wird herausgefiltert, um Kreise zu vermeiden
-          val newReachableNodes = (reachableNodes(node) ++ updateCandidate._2).filter(_ != updateCandidate._1)
+          val newReachableNodes = (reachableNodes(node) ++ updateCandidate._2).par.filter(_ != updateCandidate._1).seq
           reachableNodes += updateCandidate._1 -> newReachableNodes
         })
       })
