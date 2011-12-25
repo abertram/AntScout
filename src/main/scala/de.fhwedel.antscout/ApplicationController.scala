@@ -4,6 +4,7 @@ import antnet.AntMap
 import net.liftweb.common.Logger
 import actors.Actor
 import osm.{OsmMap, OsmMapDataResponse, OsmMapDataRequest, OsmMapDataRetriever}
+import xml.XML
 
 /**
  * Created by IntelliJ IDEA.
@@ -12,19 +13,21 @@ import osm.{OsmMap, OsmMapDataResponse, OsmMapDataRequest, OsmMapDataRetriever}
  * Time: 09:20
  */
 
-object ApplicationController extends Actor {
-  val logger = Logger(getClass)
+object ApplicationController extends Actor with Logger {
 
   def act() {
-    logger.debug("Starting OsmMapDataRetriever")
-    OsmMapDataRetriever.start()
-    OsmMapDataRetriever ! OsmMapDataRequest(this)
-    react {
-      case OsmMapDataResponse(osmMapData) => {
-        logger.debug("OsmMapDataResponse")
-        val osmMap = OsmMap(osmMapData)
-        AntMap(osmMap)
-      }
-    }
+//    debug("Starting OsmMapDataRetriever")
+//    OsmMapDataRetriever.start()
+//    OsmMapDataRetriever ! OsmMapDataRequest(this)
+    val osmData = XML.loadFile("./maps/Fasanenweg-Zoom-15.osm")
+    val osmMap = OsmMap(osmData)
+    AntMap(osmMap)
+//    react {
+//      case OsmMapDataResponse(osmMapData) => {
+//        logger.debug("OsmMapDataResponse")
+//        val osmMap = OsmMap(osmMapData)
+//        AntMap(osmMap)
+//      }
+//    }
   }
 }
