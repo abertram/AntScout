@@ -1,10 +1,10 @@
 package de.fhwedel.antscout
 
-import antnet.AntMap
+import antnet.{AntController, AntMap}
 import net.liftweb.common.Logger
-import actors.Actor
 import osm.{OsmMap, OsmMapDataResponse, OsmMapDataRequest, OsmMapDataRetriever}
 import xml.XML
+import akka.actor.Actor
 
 /**
  * Created by IntelliJ IDEA.
@@ -13,15 +13,17 @@ import xml.XML
  * Time: 09:20
  */
 
-object ApplicationController extends Actor with Logger {
+object ApplicationController extends Logger {
 
-  def act() {
+//  def act() {
 //    debug("Starting OsmMapDataRetriever")
 //    OsmMapDataRetriever.start()
 //    OsmMapDataRetriever ! OsmMapDataRequest(this)
-    val osmData = XML.loadFile("./maps/Fasanenweg-Zoom-15.osm")
+//    val osmData = XML loadFile("./maps/Fasanenweg-Zoom-15.osm")
+    val osmData = XML loadFile("./maps/Hamburg.osm")
     val osmMap = OsmMap(osmData)
-    AntMap(osmMap)
+    val antMap = AntMap(osmMap)
+    Actor.actorOf(AntController(antMap)).start()
 //    react {
 //      case OsmMapDataResponse(osmMapData) => {
 //        logger.debug("OsmMapDataResponse")
@@ -29,5 +31,5 @@ object ApplicationController extends Actor with Logger {
 //        AntMap(osmMap)
 //      }
 //    }
-  }
+//  }
 }

@@ -12,7 +12,7 @@ import map.Node
  * Time: 11:36
  */
 
-class OsmNode(id: Int, val geographicCoordinate: GeographicCoordinate) extends Node(id) {
+class OsmNode(id: String, val geographicCoordinate: GeographicCoordinate) extends Node(id) {
 
   /**
    * Berechnet die geographische Entfernung zu einem anderen Knoten.
@@ -78,14 +78,19 @@ class OsmNode(id: Int, val geographicCoordinate: GeographicCoordinate) extends N
     }
   }
 
-  override def toString = "[%d] %s".format(id, geographicCoordinate)
+  override def toString = "OsmNode #%s".format(id, geographicCoordinate)
 }
 
 object OsmNode extends Logger {
+  
+  def apply(id: Int) = new OsmNode(id.toString, GeographicCoordinate(0, 0))
+  
+  def apply(id: Int, geographicCoordinate: GeographicCoordinate) = new OsmNode(id.toString, geographicCoordinate)
+
+  def apply(id: String, geographicCoordinate: GeographicCoordinate) = new OsmNode(id, geographicCoordinate)
 
   def parseNode(node: xml.Node): OsmNode = {
-    val id = (node \ "@id").text.toInt
-    assertLog(id < 1, id.toString)
+    val id = (node \ "@id").text
     val latitude = (node \ "@lat").text.toFloat
     require(latitude > -90.0 && latitude < 90.0, "Node %d: invalid latitude" format id)
     val longitude = (node \ "@lon").text.toFloat

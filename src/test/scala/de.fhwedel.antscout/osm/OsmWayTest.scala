@@ -14,12 +14,9 @@ import collection.immutable.IntMap
 
 class OsmWayTest extends FunSuite with ShouldMatchers {
   test("parseWay, valid way") {
-    val node1 = new OsmNode(1, new GeographicCoordinate(1.0, 1.0))
-    val node2 = new OsmNode(2, new GeographicCoordinate(2.0, 2.0))
-    val nodes = IntMap(
-      1 -> node1,
-      2 -> node2
-    )
+    val node1 = OsmNode(1, new GeographicCoordinate(1.0, 1.0))
+    val node2 = OsmNode(2, new GeographicCoordinate(2.0, 2.0))
+    val nodes = Map("1" -> node1, "2" -> node2)
     val way = OsmWay.parseWay(
       <way id="1">
           <nd ref="1"/>
@@ -37,13 +34,13 @@ class OsmWayTest extends FunSuite with ShouldMatchers {
   }
 
   test("parseWay, no name") {
-    val nodes = IntMap()
+    val nodes = Map.empty[String, OsmNode]
     val way = OsmWay.parseWay(<way id="1"/>, nodes)
     way.name should be("")
   }
 
   test("parseWay, empty name") {
-    val nodes = IntMap()
+    val nodes = Map.empty[String, OsmNode]
     val way = OsmWay.parseWay(
       <way id="1">
           <tag k="name" v=" "/>
@@ -52,13 +49,13 @@ class OsmWayTest extends FunSuite with ShouldMatchers {
   }
 
   test("parseWay, no maxspeed tag") {
-    val nodes = IntMap()
+    val nodes = Map.empty[String, OsmNode]
     val way = OsmWay.parseWay(<way id="1"/>, nodes)
     way.maxSpeed should be(OsmWay.DefaultSpeeds(""))
   }
 
   test("parseWay, empty maxspeed tag") {
-    val nodes = IntMap()
+    val nodes = Map.empty[String, OsmNode]
     val way = OsmWay.parseWay(
       <way id="1">
           <tag k="maxspeed" v=" "/>
@@ -67,7 +64,7 @@ class OsmWayTest extends FunSuite with ShouldMatchers {
   }
 
   test("parseWay, maxspeed is not a number") {
-    val nodes = IntMap()
+    val nodes = Map.empty[String, OsmNode]
     val way = OsmWay.parseWay(
       <way id="1">
           <tag k="maxspeed" v="maxspeed"/>
@@ -76,7 +73,7 @@ class OsmWayTest extends FunSuite with ShouldMatchers {
   }
 
   test("parseWay, no maxspeed tag, speed from highway tag") {
-    val nodes = IntMap()
+    val nodes = Map.empty[String, OsmNode]
     val way = OsmWay.parseWay(
       <way id="1">
           <tag k="highway" v="motorway"/>
@@ -85,7 +82,7 @@ class OsmWayTest extends FunSuite with ShouldMatchers {
   }
 
   test("parseWay, empty maxspeed tag, speed from highway tag") {
-    val nodes = IntMap()
+    val nodes = Map.empty[String, OsmNode]
     val way = OsmWay.parseWay(
       <way id="1">
           <tag k="highway" v="motorway"/>
@@ -95,7 +92,7 @@ class OsmWayTest extends FunSuite with ShouldMatchers {
   }
 
   test("parseWay, maxspeed is not a number, speed from highway tag") {
-    val nodes = IntMap()
+    val nodes = Map.empty[String, OsmNode]
     val way = OsmWay.parseWay(
       <way id="1">
           <tag k="highway" v="motorway"/>
@@ -105,9 +102,9 @@ class OsmWayTest extends FunSuite with ShouldMatchers {
   }
 
   test("parseWay, oneway = yes") {
-    val node1 = new OsmNode(1, new GeographicCoordinate(1.0, 1.0))
-    val node2 = new OsmNode(2, new GeographicCoordinate(2.0, 2.0))
-    val nodes = Map(1 -> node1, 2 -> node2)
+    val node1 = OsmNode(1, new GeographicCoordinate(1.0, 1.0))
+    val node2 = OsmNode(2, new GeographicCoordinate(2.0, 2.0))
+    val nodes = Map("1" -> node1, "2" -> node2)
     val way = OsmWay.parseWay(
       <way id="1">
           <nd ref="1"/>
@@ -121,9 +118,9 @@ class OsmWayTest extends FunSuite with ShouldMatchers {
   }
 
   test("parseWay, oneway = no") {
-    val node1 = new OsmNode(1, new GeographicCoordinate(1.0, 1.0))
-    val node2 = new OsmNode(2, new GeographicCoordinate(2.0, 2.0))
-    val nodes = Map(1 -> node1, 2 -> node2)
+    val node1 = OsmNode(1, new GeographicCoordinate(1.0, 1.0))
+    val node2 = OsmNode(2, new GeographicCoordinate(2.0, 2.0))
+    val nodes = Map("1" -> node1, "2" -> node2)
     val way = OsmWay.parseWay(
       <way id="1">
           <nd ref="1"/>
@@ -137,9 +134,9 @@ class OsmWayTest extends FunSuite with ShouldMatchers {
   }
 
   test("parseWay, oneway = -1") {
-    val node1 = new OsmNode(1, new GeographicCoordinate(1.0, 1.0))
-    val node2 = new OsmNode(2, new GeographicCoordinate(2.0, 2.0))
-    val nodes = Map(1 -> node1, 2 -> node2)
+    val node1 = OsmNode(1, new GeographicCoordinate(1.0, 1.0))
+    val node2 = OsmNode(2, new GeographicCoordinate(2.0, 2.0))
+    val nodes = Map("1" -> node1, "2" -> node2)
     val way = OsmWay.parseWay(
       <way id="1">
           <nd ref="1"/>

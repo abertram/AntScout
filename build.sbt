@@ -8,9 +8,11 @@ resolvers += "Java.net Maven2 Repository" at "http://download.java.net/maven/2/"
 
 libraryDependencies += "net.liftweb" %% "lift-webkit" % "2.4-M5" % "compile->default"
 
-libraryDependencies += "org.mortbay.jetty" % "jetty" % "6.1.22" % "container"
+libraryDependencies += "org.mortbay.jetty" % "jetty" % "6.1.26" % "container"
 
-libraryDependencies += "junit" % "junit" % "4.5" % "test->default"
+libraryDependencies += "org.mortbay.jetty" % "jetty" % "6.1.26" % "test->default"
+
+libraryDependencies += "junit" % "junit" % "4.5" % "test"
 
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "0.9.26" % "compile->default"
 
@@ -18,6 +20,15 @@ libraryDependencies += "net.liftweb" %% "lift-mapper" % "2.4-M5" % "compile->def
  
 libraryDependencies += "net.liftweb" %% "lift-wizard" % "2.4-M5" % "compile->default"
 
+libraryDependencies += "org.scalatest" %% "scalatest" % "1.6.1" % "test"
+
+libraryDependencies += "org.scala-tools.testing" %% "specs" % "1.6.9" % "test"
+
 resolvers += "Java.net Maven2 Repository" at "http://download.java.net/maven/2/"
+
+// Akka
+resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
+
+libraryDependencies += "se.scalablesolutions.akka" % "akka-actor" % "1.2"
 
 seq(webSettings :_*)

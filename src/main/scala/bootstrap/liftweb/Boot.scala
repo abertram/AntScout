@@ -6,18 +6,19 @@ import common._
 import http._
 import sitemap._
 import Loc._
+import akka.actor.Actor
 import de.fhwedel.antscout.ApplicationController
 
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
  */
-class Boot {
+class Boot extends Logger {
   def boot {
     // where to search snippet
     LiftRules.addToPackages("de.fhwedel.antscout")
 
-    ApplicationController.start()
+    ApplicationController
 
     // Build SiteMap
     val entries = List(
@@ -45,5 +46,10 @@ class Boot {
 
     // Force the request to be UTF-8
     LiftRules.early.append(_.setCharacterEncoding("UTF-8"))
+
+    LiftRules.unloadHooks.append(() => {
+      info("Shutting down all actors")
+      Actor.registry.shutdownAll()
+    })
   }
 }

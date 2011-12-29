@@ -12,9 +12,10 @@ import map.Way
  * Time: 15:13
  */
 
-class OsmWay(id: Int, val name: String, val nodes: Vector[OsmNode], val maxSpeed: Double) extends Way(id.toString)
+class OsmWay(id: String, val name: String, val nodes: List[OsmNode], val maxSpeed: Double) extends Way(id.toString)
 
 object OsmWay extends Logger {
+  
   val DefaultSpeeds = Map(
     "motorway" -> 130.0,
     "motorway_link" -> 80.0,
@@ -27,19 +28,24 @@ object OsmWay extends Logger {
     "residental" -> 50.0,
     "service" -> 3.0,
     "track" -> 30.0,
-    "" -> 50.0
+    "" -> 50.0,
+    "signals" -> 50.0
   )
+  
+  def apply(id: Int, name: String, nodes: List[OsmNode], maxSpeed: Double) = new OsmWay(id.toString, name, nodes, maxSpeed)
 
-  def parseWay(way: xml.Node, nodes: Map[Int, OsmNode]): OsmWay = {
-    def parseNodes(wayId: Int, wayNodes: NodeSeq): Vector[OsmNode] = {
-      Vector[OsmNode](wayNodes.map(wayNode => {
-        val id = (wayNode \ "@ref").text.toInt
-//        if (!nodes.contains(id))
-//          warn("Way %d, invalid node reference %d".format(wayId, id))
+  def apply(id: Int, nodes: List[OsmNode]) = new OsmWay(id.toString, "", nodes, 0)
+
+  def apply(id: String, name: String, nodes: List[OsmNode], maxSpeed: Double) = new OsmWay(id, name, nodes, maxSpeed)
+
+  def parseWay(way: xml.Node, nodes: Map[String, OsmNode]): OsmWay = {
+    def parseNodes(wayId: String, wayNodes: NodeSeq) = {
+      wayNodes.flatMap(wayNode => {
+        val id = (wayNode \ "@ref").text
         nodes.get(id)
-      }).filter(_.isDefined).map(_.get): _*)
+      }).toList
     }
-    val id = (way \ "@id").text.toInt
+    val id = (way \ "@id").text
     val wayNodes = parseNodes(id, way \ "nd")
     val tags = Map(way \ "tag" map (tag => ((tag \ "@k").text, (tag \ "@v").text)): _*)
     val name = tags.getOrElse("name", "")

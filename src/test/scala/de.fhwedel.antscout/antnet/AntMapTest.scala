@@ -3,8 +3,9 @@ package antnet
 
 import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers
-import osm.{OsmMap, OsmWay, GeographicCoordinate, OsmNode}
-import xml.XML
+import map.Node
+import akka.actor.Actor
+import osm._
 
 /**
  * Created by IntelliJ IDEA.
@@ -14,240 +15,116 @@ import xml.XML
  */
 
 class AntMapTest extends FunSuite with ShouldMatchers {
-  test("convertOsmWayToAntWays") {
-    val osmNode1 = new OsmNode(1, new GeographicCoordinate(1, 1))
-    val osmNode2 = new OsmNode(2, new GeographicCoordinate(2, 2))
-    val osmNode3 = new OsmNode(3, new GeographicCoordinate(3, 3))
-    val osmWay = new OsmWay(1, "", Vector(osmNode1, osmNode2, osmNode3), 0)
-    val antNode1 = AntNode(1)
-    val antNode3 = AntNode(3)
-    val antNodes = Map(1 -> antNode1, 3 -> antNode3)
-    val antWays = AntMap.convertOsmWayToAntWays(osmWay, antNodes)
-    antWays should have size (1)
-    antWays.head.id should be ("1-1")
-    antWays.head.startNode.id should be (1)
-    antWays.head.endNode.id should be (3)
+  test("computeAntNodes") {
+    val osmNodes1 = (0 to 2).map(OsmNode(_, GeographicCoordinate(0.0, 0.0))).toList
+    val osmNodes2 = (3 to 5).map(OsmNode(_, GeographicCoordinate(0.0, 0.0))).toList
+    val intersections = (6 to 7).map(Node(_)).toList
+    val osmWay1 = OsmWay(1, "", osmNodes1, 0.0)
+    val osmWay2 = OsmWay(2, "", osmNodes2, 0.0)
+    val osmWays = List(osmWay1, osmWay2)
+    val antNodes = AntMap.computeAntNodes(osmWays, intersections)
+    antNodes.size should be (6)
+    antNodes should equal (List(0, 2, 3, 5, 6, 7).map(Node(_)))
   }
   
-  test("incomingWays, 1") {
-    val node1 = AntNode(1)
-    val node2 = AntNode(2)
-    val node3 = AntNode(3)
-    val node4 = AntNode(4)
-    val nodes = Iterable(node1, node2, node3, node4)
-    val way1 = AntWay(1, node1, node2)
-    val way2 = AntWay(2, node2, node3)
-    val way3 = AntOneWay(3, node4, node2).asInstanceOf[AntWay]
-    val ways = Iterable(way1, way2, way3)
-    val antMap = AntMap(nodes, ways)
-    antMap.incomingWays should have size (4)
-    antMap.incomingWays(node1) should have size (1)
-    antMap.incomingWays(node1) should contain (way1)
-    antMap.incomingWays(node2) should have size (3)
-    antMap.incomingWays(node2) should contain (way1)
-    antMap.incomingWays(node2) should contain (way2)
-    antMap.incomingWays(node2) should contain (way3)
-    antMap.incomingWays(node3) should have size (1)
-    antMap.incomingWays(node3) should contain (way2)
-    antMap.incomingWays(node4) should have size (0)
+  test("startAntNodes") {
+    val nodes = (0 to 4).map(Node(_)).toList
+    val antNodes = AntMap.startAntNodes(nodes)
+    antNodes.size should be (5)
+    (0 to 4).foreach (id => {
+      antNodes.get(id.toString) should not be ('empty)
+      Actor.registry.actorsFor(id.toString).size should be (1)
+    })
+  }
+
+  test("computeAntWaysData") {
+    val osmNodes = (1 to 3).map(OsmNode(_, GeographicCoordinate(0, 0))).toList
+    val osmWay = OsmWay(1, "", osmNodes.toList, 0)
+    val antWaysData = AntMap.computeAntWaysData(osmWay, List("1", "3"))
+    antWaysData.size should be (1)
+    antWaysData should equal (List(("1-1", false, osmNodes)))
+  }
+
+  test("computeAntWaysData, two OSM ways") {
+    val osmNodes1 = (1 to 3).map(OsmNode(_, GeographicCoordinate(0, 0))).toList
+    val osmNodes2 = (3 to 5).map(OsmNode(_, GeographicCoordinate(0, 0))).toList
+    val osmWay1 = OsmWay(1, osmNodes1.toList)
+    val osmWay2 = OsmWay(2, osmNodes2.toList)
+    val antWaysData = List(osmWay1, osmWay2).flatMap(AntMap.computeAntWaysData(_, List("1", "3", "5")))
+    antWaysData.size should be (2)
+    antWaysData should equal (List(("1-1", false, osmNodes1), ("2-1", false, osmNodes2)))
+  }
+
+  test("computeAntWaysData, one OSM way, two ant ways") {
+    val osmNodes = (1 to 5).map(OsmNode(_, GeographicCoordinate(0, 0))).toList
+    val osmWay = OsmWay(1, osmNodes.toList)
+    val antWaysData = AntMap.computeAntWaysData(osmWay, List("1", "3", "5"))
+    antWaysData.size should be (2)
+    antWaysData should equal (List(("1-1", false, osmNodes.take(3)), ("1-2", false, osmNodes.drop(2))))
+  }
+
+  test("computeAntWaysData, oneWay") {
+    val osmNodes = (1 to 3).map(OsmNode(_, GeographicCoordinate(0, 0))).toList
+    val osmWay = OsmOneWay(1, osmNodes.toList)
+    val antWaysData = AntMap.computeAntWaysData(osmWay, List("1", "3"))
+    antWaysData.size should be (1)
+    antWaysData should equal (List(("1-1", true, osmNodes)))
+  }
+
+  test("computeIncomingWays") {
+    val nodeIds = List("1")
+    val wayData = ("1-1", false, (1 to 3).map(OsmNode(_, GeographicCoordinate(0, 0))).toList)
+    val incomingWays = AntMap.computeIncomingWays(nodeIds, List(wayData))
+    incomingWays should have size (1)
+    incomingWays("1") should equal(List("1-1"))
   }
 
   test("incomingWays, 2") {
-    val node1 = AntNode(1)
-    val node2 = AntNode(2)
-    val node3 = AntNode(3)
-    val node4 = AntNode(4)
-    val nodes = Iterable(node1, node2, node3, node4)
-    val way1 = AntWay(1, node1, node2)
-    val way2 = AntWay(2, node2, node3)
-    val way3 = AntOneWay(3, node2, node4).asInstanceOf[AntWay]
-    val ways = Iterable(way1, way2, way3)
-    val antMap = AntMap(nodes, ways)
-    antMap.incomingWays should have size (4)
-    antMap.incomingWays(node1) should have size (1)
-    antMap.incomingWays(node1) should contain (way1)
-    antMap.incomingWays(node2) should have size (2)
-    antMap.incomingWays(node2) should contain (way1)
-    antMap.incomingWays(node2) should contain (way2)
-    antMap.incomingWays(node3) should have size (1)
-    antMap.incomingWays(node3) should contain (way2)
-    antMap.incomingWays(node4) should have size (1)
-    antMap.incomingWays(node4) should contain (way3)
+    val nodeIds = List(1, 2, 3).map(_.toString)
+    val wayData1 = ("1-1", true, List(1, 2).map(OsmNode(_, GeographicCoordinate(0, 0)))) 
+    val wayData2 = ("2-1", false, List(2, 3).map(OsmNode(_, GeographicCoordinate(0, 0)))) 
+    val waysData = List(wayData1, wayData2)
+    val incomingWays = AntMap.computeIncomingWays(nodeIds, waysData)
+    incomingWays should  have size (nodeIds.size)
+    incomingWays("1") should equal (Nil)
+    incomingWays("2") should equal (List("1-1", "2-1"))
+    incomingWays("3") should equal (List("2-1"))
   }
 
-  test("outgoingWays, 1") {
-    val node1 = AntNode(1)
-    val node2 = AntNode(2)
-    val node3 = AntNode(3)
-    val node4 = AntNode(4)
-    val nodes = Iterable(node1, node2, node3, node4)
-    val way1 = AntWay(1, node1, node2)
-    val way2 = AntWay(2, node2, node3)
-    val way3 = AntOneWay(3, node4, node2).asInstanceOf[AntWay]
-    val ways = Iterable(way1, way2, way3)
-    val antMap = AntMap(nodes, ways)
-    antMap.outgoingWays should have size (4)
-    antMap.outgoingWays(node1) should have size (1)
-    antMap.outgoingWays(node1) should contain (way1)
-    antMap.outgoingWays(node2) should have size (2)
-    antMap.outgoingWays(node2) should contain (way1)
-    antMap.outgoingWays(node2) should contain (way2)
-    antMap.outgoingWays(node3) should have size (1)
-    antMap.outgoingWays(node3) should contain (way2)
-    antMap.outgoingWays(node4) should have size (1)
-    antMap.outgoingWays(node4) should contain (way3)
+  test("computeIncomingWays, oneWay") {
+    val nodeIds = List("1")
+    val wayData = ("1-1", true, (List(3, 2, 1)).map(OsmNode(_, GeographicCoordinate(0, 0))).toList)
+    val incomingWays = AntMap.computeIncomingWays(nodeIds, List(wayData))
+    incomingWays should have size (1)
+    incomingWays("1") should equal(List("1-1"))
   }
 
-  test("outgoingWays, 2") {
-    val node1 = AntNode(1)
-    val node2 = AntNode(2)
-    val node3 = AntNode(3)
-    val node4 = AntNode(4)
-    val nodes = Iterable(node1, node2, node3, node4)
-    val way1 = AntWay(1, node1, node2)
-    val way2 = AntWay(2, node2, node3)
-    val way3 = AntOneWay(3, node2, node4).asInstanceOf[AntWay]
-    val ways = Iterable(way1, way2, way3)
-    val antMap = AntMap(nodes, ways)
-    antMap.outgoingWays should have size (4)
-    antMap.outgoingWays(node1) should have size (1)
-    antMap.outgoingWays(node1) should contain (way1)
-    antMap.outgoingWays(node2) should have size (3)
-    antMap.outgoingWays(node2) should contain (way1)
-    antMap.outgoingWays(node2) should contain (way2)
-    antMap.outgoingWays(node2) should contain (way3)
-    antMap.outgoingWays(node3) should have size (1)
-    antMap.outgoingWays(node3) should contain (way2)
-    antMap.outgoingWays(node4) should have size (0)
+  test("computeIncomingWays, oneWay, no incoming ways") {
+    val nodeIds = List("1")
+    val wayData = ("1-1", true, (1 to 3).map(OsmNode(_, GeographicCoordinate(0, 0))).toList)
+    val incomingWays = AntMap.computeIncomingWays(nodeIds, List(wayData))
+    incomingWays should have size (1)
+    incomingWays("1") should equal(List())
   }
 
-  test("neighbours") {
-    val nodes = (0 to 5).map(AntNode(_))
-    val way1 = AntWay(1, nodes(0), nodes(1))
-    val way2 = AntWay(2, nodes(1), nodes(2))
-    val way3 = AntWay(3, nodes(2), nodes(3))
-    val way4 = AntWay(4, nodes(3), nodes(4))
-    val way5 = AntWay(5, nodes(4), nodes(1))
-    val way6 = AntWay(6, nodes(3), nodes(5))
-    val ways = Iterable(way1, way2, way3, way4, way5, way6)
-    val antMap = AntMap(nodes, ways)
-    antMap.neighbours(nodes(0)) should have size (1)
-    antMap.neighbours(nodes(0)) should contain (nodes(1))
-    antMap.neighbours(nodes(1)) should have size (3)
-    antMap.neighbours(nodes(1)) should contain (nodes(0))
-    antMap.neighbours(nodes(1)) should contain (nodes(2))
-    antMap.neighbours(nodes(1)) should contain (nodes(4))
-    antMap.neighbours(nodes(2)) should have size (2)
-    antMap.neighbours(nodes(2)) should contain (nodes(1))
-    antMap.neighbours(nodes(2)) should contain (nodes(3))
-    antMap.neighbours(nodes(3)) should have size (3)
-    antMap.neighbours(nodes(3)) should contain (nodes(2))
-    antMap.neighbours(nodes(3)) should contain (nodes(4))
-    antMap.neighbours(nodes(3)) should contain (nodes(5))
-    antMap.neighbours(nodes(4)) should have size (2)
-    antMap.neighbours(nodes(4)) should contain (nodes(1))
-    antMap.neighbours(nodes(4)) should contain (nodes(3))
-    antMap.neighbours(nodes(5)) should have size (1)
-    antMap.neighbours(nodes(5)) should contain (nodes(3))
+  test("outgoingWays") {
+    val antNodeIds = (1 to 4).map(_.toString).toList
+    val wayData1 = ("1-1", false, (1 to  2).map(OsmNode(_)).toList)
+    val wayData2 = ("2-1", false, (2 to  3).map(OsmNode(_)).toList)
+    val wayData3 = ("3-1", true, List(4, 2).map(OsmNode(_)).toList)
+    val waysData = List(wayData1, wayData2, wayData3)
+    val outgoingWays = AntMap.computeOutgoingWays(antNodeIds, waysData)
+    outgoingWays should have size (antNodeIds.size)
+    outgoingWays("1") should equal (List("1-1"))
+    outgoingWays("2") should equal (List("1-1", "2-1"))
+    outgoingWays("3") should equal (List("2-1"))
+    outgoingWays("4") should equal (List("3-1"))
   }
-
-  test("neighbours with oneway") {
-    val nodes = (0 to 5).map(AntNode(_))
-    val way1 = AntWay(1, nodes(0), nodes(1))
-    val way2 = AntWay(2, nodes(1), nodes(2))
-    val way3 = AntWay(3, nodes(2), nodes(3))
-    val way4 = AntWay(4, nodes(3), nodes(4))
-    val way5 = AntOneWay(5, nodes(4), nodes(1))
-    val way6 = AntWay(6, nodes(3), nodes(5))
-    val ways = Iterable(way1, way2, way3, way4, way5, way6)
-    val antMap = AntMap(nodes, ways)
-    antMap.neighbours(nodes(0)) should have size (1)
-    antMap.neighbours(nodes(0)) should contain (nodes(1))
-    antMap.neighbours(nodes(1)) should have size (2)
-    antMap.neighbours(nodes(1)) should contain (nodes(0))
-    antMap.neighbours(nodes(1)) should contain (nodes(2))
-    antMap.neighbours(nodes(2)) should have size (2)
-    antMap.neighbours(nodes(2)) should contain (nodes(1))
-    antMap.neighbours(nodes(2)) should contain (nodes(3))
-    antMap.neighbours(nodes(3)) should have size (3)
-    antMap.neighbours(nodes(3)) should contain (nodes(2))
-    antMap.neighbours(nodes(3)) should contain (nodes(4))
-    antMap.neighbours(nodes(3)) should contain (nodes(5))
-    antMap.neighbours(nodes(4)) should have size (2)
-    antMap.neighbours(nodes(4)) should contain (nodes(1))
-    antMap.neighbours(nodes(4)) should contain (nodes(3))
-    antMap.neighbours(nodes(5)) should have size (1)
-    antMap.neighbours(nodes(5)) should contain (nodes(3))
-  }
-
-  test("reachableNodes") {
-    val nodes = (0 to 5).map(AntNode(_))
-    val way1 = AntWay(1, nodes(0), nodes(1))
-    val way2 = AntWay(2, nodes(1), nodes(2))
-    val way3 = AntWay(3, nodes(2), nodes(3))
-    val way4 = AntWay(4, nodes(3), nodes(4))
-    val way5 = AntWay(5, nodes(4), nodes(1))
-    val way6 = AntWay(6, nodes(3), nodes(5))
-    val ways = Iterable(way1, way2, way3, way4, way5, way6)
-    val antMap = AntMap(nodes, ways)
-    antMap.reachableNodes(nodes(0)) should have size (5)
-    antMap.reachableNodes(nodes(0)) should (contain (nodes(1)) and contain (nodes(2)) and contain (nodes(3)) and contain (nodes(4)) and contain (nodes(5)))
-    antMap.reachableNodes(nodes(1)) should have size (5)
-    antMap.reachableNodes(nodes(1)) should (contain (nodes(0)) and contain (nodes(2)) and contain (nodes(3)) and contain (nodes(4)) and contain (nodes(5)))
-    antMap.reachableNodes(nodes(2)) should have size (5)
-    antMap.reachableNodes(nodes(2)) should (contain (nodes(0)) and contain (nodes(1)) and contain (nodes(3)) and contain (nodes(4)) and contain (nodes(5)))
-    antMap.reachableNodes(nodes(3)) should have size (5)
-    antMap.reachableNodes(nodes(3)) should (contain (nodes(0)) and contain (nodes(1)) and contain (nodes(2)) and contain (nodes(4)) and contain (nodes(5)))
-    antMap.reachableNodes(nodes(4)) should have size (5)
-    antMap.reachableNodes(nodes(4)) should (contain (nodes(0)) and contain (nodes(1)) and contain (nodes(2)) and contain (nodes(3)) and contain (nodes(5)))
-    antMap.reachableNodes(nodes(5)) should have size (5)
-    antMap.reachableNodes(nodes(5)) should (contain (nodes(0)) and contain (nodes(1)) and contain (nodes(2)) and contain (nodes(3)) and contain (nodes(4)))
-  }
-
-  test("reachableNodes with oneway, 1") {
-    val nodes = (0 to 5).map(AntNode(_))
-    val way1 = AntWay(1, nodes(0), nodes(1))
-    val way2 = AntWay(2, nodes(1), nodes(2))
-    val way3 = AntWay(3, nodes(2), nodes(3))
-    val way4 = AntWay(4, nodes(3), nodes(4))
-    val way5 = AntOneWay(5, nodes(4), nodes(1))
-    val way6 = AntWay(6, nodes(3), nodes(5))
-    val ways = Iterable(way1, way2, way3, way4, way5, way6)
-    val antMap = AntMap(nodes, ways)
-    antMap.reachableNodes(nodes(0)) should have size (5)
-    antMap.reachableNodes(nodes(0)) should (contain (nodes(1)) and contain (nodes(2)) and contain (nodes(3)) and contain (nodes(4)) and contain (nodes(5)))
-    antMap.reachableNodes(nodes(1)) should have size (5)
-    antMap.reachableNodes(nodes(1)) should (contain (nodes(0)) and contain (nodes(2)) and contain (nodes(3)) and contain (nodes(4)) and contain (nodes(5)))
-    antMap.reachableNodes(nodes(2)) should have size (5)
-    antMap.reachableNodes(nodes(2)) should (contain (nodes(0)) and contain (nodes(1)) and contain (nodes(3)) and contain (nodes(4)) and contain (nodes(5)))
-    antMap.reachableNodes(nodes(3)) should have size (5)
-    antMap.reachableNodes(nodes(3)) should (contain (nodes(0)) and contain (nodes(1)) and contain (nodes(2)) and contain (nodes(4)) and contain (nodes(5)))
-    antMap.reachableNodes(nodes(4)) should have size (5)
-    antMap.reachableNodes(nodes(4)) should (contain (nodes(0)) and contain (nodes(1)) and contain (nodes(2)) and contain (nodes(3)) and contain (nodes(5)))
-    antMap.reachableNodes(nodes(5)) should have size (5)
-    antMap.reachableNodes(nodes(5)) should (contain (nodes(0)) and contain (nodes(1)) and contain (nodes(2)) and contain (nodes(3)) and contain (nodes(4)))
-  }
-
-  test("reachableNodes with oneway, 2") {
-    val nodes = (0 to 5).map(AntNode(_))
-    val way1 = AntWay(1, nodes(0), nodes(1))
-    val way2 = AntWay(2, nodes(1), nodes(2))
-    val way3 = AntWay(3, nodes(2), nodes(3))
-    val way4 = AntWay(4, nodes(3), nodes(4))
-    val way5 = AntWay(5, nodes(4), nodes(1))
-    val way6 = AntOneWay(6, nodes(3), nodes(5))
-    val ways = Iterable(way1, way2, way3, way4, way5, way6)
-    val antMap = AntMap(nodes, ways)
-    antMap.reachableNodes(nodes(0)) should have size (5)
-    antMap.reachableNodes(nodes(0)) should (contain (nodes(1)) and contain (nodes(2)) and contain (nodes(3)) and contain (nodes(4)) and contain (nodes(5)))
-    antMap.reachableNodes(nodes(1)) should have size (5)
-    antMap.reachableNodes(nodes(1)) should (contain (nodes(0)) and contain (nodes(2)) and contain (nodes(3)) and contain (nodes(4)) and contain (nodes(5)))
-    antMap.reachableNodes(nodes(2)) should have size (5)
-    antMap.reachableNodes(nodes(2)) should (contain (nodes(0)) and contain (nodes(1)) and contain (nodes(3)) and contain (nodes(4)) and contain (nodes(5)))
-    antMap.reachableNodes(nodes(3)) should have size (5)
-    antMap.reachableNodes(nodes(3)) should (contain (nodes(0)) and contain (nodes(1)) and contain (nodes(2)) and contain (nodes(4)) and contain (nodes(5)))
-    antMap.reachableNodes(nodes(4)) should have size (5)
-    antMap.reachableNodes(nodes(4)) should (contain (nodes(0)) and contain (nodes(1)) and contain (nodes(2)) and contain (nodes(3)) and contain (nodes(5)))
-    antMap.reachableNodes(nodes(5)) should be ('empty)
+  
+  test("") {
+    val nodes = (1 to 2).map(OsmNode(_)).toList
+    val way = OsmWay(1, nodes)
+    val osmMap = OsmMap(nodes, Iterable(way))
+    val antMap = AntMap(osmMap)
   }
 }

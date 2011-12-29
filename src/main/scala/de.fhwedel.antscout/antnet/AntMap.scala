@@ -1,10 +1,12 @@
 package de.fhwedel.antscout
 package antnet
 
-import osm.{OsmWay, OsmNode, OsmMap}
 import net.liftweb.common.Logger
 import net.liftweb.util.TimeHelpers
-import scala.collection.mutable.{Map => MutableMap}
+import map.Node
+import collection.immutable.List
+import akka.actor.Actor
+import osm.{OsmOneWay, OsmWay, OsmNode, OsmMap}
 
 /**
  * Created by IntelliJ IDEA.
@@ -13,94 +15,108 @@ import scala.collection.mutable.{Map => MutableMap}
  * Time: 12:07
  */
 
-class AntMap(val nodes: Map[Int, AntNode], val ways: Map[String, AntWay]) extends Logger {
-  val incomingWays: Map[AntNode, Iterable[AntWay]] = computeIncomingWays
-  val outgoingWays: Map[AntNode, Iterable[AntWay]] = computeOutgoingWays
+class AntMap(osmMap: OsmMap) extends Logger {
 
-  private def computeIncomingWays = {
-    info("Computing incoming ways")  
-    val (time, incomingWays) = TimeHelpers.calcTime(nodes.values.par.map {node =>
-      val incomingWays = ways.values.par.filter {way =>
-        way match {
-          case antOneWay: AntOneWay => antOneWay.endNode == node
-          case _ => way.startNode == node || way.endNode == node
+  val nodes = AntMap.computeAndStartAntNodes(osmMap.ways.values.toList, osmMap.intersections)
+  val ways = computePrepareAndStartAntWays
+
+  private def computePrepareAndStartAntWays = {
+    val nodeIds = nodes.keys.toList 
+    info("Computing ant ways data")
+    val (time, antWaysData) = TimeHelpers.calcTime(osmMap.ways.values.flatMap(AntMap.computeAntWaysData(_, nodeIds)).toList)
+    info("%d ant ways data computed in %d ms".format(antWaysData.size, time))
+    val antWays = AntMap.startAntWays(antWaysData)
+    val incomingWays = AntMap.computeIncomingWays(nodeIds, antWaysData)
+    val outgoingWays = AntMap.computeOutgoingWays(nodeIds, antWaysData)
+    nodeIds.foreach(nodeId => {
+      val incomingWaysActors = incomingWays(nodeId).flatMap(Actor.registry.actorsFor(_)).toList
+      nodes(nodeId) ! IncomingWays(incomingWaysActors)
+      val outgoingWaysActors = outgoingWays(nodeId).flatMap(Actor.registry.actorsFor(_)).toList
+      nodes(nodeId) ! OutgoingWays(outgoingWaysActors)
+    })
+    antWays
+  }
+}
+
+object AntMap extends Logger {
+
+  def apply(osmMap: OsmMap) = new AntMap(osmMap)
+
+  def computeAndStartAntNodes(ways: List[OsmWay], intersections: List[OsmNode]) = {
+    val antNodes = computeAntNodes(ways, intersections)
+    startAntNodes(antNodes)
+  }
+
+  def computeAntNodes(ways: List[OsmWay], intersections: List[Node]) = {
+    info("Computing ant nodes")
+    val (time, antNodes) = TimeHelpers.calcTime {
+      val startAndEndNodes = ways.par.flatMap(way => List(way.nodes.head, way.nodes.last))
+      (startAndEndNodes ++ intersections).distinct.seq.toList
+    }
+    info("%d ant nodes computed in %d ms".format(antNodes.size, time))
+    antNodes
+  }
+
+  def computeIncomingWays(nodeIds: List[String], waysData: List[(String, Boolean, List[OsmNode])]) = {
+    info("Computing incoming ways")
+    val (time, incomingWays) = TimeHelpers.calcTime(nodeIds.par.map {nodeId =>
+      val incomingWays = waysData.par.filter {wayData =>
+        wayData match {
+          case (id, true, wayNodes) => wayNodes.last.id == nodeId
+          case (id, false, wayNodes) => wayNodes.head.id == nodeId || wayNodes.last.id == nodeId
         }
-      }
-      (node, incomingWays.seq)
+      }.map(_._1)
+      (nodeId, incomingWays.seq)
     }.seq.toMap)
     info("Incoming ways computed in %d ms".format(time))
     incomingWays
   }
 
-  def computeOutgoingWays = {
+  def computeOutgoingWays(nodeIds: List[String], waysData: List[(String, Boolean, List[OsmNode])]) = {
     info("Computing outgoing ways")
-    val (time, outgoingWays) = TimeHelpers.calcTime(nodes.values.par.map {node =>
-      val incomingWays = ways.values.par.filter {way =>
-        way match {
-          case antOneWay: AntOneWay => antOneWay.startNode == node
-          case _ => way.startNode == node || way.endNode == node
+    val (time, outgoingWays) = TimeHelpers.calcTime(nodeIds.par.map {nodeId =>
+      val outgoingWays = waysData.par.filter {wayData =>
+        wayData match {
+          case (id, true, nodes) => nodes.head.id == nodeId
+          case (id, false, nodes) => nodes.head.id == nodeId || nodes.last.id == nodeId
         }
-      }
-      (node, incomingWays.seq)
+      }.map(_._1)
+      (nodeId, outgoingWays.seq)
     }.seq.toMap)
     info("Outgoing ways computed in %d ms".format(time))
     outgoingWays
   }
-}
 
-object AntMap extends Logger {
-  def apply(nodes: Iterable[AntNode], ways: Iterable[AntWay]) = {
-    val antNodes = nodes.map {node =>
-      (node.id, node)
-    }.toMap
-    val antWays = ways.map {way =>
-      (way.id, way)
-    }.toMap
-    new AntMap(antNodes, antWays)
-  }
-
-  def apply(osmMap: OsmMap) = {
-    info("Creating ant nodes")
-    val (nodesTime, nodes) = TimeHelpers.calcTime(osmMap.intersections.map (node => {
-      (node id, AntNode(node id))
-    }).toMap)
-    info("%d ant nodes created in %d ms".format(nodes.size, nodesTime))
-    info("Creating ant ways")
-    val (waysTime, ways) = TimeHelpers.calcTime(osmMap.ways.values.map (way => {
-      convertOsmWayToAntWays(way, nodes)
-    }).flatten.map (way => {
-      (way.id, way)
-    }).toMap)
-    info("%d ant ways created in %d ms".format(ways.size, waysTime))
-    new AntMap(nodes, ways)
-  }
-
-  def convertOsmWayToAntWays(osmWay: OsmWay, antNodes: Map[Int, AntNode]) = {
-    def createAntWays(antWayNodes: Seq[OsmNode], remainNodes: Seq[OsmNode], antWays: Iterable[AntWay]): Iterable[AntWay] = {
-      (antWayNodes, remainNodes) match {
+  def computeAntWaysData(osmWay: OsmWay, antNodesIds: List[String]): List[(String, Boolean, List[OsmNode])] = {
+    def computeAntWaysDataRecursive(usedNodes: List[OsmNode], remainingNodes: List[OsmNode], computedWays: Int): List[(String, Boolean, List[OsmNode])] = {
+      (usedNodes, remainingNodes) match {
+        // usedNodes ist leer, die Berechnung ist zu Ende
         case (Nil, _) =>
-          antWays
-        case (Seq(node), Nil) =>
-          antWays
-        case (_, Nil) =>
-          AntWay(osmWay, antWays.size + 1, antWayNodes reverse, antNodes) match {
-            case None =>
-              createAntWays(Nil, Nil, antWays)
-            case antWay: AntWay =>
-              createAntWays(Nil, Nil, Seq(antWay) ++ antWays)
+          Nil
+        // usedNodes besteht nur noch aus einem Element, remainingNodes ist leer, die Berechnung ist zu Ende
+        case (head :: Nil, Nil) =>
+          Nil
+        case (_, head :: tail) =>
+          if (antNodesIds.contains(head.id)) {
+            ("%s-%d".format(osmWay.id, computedWays + 1), osmWay.isInstanceOf[OsmOneWay], (head :: usedNodes).reverse) :: computeAntWaysDataRecursive(head :: Nil, tail, computedWays + 1)
+          } else {
+            computeAntWaysDataRecursive(head :: usedNodes, tail, computedWays)
           }
-        case (_, Seq(head, tail @ _*)) =>
-          if (antNodes.contains(head.id)) {
-            AntWay(osmWay, antWays.size + 1, (Seq(head) ++ antWayNodes).reverse, antNodes) match {
-              case None =>
-                createAntWays(Vector(head), tail, antWays)
-              case Some(antWay) =>
-                createAntWays(Vector(head), tail, Seq(antWay) ++ antWays)
-            }
-          } else
-            createAntWays(Vector(head) ++ antWayNodes, tail, antWays)
       }
     }
-    createAntWays(Vector(osmWay.nodes head), osmWay.nodes tail, Iterable.empty[AntWay])
+    computeAntWaysDataRecursive(osmWay.nodes.head :: Nil, osmWay.nodes.tail, 0)
+  }
+
+  def startAntNodes(nodes: List[Node]) = {
+    info("Starting ant nodes")
+    val (time, antNodes) = TimeHelpers.calcTime(nodes.par.map(node => (node.id -> AntNode(node.id))).seq.toMap)
+    info("%d ant nodes started in %d ms".format(antNodes.size, time))
+    antNodes
+  }
+
+  def startAntWays(antWaysData: List[(String, Boolean, List[OsmNode])]) = {
+    info("Starting ant ways")
+    val (time, antWays) = TimeHelpers.calcTime(antWaysData.par.map(antWayData => (antWayData._1 -> AntWay(antWayData._1, antWayData._3))).seq.toMap)
+    info("%d ant ways started in %d ms".format(antWays.size, time))
   }
 }
