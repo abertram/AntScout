@@ -6,6 +6,7 @@ import org.scalatest.matchers.ShouldMatchers
 import map.Node
 import akka.actor.Actor
 import osm._
+import xml.XML
 
 /**
  * Created by IntelliJ IDEA.
@@ -71,60 +72,36 @@ class AntMapTest extends FunSuite with ShouldMatchers {
     antWaysData should equal (List(("1-1", true, osmNodes)))
   }
 
-  test("computeIncomingWays") {
-    val nodeIds = List("1")
+  test("computeIncomingAndOutgoingWays, 1") {
+    val nodeIds = List("1", "3")
     val wayData = ("1-1", false, (1 to 3).map(OsmNode(_, GeographicCoordinate(0, 0))).toList)
-    val incomingWays = AntMap.computeIncomingWays(nodeIds, List(wayData))
-    incomingWays should have size (1)
-    incomingWays("1") should equal(List("1-1"))
+    val (incomingWays, outgoingWays) = AntMap.computeIncomingAndOutgoingWays(nodeIds, List(wayData))
+    incomingWays should have size (2)
+    incomingWays("1") should equal(Set("1-1"))
+    incomingWays("3") should equal(Set("1-1"))
+    outgoingWays should have size (2)
+    outgoingWays("1") should equal(Set("1-1"))
+    outgoingWays("3") should equal(Set("1-1"))
   }
 
-  test("incomingWays, 2") {
+  test("computeIncomingAndOutgoingWays, 2") {
     val nodeIds = List(1, 2, 3).map(_.toString)
     val wayData1 = ("1-1", true, List(1, 2).map(OsmNode(_, GeographicCoordinate(0, 0)))) 
     val wayData2 = ("2-1", false, List(2, 3).map(OsmNode(_, GeographicCoordinate(0, 0)))) 
     val waysData = List(wayData1, wayData2)
-    val incomingWays = AntMap.computeIncomingWays(nodeIds, waysData)
-    incomingWays should  have size (nodeIds.size)
-    incomingWays("1") should equal (Nil)
-    incomingWays("2") should equal (List("1-1", "2-1"))
-    incomingWays("3") should equal (List("2-1"))
+    val (incomingWays, outgoingWays) = AntMap.computeIncomingAndOutgoingWays(nodeIds, waysData)
+    incomingWays should  have size (2)
+    incomingWays("2") should equal (Set("1-1", "2-1"))
+    incomingWays("3") should equal (Set("2-1"))
+    outgoingWays should have size (3)
+    outgoingWays("1") should equal (Set("1-1"))
+    outgoingWays("2") should equal (Set("2-1"))
+    outgoingWays("3") should equal (Set("2-1"))
   }
 
-  test("computeIncomingWays, oneWay") {
-    val nodeIds = List("1")
-    val wayData = ("1-1", true, (List(3, 2, 1)).map(OsmNode(_, GeographicCoordinate(0, 0))).toList)
-    val incomingWays = AntMap.computeIncomingWays(nodeIds, List(wayData))
-    incomingWays should have size (1)
-    incomingWays("1") should equal(List("1-1"))
-  }
-
-  test("computeIncomingWays, oneWay, no incoming ways") {
-    val nodeIds = List("1")
-    val wayData = ("1-1", true, (1 to 3).map(OsmNode(_, GeographicCoordinate(0, 0))).toList)
-    val incomingWays = AntMap.computeIncomingWays(nodeIds, List(wayData))
-    incomingWays should have size (1)
-    incomingWays("1") should equal(List())
-  }
-
-  test("outgoingWays") {
-    val antNodeIds = (1 to 4).map(_.toString).toList
-    val wayData1 = ("1-1", false, (1 to  2).map(OsmNode(_)).toList)
-    val wayData2 = ("2-1", false, (2 to  3).map(OsmNode(_)).toList)
-    val wayData3 = ("3-1", true, List(4, 2).map(OsmNode(_)).toList)
-    val waysData = List(wayData1, wayData2, wayData3)
-    val outgoingWays = AntMap.computeOutgoingWays(antNodeIds, waysData)
-    outgoingWays should have size (antNodeIds.size)
-    outgoingWays("1") should equal (List("1-1"))
-    outgoingWays("2") should equal (List("1-1", "2-1"))
-    outgoingWays("3") should equal (List("2-1"))
-    outgoingWays("4") should equal (List("3-1"))
-  }
-  
   test("") {
-    val nodes = (1 to 2).map(OsmNode(_)).toList
-    val way = OsmWay(1, nodes)
-    val osmMap = OsmMap(nodes, Iterable(way))
+    val osmData = XML loadFile("./maps/node-483401561.osm")
+    val osmMap = OsmMap(osmData)
     val antMap = AntMap(osmMap)
   }
 }

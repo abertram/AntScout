@@ -7,6 +7,7 @@ import map.Node
 import collection.immutable.List
 import akka.actor.Actor
 import osm.{OsmOneWay, OsmWay, OsmNode, OsmMap}
+import collection.mutable.{SynchronizedMap, HashMap => MutableHashMap, Set => MutableSet}
 
 /**
  * Created by IntelliJ IDEA.
@@ -23,16 +24,17 @@ class AntMap(osmMap: OsmMap) extends Logger {
   private def computePrepareAndStartAntWays = {
     val nodeIds = nodes.keys.toList 
     info("Computing ant ways data")
-    val (time, antWaysData) = TimeHelpers.calcTime(osmMap.ways.values.flatMap(AntMap.computeAntWaysData(_, nodeIds)).toList)
+    val (time, antWaysData) = TimeHelpers.calcTime(osmMap.ways.values.par.flatMap(AntMap.computeAntWaysData(_, nodeIds)).toList)
     info("%d ant ways data computed in %d ms".format(antWaysData.size, time))
     val antWays = AntMap.startAntWays(antWaysData)
-    val incomingWays = AntMap.computeIncomingWays(nodeIds, antWaysData)
-    val outgoingWays = AntMap.computeOutgoingWays(nodeIds, antWaysData)
-    nodeIds.foreach(nodeId => {
-      val incomingWaysActors = incomingWays(nodeId).flatMap(Actor.registry.actorsFor(_)).toList
-      nodes(nodeId) ! IncomingWays(incomingWaysActors)
-      val outgoingWaysActors = outgoingWays(nodeId).flatMap(Actor.registry.actorsFor(_)).toList
-      nodes(nodeId) ! OutgoingWays(outgoingWaysActors)
+    val (incomingWays, outgoingWays) = AntMap.computeIncomingAndOutgoingWays(nodeIds, antWaysData)
+    incomingWays.par.foreach(kv => {
+      val incomingWaysActors = kv._2.flatMap(Actor.registry.actorsFor(_)).toList
+      nodes(kv._1) ! IncomingWays(incomingWaysActors)
+    })
+    outgoingWays.par.foreach(kv => {
+      val outgoingWaysActors = kv._2.flatMap(Actor.registry.actorsFor(_)).toList
+      nodes(kv._1) ! OutgoingWays(outgoingWaysActors)
     })
     antWays
   }
@@ -57,34 +59,31 @@ object AntMap extends Logger {
     antNodes
   }
 
-  def computeIncomingWays(nodeIds: List[String], waysData: List[(String, Boolean, List[OsmNode])]) = {
-    info("Computing incoming ways")
-    val (time, incomingWays) = TimeHelpers.calcTime(nodeIds.par.map {nodeId =>
-      val incomingWays = waysData.par.filter {wayData =>
+  def computeIncomingAndOutgoingWays(nodeIds: List[String], waysData: List[(String, Boolean, List[OsmNode])]) = {
+    info("Computing incoming and outgoing ways")
+    val tempIncomingWays = new MutableHashMap[String, Set[String]] with SynchronizedMap[String, Set[String]]
+    val tempOutgoingWays = new MutableHashMap[String, Set[String]] with SynchronizedMap[String, Set[String]]
+    val (time, (incomingWays, outgoingWays)) = TimeHelpers.calcTime {
+      waysData.foreach {wayData =>
         wayData match {
-          case (id, true, wayNodes) => wayNodes.last.id == nodeId
-          case (id, false, wayNodes) => wayNodes.head.id == nodeId || wayNodes.last.id == nodeId
+          case (id, true, nodes) => {
+            val lastNodeId = nodes.last.id
+            tempIncomingWays(lastNodeId) = tempIncomingWays.getOrElse(lastNodeId, Set.empty[String]) + id
+            tempOutgoingWays(nodes.head.id) = tempOutgoingWays.getOrElse(nodes.head.id, Set.empty[String]) + id
+          }
+          case (id, false, nodes) => {
+            val lastNodeId = nodes.last.id
+            tempIncomingWays(nodes.head.id) = tempIncomingWays.getOrElse(nodes.head.id, Set.empty[String]) + id
+            tempIncomingWays(lastNodeId) = tempIncomingWays.getOrElse(lastNodeId, Set.empty[String]) + id
+            tempOutgoingWays(nodes.head.id) = tempOutgoingWays.getOrElse(nodes.head.id, Set.empty[String]) + id
+            tempOutgoingWays(lastNodeId) = tempOutgoingWays.getOrElse(lastNodeId, Set.empty[String]) + id
+          }
         }
-      }.map(_._1)
-      (nodeId, incomingWays.seq)
-    }.seq.toMap)
-    info("Incoming ways computed in %d ms".format(time))
-    incomingWays
-  }
-
-  def computeOutgoingWays(nodeIds: List[String], waysData: List[(String, Boolean, List[OsmNode])]) = {
-    info("Computing outgoing ways")
-    val (time, outgoingWays) = TimeHelpers.calcTime(nodeIds.par.map {nodeId =>
-      val outgoingWays = waysData.par.filter {wayData =>
-        wayData match {
-          case (id, true, nodes) => nodes.head.id == nodeId
-          case (id, false, nodes) => nodes.head.id == nodeId || nodes.last.id == nodeId
-        }
-      }.map(_._1)
-      (nodeId, outgoingWays.seq)
-    }.seq.toMap)
-    info("Outgoing ways computed in %d ms".format(time))
-    outgoingWays
+      }
+      (tempIncomingWays.toMap, tempOutgoingWays.toMap)
+    }
+    info("%d incoming and %d outgoing ways computed in %d ms".format(incomingWays.size, outgoingWays.size, time))
+    (incomingWays, outgoingWays)
   }
 
   def computeAntWaysData(osmWay: OsmWay, antNodesIds: List[String]): List[(String, Boolean, List[OsmNode])] = {

@@ -21,14 +21,8 @@ class AntNode(id: String) extends Actor with Logger {
   }
 
   protected def receive = {
-    case IncomingWays(iw) => {
-      debug("Receiving incoming ways: %s".format(iw))
-      incomingWays = iw
-    }
-    case OutgoingWays(ow) => {
-      debug("Receiving outgoing ways: %s".format(ow))
-      outgoingWays = ow
-    }
+    case IncomingWays(iw) => incomingWays = iw
+    case OutgoingWays(ow) => outgoingWays = ow
     case _ => warn("Unknown message")
   }
 }
