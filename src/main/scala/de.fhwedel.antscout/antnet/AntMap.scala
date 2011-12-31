@@ -59,24 +59,24 @@ object AntMap extends Logger {
     antNodes
   }
 
-  def computeIncomingAndOutgoingWays(nodeIds: List[String], waysData: List[(String, Boolean, List[OsmNode])]) = {
+  def computeIncomingAndOutgoingWays(nodeIds: List[String], waysData: List[AntWayData]) = {
     info("Computing incoming and outgoing ways")
     val tempIncomingWays = new MutableHashMap[String, Set[String]] with SynchronizedMap[String, Set[String]]
     val tempOutgoingWays = new MutableHashMap[String, Set[String]] with SynchronizedMap[String, Set[String]]
     val (time, (incomingWays, outgoingWays)) = TimeHelpers.calcTime {
       waysData.foreach {wayData =>
-        wayData match {
-          case (id, true, nodes) => {
-            val lastNodeId = nodes.last.id
-            tempIncomingWays(lastNodeId) = tempIncomingWays.getOrElse(lastNodeId, Set.empty[String]) + id
-            tempOutgoingWays(nodes.head.id) = tempOutgoingWays.getOrElse(nodes.head.id, Set.empty[String]) + id
+        wayData.oneWay match {
+          case true => {
+            val lastNodeId = wayData.nodes.last.id
+            tempIncomingWays(lastNodeId) = tempIncomingWays.getOrElse(lastNodeId, Set.empty[String]) + wayData.id
+            tempOutgoingWays(wayData.nodes.head.id) = tempOutgoingWays.getOrElse(wayData.nodes.head.id, Set.empty[String]) + wayData.id
           }
-          case (id, false, nodes) => {
-            val lastNodeId = nodes.last.id
-            tempIncomingWays(nodes.head.id) = tempIncomingWays.getOrElse(nodes.head.id, Set.empty[String]) + id
-            tempIncomingWays(lastNodeId) = tempIncomingWays.getOrElse(lastNodeId, Set.empty[String]) + id
-            tempOutgoingWays(nodes.head.id) = tempOutgoingWays.getOrElse(nodes.head.id, Set.empty[String]) + id
-            tempOutgoingWays(lastNodeId) = tempOutgoingWays.getOrElse(lastNodeId, Set.empty[String]) + id
+          case false => {
+            val lastNodeId = wayData.nodes.last.id
+            tempIncomingWays(wayData.nodes.head.id) = tempIncomingWays.getOrElse(wayData.nodes.head.id, Set.empty[String]) + wayData.id
+            tempIncomingWays(lastNodeId) = tempIncomingWays.getOrElse(lastNodeId, Set.empty[String]) + wayData.id
+            tempOutgoingWays(wayData.nodes.head.id) = tempOutgoingWays.getOrElse(wayData.nodes.head.id, Set.empty[String]) + wayData.id
+            tempOutgoingWays(lastNodeId) = tempOutgoingWays.getOrElse(lastNodeId, Set.empty[String]) + wayData.id
           }
         }
       }
@@ -86,8 +86,8 @@ object AntMap extends Logger {
     (incomingWays, outgoingWays)
   }
 
-  def computeAntWaysData(osmWay: OsmWay, antNodesIds: List[String]): List[(String, Boolean, List[OsmNode])] = {
-    def computeAntWaysDataRecursive(usedNodes: List[OsmNode], remainingNodes: List[OsmNode], computedWays: Int): List[(String, Boolean, List[OsmNode])] = {
+  def computeAntWaysData(osmWay: OsmWay, antNodesIds: List[String]): List[AntWayData] = {
+    def computeAntWaysDataRecursive(usedNodes: List[OsmNode], remainingNodes: List[OsmNode], computedWays: Int): List[AntWayData] = {
       (usedNodes, remainingNodes) match {
         // usedNodes ist leer, die Berechnung ist zu Ende
         case (Nil, _) =>
@@ -96,14 +96,13 @@ object AntMap extends Logger {
         case (head :: Nil, Nil) =>
           Nil
         case (_, head :: tail) =>
-          if (antNodesIds.contains(head.id)) {
-            ("%s-%d".format(osmWay.id, computedWays + 1), osmWay.isInstanceOf[OsmOneWay], (head :: usedNodes).reverse) :: computeAntWaysDataRecursive(head :: Nil, tail, computedWays + 1)
-          } else {
-            computeAntWaysDataRecursive(head :: usedNodes, tail, computedWays)
-          }
+          val id = "%s-%d".format(osmWay.id, computedWays + 1)
+          AntWayData(id, osmWay.maxSpeed, usedNodes :+ head, osmWay.isInstanceOf[OsmOneWay]) :: computeAntWaysDataRecursive(head :: tail.takeWhile(n => !antNodesIds.contains(n.id)), tail.dropWhile(n => !antNodesIds.contains(n.id)), computedWays + 1)
       }
     }
-    computeAntWaysDataRecursive(osmWay.nodes.head :: Nil, osmWay.nodes.tail, 0)
+    val usedNodes = osmWay.nodes.head :: osmWay.nodes.tail.takeWhile(n => !antNodesIds.contains(n.id))
+    val remainingNodes = osmWay.nodes.tail.dropWhile(n => !antNodesIds.contains(n.id))
+    computeAntWaysDataRecursive(usedNodes, remainingNodes, 0)
   }
 
   def startAntNodes(nodes: List[Node]) = {
@@ -113,9 +112,9 @@ object AntMap extends Logger {
     antNodes
   }
 
-  def startAntWays(antWaysData: List[(String, Boolean, List[OsmNode])]) = {
+  def startAntWays(antWaysData: List[AntWayData]) = {
     info("Starting ant ways")
-    val (time, antWays) = TimeHelpers.calcTime(antWaysData.par.map(antWayData => (antWayData._1 -> AntWay(antWayData._1, antWayData._3))).seq.toMap)
+    val (time, antWays) = TimeHelpers.calcTime(antWaysData.par.map(antWayData => (antWayData.id -> AntWay(antWayData.id, antWayData.maxSpeed,antWayData.nodes))).seq.toMap)
     info("%d ant ways started in %d ms".format(antWays.size, time))
   }
 }

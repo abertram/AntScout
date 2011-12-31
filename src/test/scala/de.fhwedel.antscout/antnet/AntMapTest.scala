@@ -39,42 +39,42 @@ class AntMapTest extends FunSuite with ShouldMatchers {
   }
 
   test("computeAntWaysData") {
-    val osmNodes = (1 to 3).map(OsmNode(_, GeographicCoordinate(0, 0))).toList
-    val osmWay = OsmWay(1, "", osmNodes.toList, 0)
+    val osmNodes = (1 to 3).map(OsmNode(_)).toList
+    val osmWay = OsmWay(1, "", osmNodes.toList, 1)
     val antWaysData = AntMap.computeAntWaysData(osmWay, List("1", "3"))
     antWaysData.size should be (1)
-    antWaysData should equal (List(("1-1", false, osmNodes)))
+    antWaysData should equal (List(AntWayData("1-1", 1, osmNodes, false)))
   }
 
   test("computeAntWaysData, two OSM ways") {
-    val osmNodes1 = (1 to 3).map(OsmNode(_, GeographicCoordinate(0, 0))).toList
-    val osmNodes2 = (3 to 5).map(OsmNode(_, GeographicCoordinate(0, 0))).toList
-    val osmWay1 = OsmWay(1, osmNodes1.toList)
-    val osmWay2 = OsmWay(2, osmNodes2.toList)
+    val osmNodes1 = (1 to 3).map(OsmNode(_)).toList
+    val osmNodes2 = (3 to 5).map(OsmNode(_)).toList
+    val osmWay1 = OsmWay(1, "", osmNodes1.toList, 1)
+    val osmWay2 = OsmWay(2, "", osmNodes2.toList, 2)
     val antWaysData = List(osmWay1, osmWay2).flatMap(AntMap.computeAntWaysData(_, List("1", "3", "5")))
     antWaysData.size should be (2)
-    antWaysData should equal (List(("1-1", false, osmNodes1), ("2-1", false, osmNodes2)))
+    antWaysData should equal (List(AntWayData("1-1", 1, osmNodes1, false), AntWayData("2-1", 2, osmNodes2, false)))
   }
 
   test("computeAntWaysData, one OSM way, two ant ways") {
-    val osmNodes = (1 to 5).map(OsmNode(_, GeographicCoordinate(0, 0))).toList
+    val osmNodes = (1 to 5).map(OsmNode(_)).toList
     val osmWay = OsmWay(1, osmNodes.toList)
     val antWaysData = AntMap.computeAntWaysData(osmWay, List("1", "3", "5"))
     antWaysData.size should be (2)
-    antWaysData should equal (List(("1-1", false, osmNodes.take(3)), ("1-2", false, osmNodes.drop(2))))
+    antWaysData should equal (List(AntWayData("1-1", 0, osmNodes.take(3), false), AntWayData("1-2", 0, osmNodes.drop(2), false)))
   }
 
   test("computeAntWaysData, oneWay") {
-    val osmNodes = (1 to 3).map(OsmNode(_, GeographicCoordinate(0, 0))).toList
-    val osmWay = OsmOneWay(1, osmNodes.toList)
+    val osmNodes = (1 to 3).map(OsmNode(_)).toList
+    val osmWay = OsmOneWay(1, "", osmNodes.toList, 1)
     val antWaysData = AntMap.computeAntWaysData(osmWay, List("1", "3"))
     antWaysData.size should be (1)
-    antWaysData should equal (List(("1-1", true, osmNodes)))
+    antWaysData should equal (List(AntWayData("1-1", 1, osmNodes, true)))
   }
 
   test("computeIncomingAndOutgoingWays, 1") {
     val nodeIds = List("1", "3")
-    val wayData = ("1-1", false, (1 to 3).map(OsmNode(_, GeographicCoordinate(0, 0))).toList)
+    val wayData = (AntWayData("1-1", 0, (1 to 3).map(OsmNode(_)).toList, false))
     val (incomingWays, outgoingWays) = AntMap.computeIncomingAndOutgoingWays(nodeIds, List(wayData))
     incomingWays should have size (2)
     incomingWays("1") should equal(Set("1-1"))
@@ -86,8 +86,8 @@ class AntMapTest extends FunSuite with ShouldMatchers {
 
   test("computeIncomingAndOutgoingWays, 2") {
     val nodeIds = List(1, 2, 3).map(_.toString)
-    val wayData1 = ("1-1", true, List(1, 2).map(OsmNode(_, GeographicCoordinate(0, 0)))) 
-    val wayData2 = ("2-1", false, List(2, 3).map(OsmNode(_, GeographicCoordinate(0, 0)))) 
+    val wayData1 = AntWayData("1-1", 0, List(1, 2).map(OsmNode(_)), true)
+    val wayData2 = AntWayData("2-1", 0, List(2, 3).map(OsmNode(_)), false)
     val waysData = List(wayData1, wayData2)
     val (incomingWays, outgoingWays) = AntMap.computeIncomingAndOutgoingWays(nodeIds, waysData)
     incomingWays should  have size (2)

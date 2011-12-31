@@ -14,6 +14,8 @@ object OsmOneWay {
   
   def apply(id: Int, nodes: List[OsmNode]) = new OsmOneWay(id.toString, "", nodes, 0)
 
+  def apply(id: Int, name: String, nodes: List[OsmNode], maxSpeed: Double) = new OsmOneWay(id.toString, name, nodes, maxSpeed)
+
   def apply(id: String, name: String, nodes: List[OsmNode]) = new OsmOneWay(id, name, nodes, 0)
   
   def apply(id: String, nodes: List[OsmNode]) = new OsmOneWay(id, "", nodes, 0)
