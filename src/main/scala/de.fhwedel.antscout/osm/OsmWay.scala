@@ -29,7 +29,9 @@ object OsmWay extends Logger {
     "service" -> 3.0,
     "track" -> 30.0,
     "" -> 50.0,
-    "signals" -> 50.0
+    "none" -> 50.0,
+    "signals" -> 50.0,
+    "walk" -> 10.0
   )
   
   def apply(id: Int, name: String, nodes: List[OsmNode], maxSpeed: Double) = new OsmWay(id.toString, name, nodes, maxSpeed)
@@ -56,8 +58,11 @@ object OsmWay extends Logger {
             Some(value.toDouble)
           } catch {
             case numberFormatException: NumberFormatException => {
-              warn("Way %s: max speed \"%s\" is not a number" format(id, value))
-              None
+              val speed = DefaultSpeeds.get(value)
+              if (!speed.isDefined)
+                warn("Way %s: unknown max speed \"%s\"" format(id, value))
+              speed
+              
             }
             case exception: Exception => {
               warn("Way %s: exception while parsing max speed \"%s\" of way %d" format(id, value), exception)
@@ -80,7 +85,7 @@ object OsmWay extends Logger {
       case "no" | "false" | "0" => new OsmWay(id, name, wayNodes, maxSpeed)
       case value: String => {
         if (!value.isEmpty)
-          warn("Way %s, unknonw oneway value \"%s\"".format(id, oneWay))
+          warn("Way %s, unknown oneway value \"%s\"".format(id, oneWay))
         new OsmWay(id, name, wayNodes, maxSpeed)
       }
     }
