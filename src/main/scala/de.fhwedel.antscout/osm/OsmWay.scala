@@ -62,7 +62,6 @@ object OsmWay extends Logger {
               if (!speed.isDefined)
                 warn("Way %s: unknown max speed \"%s\"" format(id, value))
               speed
-              
             }
             case exception: Exception => {
               warn("Way %s: exception while parsing max speed \"%s\" of way %d" format(id, value), exception)
