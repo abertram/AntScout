@@ -5,7 +5,7 @@ import net.liftweb.common.Logger
 import xml.{NodeSeq, Elem}
 import collection.immutable.Map
 import net.liftweb.util.TimeHelpers
-import collection.mutable.{SynchronizedMap, HashMap => MutableHashMap, Set => MutableSet}
+import collection.mutable.{SynchronizedSet, SynchronizedMap, HashMap => MutableHashMap, HashSet => MutableHashSet }
 
 /**
  * Created by IntelliJ IDEA.
@@ -27,11 +27,12 @@ class OsmMap(val nodes: Map[String, OsmNode], val ways: Map[String, OsmWay]) ext
 
   def computeNodeWaysMap = {
     info("Computing node ways map")
-    val tempNodeWaysMap = new MutableHashMap[OsmNode, MutableSet[OsmWay]] with SynchronizedMap[OsmNode, MutableSet[OsmWay]]
+    val tempNodeWaysMap = new MutableHashMap[OsmNode, MutableHashSet[OsmWay] with SynchronizedSet[OsmWay]] with SynchronizedMap[OsmNode, MutableHashSet[OsmWay] with SynchronizedSet[OsmWay]]
+    nodes.values.map(node => tempNodeWaysMap += (node -> new MutableHashSet[OsmWay] with SynchronizedSet[OsmWay]))
     val (time, nodeWaysMap) = TimeHelpers.calcTime {
       ways.values.par.foreach(way => {
         way.nodes.par.foreach(node => {
-          tempNodeWaysMap(node) = tempNodeWaysMap.getOrElse(node, MutableSet.empty[OsmWay]) + way
+          tempNodeWaysMap(node) += way
         })
       })
       tempNodeWaysMap.toMap
