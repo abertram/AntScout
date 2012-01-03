@@ -13,17 +13,19 @@ import net.liftweb.common.Logger
 
 class AntNode(id: String) extends Actor with Logger {
 
-  var incomingWays: List[ActorRef] = _
-  var outgoingWays: List[ActorRef] = _
+  var destinations: List[ActorRef] = Nil
+  var incomingWays: List[ActorRef] = Nil
+  var outgoingWays: List[ActorRef] = Nil
 
   override def preStart() {
     self.id = id
   }
 
   protected def receive = {
-    case IncomingWays(iw) => incomingWays = iw
-    case OutgoingWays(ow) => outgoingWays = ow
-    case _ => warn("Unknown message")
+    case Destinations(ds) => destinations = ds
+    case IncomingWays(iws) => incomingWays = iws
+    case OutgoingWays(ows) => outgoingWays = ows
+    case m: Any => warn("Unknown message: %s".format(m.toString))
   }
 }
 
@@ -34,5 +36,6 @@ object AntNode {
   def apply(id: String) = Actor.actorOf(new AntNode(id)).start()
 }
 
+case class Destinations(destinations: List[ActorRef])
 case class IncomingWays(incomingWays: List[ActorRef])
 case class OutgoingWays(outgoingWays: List[ActorRef])

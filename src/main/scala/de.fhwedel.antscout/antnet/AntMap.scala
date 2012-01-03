@@ -23,7 +23,10 @@ class AntMap(osmMap: OsmMap) extends Logger {
 
   private def initAntNodes = {
     val computedAntNodes = AntMap.computeAntNodes(osmMap.ways.values.toList, osmMap.intersections)
-    AntMap.createAntNodes(computedAntNodes)
+    val antNodes = AntMap.createAntNodes(computedAntNodes)
+    info("Sending destinations to ant nodes")
+    antNodes.values.foreach(antNode => antNode ! Destinations(antNodes.values.filter (_ != antNode).toList))
+    antNodes
   }
 
   private def computePrepareAndStartAntWays = {
