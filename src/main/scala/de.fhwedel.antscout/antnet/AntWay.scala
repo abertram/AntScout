@@ -1,7 +1,7 @@
 package de.fhwedel.antscout
 package antnet
 
-import osm.{OsmOneWay, OsmWay, OsmNode}
+import osm.{OsmOneWay, OsmNode}
 import net.liftweb.common.Logger
 import akka.actor.{ActorRef, Actor}
 
@@ -12,14 +12,14 @@ import akka.actor.{ActorRef, Actor}
  * Time: 12:07
  */
 
-class AntWay(id: String, val startNode: ActorRef, val endNode: ActorRef, val length: Double, val maxSpeed: Double) extends Actor {
+class AntWay(id: String, val startNode: ActorRef, val endNode: ActorRef, val length: Double, val maxSpeed: Double) extends Actor with Logger {
 
   override def preStart() {
     self.id = id
   }
 
   protected def receive = {
-    case TravelTimeRequest => TravelTimeResponse(length / maxSpeed)
+    case TravelTimeRequest => self.reply(self -> length / maxSpeed)
   }
 
   override def toString = "#%s #%d - #%d".format(id, startNode.id, endNode.id)
@@ -38,7 +38,7 @@ object AntWay extends Logger {
     val endNodes = Actor.registry.actorsFor(nodes.last.id)
     if (endNodes.size > 1)
       warn("Multiple end node actors for node #%s".format(nodes.head.id))
-    Actor.actorOf(new AntWay(id, startNodes(0), endNodes(0), length, maxSpeed)).start
+    Actor.actorOf(new AntWay(id, startNodes(0), endNodes(0), length, maxSpeed)).start()
   }
 
   def apply(osmWay: OsmOneWay, idSuffix: Int, nodes: List[OsmNode], antNodes: List[String]) = {
@@ -52,4 +52,3 @@ object AntWay extends Logger {
 }
 
 case object TravelTimeRequest
-case class TravelTimeResponse(travelTime: Double)
