@@ -7,7 +7,7 @@ import map.Node
 import collection.immutable.List
 import akka.actor.Actor
 import osm.{OsmOneWay, OsmWay, OsmNode, OsmMap}
-import collection.mutable.{SynchronizedMap, HashMap => MutableHashMap, Set => MutableSet}
+import collection.mutable.{SynchronizedSet, HashSet => MutableHashSet, SynchronizedMap, HashMap => MutableHashMap}
 
 /**
  * Created by IntelliJ IDEA.
@@ -18,8 +18,13 @@ import collection.mutable.{SynchronizedMap, HashMap => MutableHashMap, Set => Mu
 
 class AntMap(osmMap: OsmMap) extends Logger {
 
-  val nodes = AntMap.computeAndStartAntNodes(osmMap.ways.values.toList, osmMap.intersections)
+  val nodes = initAntNodes
   val ways = computePrepareAndStartAntWays
+
+  private def initAntNodes = {
+    val computedAntNodes = AntMap.computeAntNodes(osmMap.ways.values.toList, osmMap.intersections)
+    AntMap.createAntNodes(computedAntNodes)
+  }
 
   private def computePrepareAndStartAntWays = {
     val nodeIds = nodes.keys.toList 
@@ -28,14 +33,20 @@ class AntMap(osmMap: OsmMap) extends Logger {
     info("%d ant ways data computed in %d ms".format(antWaysData.size, time))
     val antWays = AntMap.startAntWays(antWaysData)
     val (incomingWays, outgoingWays) = AntMap.computeIncomingAndOutgoingWays(nodeIds, antWaysData)
-    incomingWays.par.foreach(kv => {
-      val incomingWaysActors = kv._2.flatMap(Actor.registry.actorsFor(_)).toList
-      nodes(kv._1) ! IncomingWays(incomingWaysActors)
-    })
-    outgoingWays.par.foreach(kv => {
-      val outgoingWaysActors = kv._2.flatMap(Actor.registry.actorsFor(_)).toList
-      nodes(kv._1) ! OutgoingWays(outgoingWaysActors)
-    })
+    debug("Sending incoming ways")
+    incomingWays.par.foreach {
+      case (nodeId, wayIds) => {
+        val incomingWaysActors = wayIds.flatMap(Actor.registry.actorsFor(_)).toList
+        nodes(nodeId) ! IncomingWays(incomingWaysActors)
+      }
+    }
+    debug("Sending outgoing ways")
+    outgoingWays.par.foreach {
+      case (nodeId, wayIds) => {
+        val outgoingWaysActors = wayIds.flatMap(Actor.registry.actorsFor(_)).toList
+        nodes(nodeId) ! OutgoingWays(outgoingWaysActors)
+      }
+    }
     antWays
   }
 }
@@ -43,11 +54,6 @@ class AntMap(osmMap: OsmMap) extends Logger {
 object AntMap extends Logger {
 
   def apply(osmMap: OsmMap) = new AntMap(osmMap)
-
-  def computeAndStartAntNodes(ways: List[OsmWay], intersections: List[OsmNode]) = {
-    val antNodes = computeAntNodes(ways, intersections)
-    startAntNodes(antNodes)
-  }
 
   def computeAntNodes(ways: List[OsmWay], intersections: List[Node]) = {
     info("Computing ant nodes")
@@ -61,22 +67,22 @@ object AntMap extends Logger {
 
   def computeIncomingAndOutgoingWays(nodeIds: List[String], waysData: List[AntWayData]) = {
     info("Computing incoming and outgoing ways")
-    val tempIncomingWays = new MutableHashMap[String, Set[String]] with SynchronizedMap[String, Set[String]]
-    val tempOutgoingWays = new MutableHashMap[String, Set[String]] with SynchronizedMap[String, Set[String]]
+    val tempIncomingWays = new MutableHashMap[String, MutableHashSet[String] with SynchronizedSet[String]] with SynchronizedMap[String, MutableHashSet[String] with SynchronizedSet[String]]
+    val tempOutgoingWays = new MutableHashMap[String, MutableHashSet[String] with SynchronizedSet[String]] with SynchronizedMap[String, MutableHashSet[String] with SynchronizedSet[String]]
     val (time, (incomingWays, outgoingWays)) = TimeHelpers.calcTime {
-      waysData.foreach {wayData =>
+      waysData.par.foreach {wayData =>
         wayData.oneWay match {
           case true => {
             val lastNodeId = wayData.nodes.last.id
-            tempIncomingWays(lastNodeId) = tempIncomingWays.getOrElse(lastNodeId, Set.empty[String]) + wayData.id
-            tempOutgoingWays(wayData.nodes.head.id) = tempOutgoingWays.getOrElse(wayData.nodes.head.id, Set.empty[String]) + wayData.id
+            tempIncomingWays(lastNodeId) = tempIncomingWays.getOrElse(lastNodeId, new MutableHashSet[String] with SynchronizedSet[String]) += wayData.id
+            tempOutgoingWays(wayData.nodes.head.id) = tempOutgoingWays.getOrElse(wayData.nodes.head.id, new MutableHashSet[String] with SynchronizedSet[String]) += wayData.id
           }
           case false => {
             val lastNodeId = wayData.nodes.last.id
-            tempIncomingWays(wayData.nodes.head.id) = tempIncomingWays.getOrElse(wayData.nodes.head.id, Set.empty[String]) + wayData.id
-            tempIncomingWays(lastNodeId) = tempIncomingWays.getOrElse(lastNodeId, Set.empty[String]) + wayData.id
-            tempOutgoingWays(wayData.nodes.head.id) = tempOutgoingWays.getOrElse(wayData.nodes.head.id, Set.empty[String]) + wayData.id
-            tempOutgoingWays(lastNodeId) = tempOutgoingWays.getOrElse(lastNodeId, Set.empty[String]) + wayData.id
+            tempIncomingWays(wayData.nodes.head.id) = tempIncomingWays.getOrElse(wayData.nodes.head.id, new MutableHashSet[String] with SynchronizedSet[String]) += wayData.id
+            tempIncomingWays(lastNodeId) = tempIncomingWays.getOrElse(lastNodeId, new MutableHashSet[String] with SynchronizedSet[String]) += wayData.id
+            tempOutgoingWays(wayData.nodes.head.id) = tempOutgoingWays.getOrElse(wayData.nodes.head.id, new MutableHashSet[String] with SynchronizedSet[String]) += wayData.id
+            tempOutgoingWays(lastNodeId) = tempOutgoingWays.getOrElse(lastNodeId, new MutableHashSet[String] with SynchronizedSet[String]) += wayData.id
           }
         }
       }
@@ -105,10 +111,10 @@ object AntMap extends Logger {
     computeAntWaysDataRecursive(usedNodes, remainingNodes, 0)
   }
 
-  def startAntNodes(nodes: List[Node]) = {
-    info("Starting ant nodes")
+  def createAntNodes(nodes: List[Node]) = {
+    info("Creating ant nodes")
     val (time, antNodes) = TimeHelpers.calcTime(nodes.par.map(node => (node.id -> AntNode(node.id))).seq.toMap)
-    info("%d ant nodes started in %d ms".format(antNodes.size, time))
+    info("%d ant nodes created in %d ms".format(antNodes.size, time))
     antNodes
   }
 

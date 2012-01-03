@@ -28,9 +28,9 @@ class AntMapTest extends FunSuite with ShouldMatchers {
     antNodes should equal (List(0, 2, 3, 5, 6, 7).map(Node(_)))
   }
   
-  test("startAntNodes") {
+  test("createAntNodes") {
     val nodes = (0 to 4).map(Node(_)).toList
-    val antNodes = AntMap.startAntNodes(nodes)
+    val antNodes = AntMap.createAntNodes(nodes)
     antNodes.size should be (5)
     (0 to 4).foreach (id => {
       antNodes.get(id.toString) should not be ('empty)
@@ -97,11 +97,5 @@ class AntMapTest extends FunSuite with ShouldMatchers {
     outgoingWays("1") should equal (Set("1-1"))
     outgoingWays("2") should equal (Set("2-1"))
     outgoingWays("3") should equal (Set("2-1"))
-  }
-
-  test("") {
-    val osmData = XML loadFile("./maps/node-483401561.osm")
-    val osmMap = OsmMap(osmData)
-    val antMap = AntMap(osmMap)
   }
 }
