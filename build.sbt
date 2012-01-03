@@ -29,6 +29,6 @@ resolvers += "Java.net Maven2 Repository" at "http://download.java.net/maven/2/"
 // Akka
 resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
 
-libraryDependencies += "se.scalablesolutions.akka" % "akka-actor" % "1.2"
+libraryDependencies += "se.scalablesolutions.akka" % "akka-actor" % "1.3-RC5"
 
 seq(webSettings :_*)
