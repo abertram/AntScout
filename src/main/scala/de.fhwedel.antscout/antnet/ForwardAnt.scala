@@ -18,6 +18,10 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
   var currentWay: ActorRef = _
   val memory = new Stack[(ActorRef, ActorRef)]
 
+  def launchBackwardAnt() {
+    BackwardAnt(sourceNode, destinationNode, memory)
+  }
+
   def memorizeVisitedNodeAntWay(node: ActorRef, way: ActorRef) {
     memory.push(node -> way)
   }
@@ -66,6 +70,8 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
       node ! Enter(destinationNode)
     } else {
       info("Destination reached")
+      launchBackwardAnt()
+      self.stop()
     }
   }
 }
