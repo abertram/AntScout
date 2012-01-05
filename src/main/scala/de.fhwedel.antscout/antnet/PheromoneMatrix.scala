@@ -4,6 +4,7 @@ package antnet
 import scala.collection.mutable.{HashMap => MutableHashMap, Map => MutableMap}
 import akka.actor.ActorRef
 import net.liftweb.common.Logger
+import collection.IterableView
 
 /**
  * Created by IntelliJ IDEA.
@@ -12,12 +13,10 @@ import net.liftweb.common.Logger
  * Time: 20:55
  */
 
-class PheromoneMatrix(destinations: List[ActorRef], outgoingWays: List[ActorRef], travelTimes: Map[ActorRef, Double]) extends MutableHashMap[ActorRef, MutableMap[ActorRef, Double]] with Logger {
+class PheromoneMatrix(destinations: IterableView[ActorRef, Iterable[ActorRef]], outgoingWays: List[ActorRef], travelTimes: Map[ActorRef, Double]) extends MutableHashMap[ActorRef, MutableMap[ActorRef, Double]] with Logger {
 
-  destinations.foreach(destination => {
-    this += (destination -> MutableHashMap.empty[ActorRef, Double])
-  })
-  
+  this ++= destinations.map((_ -> MutableHashMap.empty[ActorRef, Double]))
+
   val alpha = 0.3
   val heuristicValues: Map[ActorRef, Double] = initHeuristicValues
   var pheromones: Map[ActorRef, Map[ActorRef, Double]] = initPheromones
@@ -41,8 +40,8 @@ class PheromoneMatrix(destinations: List[ActorRef], outgoingWays: List[ActorRef]
   }
   
   def calculatePropabilities() = {
-    destinations.map(destination => {
-      outgoingWays.map (outgoingWay => {
+    destinations.foreach(destination => {
+      outgoingWays.foreach(outgoingWay => {
         this(destination)(outgoingWay) = pheromones(destination)(outgoingWay) + alpha * heuristicValues(outgoingWay) / (1 + alpha * (outgoingWays.size - 1))
       })
     })
@@ -51,5 +50,5 @@ class PheromoneMatrix(destinations: List[ActorRef], outgoingWays: List[ActorRef]
 
 object PheromoneMatrix {
 
-  def apply(destinations: List[ActorRef], outgoingWays: List[ActorRef], travelTimes: Map[ActorRef, Double]) = new PheromoneMatrix(destinations, outgoingWays, travelTimes)
+  def apply(destinations: IterableView[ActorRef, Iterable[ActorRef]], outgoingWays: List[ActorRef], travelTimes: Map[ActorRef, Double]) = new PheromoneMatrix(destinations, outgoingWays, travelTimes)
 }

@@ -25,7 +25,8 @@ class AntMap(osmMap: OsmMap) extends Logger {
     val computedAntNodes = AntMap.computeAntNodes(osmMap.ways.values.toList, osmMap.intersections)
     val antNodes = AntMap.createAntNodes(computedAntNodes)
     info("Sending destinations to ant nodes")
-    antNodes.values.foreach(antNode => antNode ! Destinations(antNodes.values.filter (_ != antNode).toList))
+    val (time, _) = TimeHelpers.calcTime(antNodes.values.foreach(_ ! Destinations(antNodes.values)))
+    info("Sent %d destinations to %d ant nodes in %d ms".format(antNodes.size, antNodes.size, time))
     antNodes
   }
 

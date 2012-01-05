@@ -4,6 +4,9 @@ package antnet
 import akka.actor.{ActorRef, Actor}
 import net.liftweb.common.Logger
 import akka.dispatch.Future
+import net.liftweb.util.TimeHelpers
+import collection.immutable.List
+import collection.{Iterable, IterableView, SeqView, IndexedSeq}
 
 /**
  * Created by IntelliJ IDEA.
@@ -14,7 +17,7 @@ import akka.dispatch.Future
 
 class AntNode(id: String) extends Actor with Logger {
 
-  var destinations: List[ActorRef] = Nil
+  var destinations: IterableView[ActorRef, Iterable[ActorRef]] = _
   var incomingWays: List[ActorRef] = Nil
   var outgoingWays: List[ActorRef] = Nil
   var pheromoneMatrix: PheromoneMatrix = null
@@ -24,7 +27,7 @@ class AntNode(id: String) extends Actor with Logger {
   }
 
   protected def receive = {
-    case Destinations(ds) => destinations = ds
+    case Destinations(ds) => destinations = ds.view.filterNot(_ == self)
     case IncomingWays(iws) => incomingWays = iws
     case OutgoingWays(ows) => {
       require(destinations != Nil)
@@ -51,7 +54,7 @@ object AntNode {
   def apply(id: String) = Actor.actorOf(new AntNode(id)).start()
 }
 
-case class Destinations(destinations: List[ActorRef])
-case class Enter(sender: ActorRef, destination: ActorRef)
+case class Destinations(destinations: Iterable[ActorRef])
+case class Enter(destination: ActorRef)
 case class IncomingWays(incomingWays: List[ActorRef])
 case class OutgoingWays(outgoingWays: List[ActorRef])
