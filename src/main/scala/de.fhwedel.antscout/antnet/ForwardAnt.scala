@@ -40,6 +40,11 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
     case m: Any => warn("Unknown message: %s".format(m))
   }
 
+  def removeCircle(node: ActorRef) {
+    trace("Removing circle of #%s".format(node id))
+    visitedNodesAndWays.dropWhile(_._1 != node).pop()
+  }
+
   def selectWay(propabilities: Map[ActorRef, Double]) = {
     trace("selectWay")
     debug("Visited ways: %s".format(visitedNodesAndWays.map(_._2.id).mkString(",")))
@@ -54,6 +59,10 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
     trace("Visiting node #%s".format(node id))
     currentNode = node
     if (node != destinationNode) {
+      if (visitedNodesAndWays.groupBy(_._1).keySet.contains(node)) {
+        debug("Circle detected")
+        removeCircle(node)
+      }
       node ! Enter(destinationNode)
     } else {
       info("Destination reached")
