@@ -42,7 +42,7 @@ class PheromoneMatrix(destinations: IterableView[ActorRef, Iterable[ActorRef]], 
   def calculatePropabilities() = {
     destinations.foreach(destination => {
       outgoingWays.foreach(outgoingWay => {
-        this(destination)(outgoingWay) = pheromones(destination)(outgoingWay) + alpha * heuristicValues(outgoingWay) / (1 + alpha * (outgoingWays.size - 1))
+        this(destination) += outgoingWay -> (pheromones(destination)(outgoingWay) + alpha * heuristicValues(outgoingWay) / (1 + alpha * (outgoingWays.size - 1)))
       })
     })
   }
