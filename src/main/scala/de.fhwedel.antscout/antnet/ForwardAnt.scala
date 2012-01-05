@@ -16,10 +16,10 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
   
   var currentNode: ActorRef = _
   var currentWay: ActorRef = _
-  val visitedNodesAndWays = new Stack[(ActorRef, ActorRef)]
+  val memory = new Stack[(ActorRef, ActorRef)]
 
   def memorizeVisitedNodeAntWay(node: ActorRef, way: ActorRef) {
-    visitedNodesAndWays.push(node -> way)
+    memory.push(node -> way)
   }
 
   override def preStart() {
@@ -42,13 +42,13 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
 
   def removeCircle(node: ActorRef) {
     trace("Removing circle of #%s".format(node id))
-    visitedNodesAndWays.dropWhile(_._1 != node).pop()
+    memory.dropWhile(_._1 != node).pop()
   }
 
   def selectWay(propabilities: Map[ActorRef, Double]) = {
     trace("selectWay")
-    debug("Visited ways: %s".format(visitedNodesAndWays.map(_._2.id).mkString(",")))
-    val notVisitedWays = propabilities.filter { case (w, p) => visitedNodesAndWays.groupBy(_._2).keySet.contains(w) }
+    debug("Visited ways: %s".format(memory.map(_._2.id).mkString(",")))
+    val notVisitedWays = propabilities.filter { case (w, p) => memory.groupBy(_._2).keySet.contains(w) }
     debug("Not visited ways: %s".format(notVisitedWays.map(_._1.id).mkString(",")))
     currentWay = if (!notVisitedWays.isEmpty) notVisitedWays.maxBy(_._2)._1 else propabilities.maxBy(_._2)._1
     debug("Selected way: #%s".format(currentWay id))
@@ -59,7 +59,7 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
     trace("Visiting node #%s".format(node id))
     currentNode = node
     if (node != destinationNode) {
-      if (visitedNodesAndWays.groupBy(_._1).keySet.contains(node)) {
+      if (memory.groupBy(_._1).keySet.contains(node)) {
         debug("Circle detected")
         removeCircle(node)
       }
