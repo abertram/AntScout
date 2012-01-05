@@ -41,12 +41,17 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
   }
 
   def selectWay(propabilities: Map[ActorRef, Double]) = {
+    trace("selectWay")
+    debug("Visited ways: %s".format(visitedNodesAndWays.map(_._2.id).mkString(",")))
     val notVisitedWays = propabilities.filter { case (w, p) => visitedNodesAndWays.groupBy(_._2).keySet.contains(w) }
+    debug("Not visited ways: %s".format(notVisitedWays.map(_._1.id).mkString(",")))
     currentWay = if (!notVisitedWays.isEmpty) notVisitedWays.maxBy(_._2)._1 else propabilities.maxBy(_._2)._1
+    debug("Selected way: #%s".format(currentWay id))
     currentWay
   }
 
-  def visitNode(node: ActorRef) = {
+  def visitNode(node: ActorRef) {
+    trace("Visiting node #%s".format(node id))
     currentNode = node
     if (node != destinationNode) {
       node ! Enter(destinationNode)
