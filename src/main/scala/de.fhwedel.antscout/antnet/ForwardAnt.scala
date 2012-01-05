@@ -2,8 +2,8 @@ package de.fhwedel.antscout
 package antnet
 
 import net.liftweb.common.Logger
-import collection.mutable.Stack
 import akka.actor.{ActorRef, Actor}
+import collection.mutable.Stack
 
 /**
  * Created by IntelliJ IDEA.
@@ -14,6 +14,14 @@ import akka.actor.{ActorRef, Actor}
 
 class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extends Actor with Logger {
   
+  var currentNode: ActorRef = _
+  var currentWay: ActorRef = _
+  val visitedNodesAndWays = new Stack[(ActorRef, ActorRef)]
+
+  def memorizeVisitedNodeAntWay(node: ActorRef, way: ActorRef) {
+    visitedNodesAndWays.push(node -> way)
+  }
+
   override def preStart() {
     if (sourceNode == destinationNode) {
       warn("Source node equals destination node, exit!")
@@ -24,17 +32,22 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
   }
 
   protected def receive = {
-    case EndNode(n) => visitNode(n)
-    case Propabilities(ps) => selectWay(ps) ! Cross
+    case EndNode(n) => {
+      memorizeVisitedNodeAntWay(currentNode, currentWay)
+      visitNode(n)
+    }
+    case Propabilities(ps) => selectWay(ps) ! Cross(currentNode)
     case m: Any => warn("Unknown message: %s".format(m))
   }
 
   def selectWay(propabilities: Map[ActorRef, Double]) = {
-    propabilities.maxBy(_._2)._1
+    val notVisitedWays = propabilities.filter { case (w, p) => visitedNodesAndWays.groupBy(_._2).keySet.contains(w) }
+    currentWay = if (!notVisitedWays.isEmpty) notVisitedWays.maxBy(_._2)._1 else propabilities.maxBy(_._2)._1
+    currentWay
   }
 
   def visitNode(node: ActorRef) = {
-    debug("Visiting node %s".format(node id))
+    currentNode = node
     if (node != destinationNode) {
       node ! Enter(destinationNode)
     } else {
