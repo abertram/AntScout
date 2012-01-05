@@ -37,6 +37,8 @@ class AntMap(osmMap: OsmMap) extends Logger {
     info("%d ant ways data computed in %d ms".format(antWaysData.size, time))
     val antWays = AntMap.startAntWays(antWaysData)
     val (incomingWays, outgoingWays) = AntMap.computeIncomingAndOutgoingWays(nodeIds, antWaysData)
+    info("Nodes without incoming ways: %s".format(nodes.keys.filter(!incomingWays.contains(_))))
+    info("Nodes without outgoing ways: %s".format(nodes.keys.filter(!outgoingWays.contains(_))))
     debug("Sending incoming ways")
     incomingWays.par.foreach {
       case (nodeId, wayIds) => {
