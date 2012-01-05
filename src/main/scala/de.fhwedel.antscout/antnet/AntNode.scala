@@ -28,6 +28,7 @@ class AntNode(id: String) extends Actor with Logger {
 
   protected def receive = {
     case Destinations(ds) => destinations = ds.view.filterNot(_ == self)
+    case Enter(d) => if (pheromoneMatrix != null) self.reply(Propabilities(pheromoneMatrix(d).toMap))
     case IncomingWays(iws) => incomingWays = iws
     case OutgoingWays(ows) => {
       require(destinations != Nil)

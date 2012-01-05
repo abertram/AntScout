@@ -19,6 +19,7 @@ class AntWay(id: String, val startNode: ActorRef, val endNode: ActorRef, val len
   }
 
   protected def receive = {
+    case Cross => self.reply(EndNode(endNode))
     case TravelTimeRequest => self.reply(self -> length / maxSpeed)
   }
 
@@ -51,4 +52,5 @@ object AntWay extends Logger {
   }
 }
 
+case object Cross
 case object TravelTimeRequest

@@ -24,12 +24,19 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
   }
 
   protected def receive = {
+    case EndNode(n) => visitNode(n)
+    case Propabilities(ps) => selectWay(ps) ! Cross
     case m: Any => warn("Unknown message: %s".format(m))
   }
 
-  def visitNode(node: ActorRef) = {
-    if (node != destinationNode) {
+  def selectWay(propabilities: Map[ActorRef, Double]) = {
+    propabilities.maxBy(_._2)._1
+  }
 
+  def visitNode(node: ActorRef) = {
+    debug("Visiting node %s".format(node id))
+    if (node != destinationNode) {
+      node ! Enter(destinationNode)
     } else {
       info("Destination reached")
     }
@@ -39,3 +46,6 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
 object ForwardAnt {
   def apply(sourceNode: ActorRef, destinationNode: ActorRef) = new ForwardAnt(sourceNode, destinationNode)
 }
+
+case class EndNode(node: ActorRef)
+case class Propabilities(propabilities: Map[ActorRef, Double])
