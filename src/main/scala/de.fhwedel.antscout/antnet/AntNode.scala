@@ -21,6 +21,7 @@ class AntNode(id: String) extends Actor with Logger {
   var incomingWays: List[ActorRef] = Nil
   var outgoingWays: List[ActorRef] = Nil
   var pheromoneMatrix: PheromoneMatrix = null
+  var trafficModel: TrafficModel = null
 
   override def preStart() {
     self.id = id
@@ -40,13 +41,17 @@ class AntNode(id: String) extends Actor with Logger {
           case Left(_) => warn("No travel times")
           case Right(travelTimes) => {
             pheromoneMatrix = PheromoneMatrix(destinations, outgoingWays, travelTimes.toMap)
+            // TODO Konstanten in die Konfiguration verschieben
+            val varsigma = 0.005
+            trafficModel = TrafficModel(destinations, varsigma, (5 * (0.3 / varsigma)).toInt)
           }
         }
       }
     }
-    case UpdateDataStructures(d, w) => {
-      trace("UpdateDataStructures(%s, %s)".format(d id, w id))
-      pheromoneMatrix.updatePheromones(d, w, 0.5)
+    case UpdateDataStructures(d, w, tt) => {
+      trace("UpdateDataStructures(%s, %s, %s)".format(d id, w id, tt))
+      trafficModel += (d, tt)
+      pheromoneMatrix.updatePheromones(d, w, trafficModel.reinforcement(d))
     }
     case m: Any => warn("Unknown message: %s".format(m.toString))
   }
@@ -63,4 +68,4 @@ case class Destinations(destinations: Iterable[ActorRef])
 case class Enter(destination: ActorRef)
 case class IncomingWays(incomingWays: List[ActorRef])
 case class OutgoingWays(outgoingWays: List[ActorRef])
-case class UpdateDataStructures(destination: ActorRef, way: ActorRef)
+case class UpdateDataStructures(destination: ActorRef, way: ActorRef, tripTime: Double)

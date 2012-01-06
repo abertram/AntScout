@@ -34,9 +34,9 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
   }
 
   protected def receive = {
-    case EndNode(n) => {
+    case EndNode(n, tt) => {
 //      debug("EndNode(%s)".format(n id))
-      memory.memorize(currentNode, currentWay)
+      memory.memorize(currentNode, currentWay, tt)
       visitNode(n)
     }
     case Propabilities(ps) => selectWay(ps) ! Cross(currentNode)
@@ -74,5 +74,5 @@ object ForwardAnt {
   def apply(sourceNode: ActorRef, destinationNode: ActorRef) = new ForwardAnt(sourceNode, destinationNode)
 }
 
-case class EndNode(node: ActorRef)
+case class EndNode(node: ActorRef, tripTime: Double)
 case class Propabilities(propabilities: Map[ActorRef, Double])

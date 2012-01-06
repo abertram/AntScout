@@ -10,14 +10,14 @@ import akka.actor.ActorRef
  * Time: 23:12
  */
 
-case class AntMemoryItem(node: ActorRef, way: ActorRef) {
+case class AntMemoryItem(node: ActorRef, way: ActorRef, tripTime: Double) {
 
   override def equals(that: Any) = {
     that match {
-      case ami: AntMemoryItem => node == ami.node && way == ami.way
+      case ami: AntMemoryItem => node == ami.node && way == ami.way && tripTime == ami.tripTime
       case _ => false
     }
   }
 
-  override def toString = "(Node: %s, way: %s)".format(node id, way id)
+  override def toString = "(Node: %s, way: %s, trip time: %f)".format(node id, way id, tripTime)
 }

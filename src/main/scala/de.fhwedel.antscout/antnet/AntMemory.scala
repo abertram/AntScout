@@ -20,12 +20,12 @@ class AntMemory extends Logger {
 
   def containsWay(way: ActorRef) = items.find(_.way == way).isDefined
 
-  def memorize(node: ActorRef, way: ActorRef) {
-    (AntMemoryItem(node, way)) +=: items
+  def memorize(node: ActorRef, way: ActorRef, tripTime: Double) {
+    AntMemoryItem(node, way, tripTime) +=: items
   }
 
   def removeCircle(node: ActorRef) {
-    debug("Removing circle of #%s".format(node id))
+//    debug("Removing circle of #%s".format(node id))
     do {
       items -= items.head
     } while (items.head.node != node)
