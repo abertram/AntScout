@@ -51,7 +51,7 @@ class AntNode(id: String) extends Actor with Logger {
     case UpdateDataStructures(d, w, tt) => {
       trace("UpdateDataStructures(%s, %s, %s)".format(d id, w id, tt))
       trafficModel += (d, tt)
-      pheromoneMatrix.updatePheromones(d, w, trafficModel.reinforcement(d))
+      pheromoneMatrix.updatePheromones(d, w, trafficModel.reinforcement(d, tt, outgoingWays.size))
     }
     case m: Any => warn("Unknown message: %s".format(m.toString))
   }

@@ -23,7 +23,7 @@ class TrafficModel(destinations: IterableView[ActorRef, Iterable[ActorRef]], var
     items(destination) += tripTime
   }
 
-  def reinforcement(destination: ActorRef) = items(destination) reinforcement
+  def reinforcement(destination: ActorRef, tripTime: Double, neighbourCount: Int) = items(destination).reinforcement(tripTime, neighbourCount)
 }
 
 object TrafficModel {

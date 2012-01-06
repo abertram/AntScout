@@ -25,7 +25,21 @@ class TrafficModelItem(val varsigma: Double, val windowSize: Int) {
 
   def bestTripTime = tripTimes min
 
-  def reinforcement = 0.5
+  def reinforcement(tripTime: Double, neighbourCount: Double) = {
+    val c1 = 0.7
+    val c2 = 0.3
+    val iInf = bestTripTime
+    val z = 1.7
+    val iSup = mean + z * (math.sqrt(variance) / math.sqrt(windowSize))
+    val stabilityTerm = (iSup - iInf) + (tripTime - iInf)
+    val r = c1 * (bestTripTime / tripTime) + (if (math.abs(stabilityTerm) > Double.MinPositiveValue) c2 * (iSup - iInf / stabilityTerm) else 0)
+    squash(r, neighbourCount) / squash (1, neighbourCount)
+  }
+
+  def squash(x: Double, neighbourCount: Double) = {
+    val a = 10
+    1 / (1 + math.exp(a / (x * neighbourCount)))
+  }
 }
 
 object TrafficModelItem {
