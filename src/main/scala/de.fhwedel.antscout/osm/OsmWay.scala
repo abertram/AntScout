@@ -16,6 +16,7 @@ class OsmWay(id: String, val name: String, val nodes: List[OsmNode], val maxSpee
 
 object OsmWay extends Logger {
   
+  // TODO Default-Geschwindigkeiten in die Konfiguration verschieben
   val DefaultSpeeds = Map(
     "motorway" -> 130.0,
     "motorway_link" -> 80.0,

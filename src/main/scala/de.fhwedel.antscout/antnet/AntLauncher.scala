@@ -20,6 +20,7 @@ class AntLauncher(antMap: AntMap) extends Actor with Logger {
   val random = Random
   var totalAntCount = 0
 
+  // TODO Zeiten in die Konfiguration verschieben
   Scheduler.schedule(self, LaunchAnts, 0, 30, TimeUnit.SECONDS)
 
   protected def receive = {

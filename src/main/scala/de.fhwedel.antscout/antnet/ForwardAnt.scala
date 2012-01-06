@@ -27,6 +27,7 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
       warn("Source node equals destination node, exit!")
       self.stop()
     } else {
+      // TODO Zeit in die Konfiguration verschieben
       Scheduler.scheduleOnce(self, PoisonPill, 30, TimeUnit.SECONDS)
       visitNode(sourceNode)
     }
