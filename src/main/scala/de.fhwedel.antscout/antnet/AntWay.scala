@@ -19,7 +19,7 @@ class AntWay(id: String, val startNode: ActorRef, val endNode: ActorRef, val len
   }
 
   protected def receive = {
-    case Cross(sn) => if (sn == startNode) self.reply(EndNode(endNode)) else self.reply(EndNode(startNode))
+    case Cross(sn) => if (sn == startNode) self.tryReply(EndNode(endNode)) else self.tryReply(EndNode(startNode))
     case TravelTimeRequest => self.reply(self -> length / maxSpeed)
   }
 
