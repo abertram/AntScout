@@ -44,6 +44,10 @@ class AntNode(id: String) extends Actor with Logger {
         }
       }
     }
+    case UpdateDataStructures(d, w) => {
+      trace("UpdateDataStructures(%s, %s)".format(d id, w id))
+      pheromoneMatrix.updatePheromones(d, w, 0.5)
+    }
     case m: Any => warn("Unknown message: %s".format(m.toString))
   }
 }
@@ -59,3 +63,4 @@ case class Destinations(destinations: Iterable[ActorRef])
 case class Enter(destination: ActorRef)
 case class IncomingWays(incomingWays: List[ActorRef])
 case class OutgoingWays(outgoingWays: List[ActorRef])
+case class UpdateDataStructures(destination: ActorRef, way: ActorRef)

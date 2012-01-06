@@ -15,12 +15,12 @@ import collection.IterableView
 
 class PheromoneMatrix(destinations: IterableView[ActorRef, Iterable[ActorRef]], outgoingWays: List[ActorRef], travelTimes: Map[ActorRef, Double]) extends MutableHashMap[ActorRef, MutableMap[ActorRef, Double]] with Logger {
 
-  this ++= destinations.map((_ -> MutableHashMap.empty[ActorRef, Double]))
-
   val alpha = 0.3
   val heuristicValues: Map[ActorRef, Double] = initHeuristicValues
-  var pheromones: Map[ActorRef, Map[ActorRef, Double]] = initPheromones
-
+  val pheromones = MutableMap.empty[ActorRef, MutableMap[ActorRef, Double]] 
+    
+  this ++= destinations.map((_ -> MutableHashMap.empty[ActorRef, Double]))
+  initPheromones()
   calculatePropabilities()
 
   /**
@@ -33,10 +33,14 @@ class PheromoneMatrix(destinations: IterableView[ActorRef, Iterable[ActorRef]], 
     }
   }
 
-  def initPheromones = {
+  def initPheromones() {
     val pheromone = 1.0 / outgoingWays.size
-    val outgoingWayPheromones = outgoingWays.map ((_, pheromone)).toMap
-    destinations.map ((_, outgoingWayPheromones)).toMap
+    destinations.foreach(d => {
+      pheromones += d -> MutableMap.empty[ActorRef, Double]
+      outgoingWays.foreach(ow => {
+        pheromones(d) += ow -> pheromone
+      })
+    })
   }
   
   def calculatePropabilities() = {
@@ -45,6 +49,24 @@ class PheromoneMatrix(destinations: IterableView[ActorRef, Iterable[ActorRef]], 
         this(destination) += outgoingWay -> (pheromones(destination)(outgoingWay) + alpha * heuristicValues(outgoingWay) / (1 + alpha * (outgoingWays.size - 1)))
       })
     })
+  }
+  
+  def calculatePropabilities(destination: ActorRef) = {
+    outgoingWays.foreach(ow => {
+      this(destination) += ow -> (pheromones(destination)(ow) + alpha * heuristicValues(ow) / (1 + alpha * (outgoingWays.size - 1)))
+    })
+  }
+
+  def updatePheromones(destination: ActorRef, way: ActorRef, reinforcement: Double) {
+    trace("updatePheromones")
+    outgoingWays.foreach(ow => {
+      val oldPheromone = pheromones(destination)(ow)
+      if (ow == way) 
+        pheromones(destination) += ow -> (oldPheromone + reinforcement * (1 - oldPheromone))
+      else
+        pheromones(destination) += ow -> (oldPheromone - reinforcement * oldPheromone)
+    })
+    calculatePropabilities(destination)
   }
 }
 

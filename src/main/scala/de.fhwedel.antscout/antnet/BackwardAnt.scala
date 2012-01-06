@@ -13,6 +13,9 @@ import collection.mutable.Stack
 
 class BackwardAnt(source: ActorRef, destination: ActorRef, memory: AntMemory) {
 
+  memory.items.foreach {
+    case AntMemoryItem(node, way) => node ! UpdateDataStructures(destination, way)
+  }
 }
 
 object BackwardAnt {
