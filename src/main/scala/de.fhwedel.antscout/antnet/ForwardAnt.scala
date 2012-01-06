@@ -2,8 +2,8 @@ package de.fhwedel.antscout
 package antnet
 
 import net.liftweb.common.Logger
-import akka.actor.{ActorRef, Actor}
-import collection.mutable.Stack
+import akka.actor.{PoisonPill, Scheduler, ActorRef, Actor}
+import java.util.concurrent.TimeUnit
 
 /**
  * Created by IntelliJ IDEA.
@@ -27,6 +27,7 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
       warn("Source node equals destination node, exit!")
       self.stop()
     } else {
+      Scheduler.scheduleOnce(self, PoisonPill, 30, TimeUnit.SECONDS)
       visitNode(sourceNode)
     }
   }
