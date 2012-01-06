@@ -11,11 +11,11 @@ import collection.mutable.Stack
  * Time: 18:55
  */
 
-class BackwardAnt(source: ActorRef, destination: ActorRef, memory: Stack[(ActorRef, ActorRef)]) {
+class BackwardAnt(source: ActorRef, destination: ActorRef, memory: AntMemory) {
 
 }
 
 object BackwardAnt {
 
-  def apply(source: ActorRef, destination: ActorRef, memory: Stack[(ActorRef, ActorRef)]) = new BackwardAnt(source, destination, memory)
+  def apply(source: ActorRef, destination: ActorRef, memory: AntMemory) = new BackwardAnt(source, destination, memory)
 }

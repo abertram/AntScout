@@ -16,14 +16,10 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
   
   var currentNode: ActorRef = _
   var currentWay: ActorRef = _
-  val memory = new Stack[(ActorRef, ActorRef)]
+  val memory = AntMemory()
 
   def launchBackwardAnt() {
     BackwardAnt(sourceNode, destinationNode, memory)
-  }
-
-  def memorizeVisitedNodeAntWay(node: ActorRef, way: ActorRef) {
-    memory.push(node -> way)
   }
 
   override def preStart() {
@@ -37,35 +33,31 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
 
   protected def receive = {
     case EndNode(n) => {
-      memorizeVisitedNodeAntWay(currentNode, currentWay)
+      debug("EndNode(%s)".format(n id))
+      memory.memorize(currentNode, currentWay)
       visitNode(n)
     }
     case Propabilities(ps) => selectWay(ps) ! Cross(currentNode)
     case m: Any => warn("Unknown message: %s".format(m))
   }
 
-  def removeCircle(node: ActorRef) {
-    trace("Removing circle of #%s".format(node id))
-    memory.dropWhile(_._1 != node).pop()
-  }
-
   def selectWay(propabilities: Map[ActorRef, Double]) = {
-    trace("selectWay")
-    debug("Visited ways: %s".format(memory.map(_._2.id).mkString(",")))
-    val notVisitedWays = propabilities.filter { case (w, p) => memory.groupBy(_._2).keySet.contains(w) }
-    debug("Not visited ways: %s".format(notVisitedWays.map(_._1.id).mkString(",")))
+    debug("Memory: %s".format(memory.items))
+    val notVisitedWays = propabilities.filter { case (w, p) => !memory.containsWay(w) }
+    debug("Not visited ways: %s".format(notVisitedWays.map(_._1.id).mkString(", ")))
     currentWay = if (!notVisitedWays.isEmpty) notVisitedWays.maxBy(_._2)._1 else propabilities.maxBy(_._2)._1
     debug("Selected way: #%s".format(currentWay id))
+    Thread.sleep(30000)
     currentWay
   }
 
   def visitNode(node: ActorRef) {
-    trace("Visiting node #%s".format(node id))
+    debug("Visiting node #%s".format(node id))
     currentNode = node
     if (node != destinationNode) {
-      if (memory.groupBy(_._1).keySet.contains(node)) {
+      if (memory.containsNode(node)) {
         debug("Circle detected")
-        removeCircle(node)
+        memory.removeCircle(node)
       }
       node ! Enter(destinationNode)
     } else {
