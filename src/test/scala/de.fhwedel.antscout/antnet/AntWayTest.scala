@@ -17,6 +17,6 @@ class AntWayTest extends FunSuite with ShouldMatchers {
     val endNode = AntNode("2")
     val antWay = AntWay("1-1", startNode, endNode, 2, 1)
     val travelTime = (antWay ? TravelTimeRequest).mapTo[(String, Double)].get
-    travelTime should be (("1-1", 2))
+    travelTime should be ((antWay, 2))
   }
 }

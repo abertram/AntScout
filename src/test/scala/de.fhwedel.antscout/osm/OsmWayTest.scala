@@ -4,6 +4,7 @@ package osm
 import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers
 import collection.immutable.IntMap
+import net.liftweb.util.Props
 
 /**
  * Created by IntelliJ IDEA.
@@ -51,7 +52,7 @@ class OsmWayTest extends FunSuite with ShouldMatchers {
   test("parseWay, no maxspeed tag") {
     val nodes = Map.empty[String, OsmNode]
     val way = OsmWay.parseWay(<way id="1"/>, nodes)
-    way.maxSpeed should be(OsmWay.DefaultSpeeds(""))
+    way.maxSpeed should be (Props.get("speed.defaultSpeed").map(_.toDouble).get)
   }
 
   test("parseWay, empty maxspeed tag") {
@@ -60,7 +61,7 @@ class OsmWayTest extends FunSuite with ShouldMatchers {
       <way id="1">
           <tag k="maxspeed" v=" "/>
       </way>, nodes)
-    way.maxSpeed should be(OsmWay.DefaultSpeeds(""))
+    way.maxSpeed should be (Props.get("speed.defaultSpeed").map(_.toDouble).get)
   }
 
   test("parseWay, maxspeed is not a number") {
@@ -69,7 +70,7 @@ class OsmWayTest extends FunSuite with ShouldMatchers {
       <way id="1">
           <tag k="maxspeed" v="maxspeed"/>
       </way>, nodes)
-    way.maxSpeed should be(OsmWay.DefaultSpeeds(""))
+    way.maxSpeed should be (Props.get("speed.defaultSpeed").map(_.toDouble).get)
   }
 
   test("parseWay, no maxspeed tag, speed from highway tag") {
@@ -78,7 +79,7 @@ class OsmWayTest extends FunSuite with ShouldMatchers {
       <way id="1">
           <tag k="highway" v="motorway"/>
       </way>, nodes)
-    way.maxSpeed should be(OsmWay.DefaultSpeeds("motorway"))
+    way.maxSpeed should be (Props.get("speed.motorway").map(_.toDouble).get)
   }
 
   test("parseWay, empty maxspeed tag, speed from highway tag") {
@@ -88,7 +89,7 @@ class OsmWayTest extends FunSuite with ShouldMatchers {
           <tag k="highway" v="motorway"/>
           <tag k="maxspeed" v=" "/>
       </way>, nodes)
-    way.maxSpeed should be(OsmWay.DefaultSpeeds("motorway"))
+    way.maxSpeed should be (Props.get("speed.motorway").map(_.toDouble).get)
   }
 
   test("parseWay, maxspeed is not a number, speed from highway tag") {
@@ -98,7 +99,7 @@ class OsmWayTest extends FunSuite with ShouldMatchers {
           <tag k="highway" v="motorway"/>
           <tag k="maxspeed" v="maxspeed"/>
       </way>, nodes)
-    way.maxSpeed should be(OsmWay.DefaultSpeeds("motorway"))
+    way.maxSpeed should be (Props.get("speed.motorway").map(_.toDouble).get)
   }
 
   test("parseWay, oneway = yes") {

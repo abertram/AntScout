@@ -19,7 +19,7 @@ class AntMemoryTest extends FunSuite with ShouldMatchers {
     val node = AntNode(0)
     val wayNodes = (1 to 2).map(AntNode(_))
     val way = AntWay("0", wayNodes(0), wayNodes(1), 0, 0)
-    am.memorize(node, way)
+    am.memorize(node, way, 0)
     am.containsNode(node) should be (true)
     am.containsNode(wayNodes(0)) should be (false)
   }
@@ -30,7 +30,7 @@ class AntMemoryTest extends FunSuite with ShouldMatchers {
     val wayNodes = (1 to 4).map(AntNode(_))
     val way1 = AntWay("1", wayNodes(0), wayNodes(1), 0, 0)
     val way2 = AntWay("2", wayNodes(2), wayNodes(3), 0, 0)
-    am.memorize(node, way1)
+    am.memorize(node, way1, 0)
     am.containsWay(way1) should be (true)
     am.containsWay(way2) should be (false)
   }
@@ -42,9 +42,9 @@ class AntMemoryTest extends FunSuite with ShouldMatchers {
     val wayNodes = (3 to 6).map(AntNode(_))
     val way1 = AntWay("1", wayNodes(0), wayNodes(1), 0, 0)
     val way2 = AntWay("2", wayNodes(2), wayNodes(3), 0, 0)
-    am.memorize(node1, way1)
-    am.memorize(node2, way2)
-    am.items should be (Iterable[AntMemoryItem](AntMemoryItem(node2, way2), AntMemoryItem(node1, way1)))
+    am.memorize(node1, way1, 0)
+    am.memorize(node2, way2, 0)
+    am.items should be (Iterable[AntMemoryItem](AntMemoryItem(node2, way2, 0), AntMemoryItem(node1, way1, 0)))
   }
 
   test("removeCircle") {
@@ -54,8 +54,8 @@ class AntMemoryTest extends FunSuite with ShouldMatchers {
     val wayNodes = (3 to 6).map(AntNode(_))
     val way1 = AntWay("1", wayNodes(0), wayNodes(1), 0, 0)
     val way2 = AntWay("2", wayNodes(2), wayNodes(3), 0, 0)
-    am.memorize(node1, way1)
-    am.memorize(node2, way2)
+    am.memorize(node1, way1, 0)
+    am.memorize(node2, way2, 0)
     am.removeCircle(node1)
     am.items should be ('empty)
   }
