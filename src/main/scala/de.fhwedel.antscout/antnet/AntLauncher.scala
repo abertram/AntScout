@@ -14,12 +14,12 @@ import net.liftweb.util.{Props, TimeHelpers}
  * Time: 16:13
  */
 
-class AntLauncher(antMap: AntMap) extends Actor with Logger {
+class AntLauncher extends Actor with Logger {
 
   val DefaultTimeUnit = "SECONDS"
   val DefaultAntLaunchDelay = 15
 
-  val destinations = antMap.nodes.values.toSeq
+  val destinations = AntMap.nodes.values.toSeq
   val random = Random
   var totalAntCount = 0
 
@@ -30,20 +30,21 @@ class AntLauncher(antMap: AntMap) extends Actor with Logger {
   protected def receive = {
     case LaunchAnts => {
       debug("Creating forward ants")
-      val (time, _) = TimeHelpers.calcTime (antMap.nodes.values.foreach(sourceNode => {
-        val destination = destinations(random.nextInt(antMap.nodes.size))
+      val (time, _) = TimeHelpers.calcTime (AntMap.nodes.values.foreach(sourceNode => {
+        val destination = destinations(random.nextInt(AntMap.nodes.size))
 //        debug("Launching forward ant from %s to %s".format(sourceNode id, destination id))
         Actor.actorOf(ForwardAnt(sourceNode, destination)).start()
       }))
-      totalAntCount += antMap.nodes.size
-      debug("%d forward ants created in %d ms (total ant count: %d)".format(antMap.nodes.size, time, totalAntCount))
+      totalAntCount += AntMap.nodes.size
+      debug("%d forward ants created in %d ms (total ant count: %d)".format(AntMap.nodes.size, time, totalAntCount))
     }
     case m: Any => warn("Unknown Message: %s".format(m))
   }
 }
 
 object AntLauncher {
-  def apply(antMap: AntMap) = new AntLauncher(antMap)
+
+  def apply() = new AntLauncher()
 }
 
 case object LaunchAnts

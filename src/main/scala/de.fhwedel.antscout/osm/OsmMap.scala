@@ -14,53 +14,64 @@ import collection.mutable.{SynchronizedSet, SynchronizedMap, HashMap => MutableH
  * Time: 09:58
  */
 
-class OsmMap(val nodes: Map[String, OsmNode], val ways: Map[String, OsmWay]) extends Logger {
+object OsmMap extends Logger {
 
-  val nodeWaysMap = computeNodeWaysMap
-  
-  val intersections = {
+  private var _intersections: List[OsmNode] = _
+  private var _nodes: Map[String, OsmNode] = _
+  private var _nodeWaysMap: MutableHashMap[OsmNode, MutableHashSet[OsmWay] with SynchronizedSet[OsmWay]] with SynchronizedMap[OsmNode, MutableHashSet[OsmWay] with SynchronizedSet[OsmWay]] = _
+  private var _ways: Map[String, OsmWay] = _
+
+  def intersections = _intersections
+  def nodes = _nodes
+  def nodeWaysMap = _nodeWaysMap
+  def ways = _ways
+
+  def computeIntersetions = {
     info("Computing intersections")
     val (time, result) = TimeHelpers.calcTime(nodeWaysMap.par.filter(_._2.size > 1).seq.keys.toList)
     info("Intersections computed in %d ms".format(time))
     result
   }
 
-  def computeNodeWaysMap = {
+  def computeNodeWaysMap() {
     info("Computing node ways map")
-    val tempNodeWaysMap = new MutableHashMap[OsmNode, MutableHashSet[OsmWay] with SynchronizedSet[OsmWay]] with SynchronizedMap[OsmNode, MutableHashSet[OsmWay] with SynchronizedSet[OsmWay]]
-    nodes.values.map(node => tempNodeWaysMap += (node -> new MutableHashSet[OsmWay] with SynchronizedSet[OsmWay]))
-    val (time, nodeWaysMap) = TimeHelpers.calcTime {
-      ways.values.par.foreach(way => {
+    _nodeWaysMap = new MutableHashMap[OsmNode, MutableHashSet[OsmWay] with SynchronizedSet[OsmWay]] with SynchronizedMap[OsmNode, MutableHashSet[OsmWay] with SynchronizedSet[OsmWay]]
+    _nodes.values.map(node => this.nodeWaysMap += (node -> new MutableHashSet[OsmWay] with SynchronizedSet[OsmWay]))
+    val (time, _) = TimeHelpers.calcTime {
+      _ways.values.par.foreach(way => {
         way.nodes.par.foreach(node => {
-          tempNodeWaysMap(node) += way
+          this.nodeWaysMap(node) += way
         })
       })
-      tempNodeWaysMap.toMap
     }
     info("Node ways map with %d elements computed in %d ms".format(nodeWaysMap.size, time))
-    nodeWaysMap
   }
 
-}
-
-object OsmMap extends Logger {
-
-  def apply(osmData: Elem) = {
-    val nodes = parseNodes(osmData \ "node")
-    val ways = parseWays(osmData \ "way", nodes)
-    new OsmMap(nodes, ways)
+  def computeNodeWaysMapAndIntersections() {
+    computeNodeWaysMap()
+    _intersections = computeIntersetions
   }
 
-  def apply(nodes: Map[String, OsmNode], ways: Map[String, OsmWay]) = new OsmMap(nodes, ways)
+  def apply(osmData: Elem) {
+    _nodes = parseNodes(osmData \ "node")
+    _ways = parseWays(osmData \ "way", _nodes)
+    computeNodeWaysMapAndIntersections()
+  }
+
+  def apply(nodes: Map[String, OsmNode], ways: Map[String, OsmWay]) {
+    _nodes = nodes
+    _ways = ways
+    computeNodeWaysMapAndIntersections()
+  }
   
-  def apply(nodes: Iterable[OsmNode], ways: Iterable[OsmWay]) = {
-    val osmNodes = nodes.map(node => {
-      (node.id, node)
+  def apply(nodes: Iterable[OsmNode], ways: Iterable[OsmWay]) {
+    val ns = nodes.map(n => {
+      (n.id, n)
     }).toMap
-    val osmWays = ways.map(way => {
-      (way.id, way)
+    val ws = ways.map(w => {
+      (w.id, w)
     }).toMap
-    new OsmMap(osmNodes, osmWays)
+    this(ns, ws)
   }
 
   def parseNodes(nodes: NodeSeq) = {

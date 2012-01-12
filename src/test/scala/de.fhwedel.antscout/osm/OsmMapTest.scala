@@ -18,13 +18,13 @@ class OsmMapTest extends FunSuite with ShouldMatchers {
     val way1 = OsmWay(1, nodes.take(3))
     val way2 = OsmWay(2, nodes.drop(2))
     val ways = List(way1, way2)
-    val osmMap = OsmMap(nodes, ways)
-    osmMap.nodeWaysMap should have size (5)
-    osmMap.nodeWaysMap(nodes(0)) should equal (Set(way1))
-    osmMap.nodeWaysMap(nodes(1)) should equal (Set(way1))
-    osmMap.nodeWaysMap(nodes(2)) should equal (Set(way1, way2))
-    osmMap.nodeWaysMap(nodes(3)) should equal (Set(way2))
-    osmMap.nodeWaysMap(nodes(4)) should equal (Set(way2))
+    OsmMap(nodes, ways)
+    OsmMap.nodeWaysMap should have size (5)
+    OsmMap.nodeWaysMap(nodes(0)) should equal (Set(way1))
+    OsmMap.nodeWaysMap(nodes(1)) should equal (Set(way1))
+    OsmMap.nodeWaysMap(nodes(2)) should equal (Set(way1, way2))
+    OsmMap.nodeWaysMap(nodes(3)) should equal (Set(way2))
+    OsmMap.nodeWaysMap(nodes(4)) should equal (Set(way2))
   }
   
   test("intersections") {
@@ -36,8 +36,8 @@ class OsmMapTest extends FunSuite with ShouldMatchers {
     val way1 = OsmWay(1, "", List(node1, node2), 1)
     val way2 = OsmWay(2, "", List(node2, node3), 2)
     val ways = Vector(way1, way2)
-    val osmMap = OsmMap(nodes, ways)
-    val intersections = osmMap.intersections
+    OsmMap(nodes, ways)
+    val intersections = OsmMap.intersections
     intersections should have size (1)
     intersections should contain (node2)
   }

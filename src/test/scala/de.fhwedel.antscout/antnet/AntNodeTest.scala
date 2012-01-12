@@ -36,7 +36,7 @@ class AntNodeTest extends FunSuite with ShouldMatchers {
   test("") {
     val osmData = XML loadFile("./maps/Ellerau-Zoomstufe-18-preprocessed.osm")
     val osmMap = OsmMap(osmData)
-    val antMap = AntMap(osmMap)
+    AntMap()
 //    Thread.sleep(10000)
   }
 }

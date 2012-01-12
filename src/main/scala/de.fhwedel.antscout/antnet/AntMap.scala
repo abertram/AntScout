@@ -5,9 +5,9 @@ import net.liftweb.common.Logger
 import net.liftweb.util.TimeHelpers
 import map.Node
 import collection.immutable.List
-import akka.actor.Actor
 import osm.{OsmOneWay, OsmWay, OsmNode, OsmMap}
 import collection.mutable.{SynchronizedSet, HashSet => MutableHashSet, SynchronizedMap, HashMap => MutableHashMap}
+import akka.actor.{ActorRef, Actor}
 
 /**
  * Created by IntelliJ IDEA.
@@ -16,13 +16,16 @@ import collection.mutable.{SynchronizedSet, HashSet => MutableHashSet, Synchroni
  * Time: 12:07
  */
 
-class AntMap(osmMap: OsmMap) extends Logger {
+object AntMap extends Logger {
 
-  val nodes = initAntNodes
-  val ways = computePrepareAndStartAntWays
+  private var _nodes: Map[String, ActorRef] = _
+  private var _ways: Map[String, ActorRef] = _
 
-  private def initAntNodes = {
-    val computedAntNodes = AntMap.computeAntNodes(osmMap.ways.values.toList, osmMap.intersections)
+  def nodes = _nodes
+  def ways = _ways
+
+  def initAntNodes = {
+    val computedAntNodes = AntMap.computeAntNodes(OsmMap.ways.values.toList, OsmMap.intersections)
     val antNodes = AntMap.createAntNodes(computedAntNodes)
     info("Sending destinations to ant nodes")
     val (time, _) = TimeHelpers.calcTime(antNodes.values.foreach(_ ! Destinations(antNodes.values)))
@@ -30,36 +33,35 @@ class AntMap(osmMap: OsmMap) extends Logger {
     antNodes
   }
 
-  private def computePrepareAndStartAntWays = {
-    val nodeIds = nodes.keys.toList 
+  def computePrepareAndStartAntWays(nodeIds: List[String]) = {
     info("Computing ant ways data")
-    val (time, antWaysData) = TimeHelpers.calcTime(osmMap.ways.values.par.flatMap(AntMap.computeAntWaysData(_, nodeIds)).toList)
+    val (time, antWaysData) = TimeHelpers.calcTime(OsmMap.ways.values.par.flatMap(AntMap.computeAntWaysData(_, nodeIds)).toList)
     info("%d ant ways data computed in %d ms".format(antWaysData.size, time))
     val antWays = AntMap.startAntWays(antWaysData)
     val (incomingWays, outgoingWays) = AntMap.computeIncomingAndOutgoingWays(nodeIds, antWaysData)
-    info("Nodes without incoming ways: %s".format(nodes.keys.filter(!incomingWays.contains(_))))
-    info("Nodes without outgoing ways: %s".format(nodes.keys.filter(!outgoingWays.contains(_))))
+    info("Nodes without incoming ways: %s".format(_nodes.keys.filter(!incomingWays.contains(_))))
+    info("Nodes without outgoing ways: %s".format(_nodes.keys.filter(!outgoingWays.contains(_))))
     debug("Sending incoming ways")
     incomingWays.par.foreach {
       case (nodeId, wayIds) => {
         val incomingWaysActors = wayIds.flatMap(Actor.registry.actorsFor(_)).toList
-        nodes(nodeId) ! IncomingWays(incomingWaysActors)
+        _nodes(nodeId) ! IncomingWays(incomingWaysActors)
       }
     }
     debug("Sending outgoing ways")
     outgoingWays.par.foreach {
       case (nodeId, wayIds) => {
         val outgoingWaysActors = wayIds.flatMap(Actor.registry.actorsFor(_)).toList
-        nodes(nodeId) ! OutgoingWays(outgoingWaysActors)
+        _nodes(nodeId) ! OutgoingWays(outgoingWaysActors)
       }
     }
     antWays
   }
-}
-
-object AntMap extends Logger {
-
-  def apply(osmMap: OsmMap) = new AntMap(osmMap)
+  
+  def apply() {
+    _nodes = initAntNodes
+    _ways = computePrepareAndStartAntWays(_nodes.keys.toList)
+  }
 
   def computeAntNodes(ways: List[OsmWay], intersections: List[Node]) = {
     info("Computing ant nodes")
@@ -128,5 +130,6 @@ object AntMap extends Logger {
     info("Starting ant ways")
     val (time, antWays) = TimeHelpers.calcTime(antWaysData.par.map(antWayData => (antWayData.id -> AntWay(antWayData.id, antWayData.maxSpeed,antWayData.nodes))).seq.toMap)
     info("%d ant ways started in %d ms".format(antWays.size, time))
+    antWays
   }
 }
