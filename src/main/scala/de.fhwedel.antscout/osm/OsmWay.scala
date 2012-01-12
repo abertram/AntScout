@@ -4,6 +4,7 @@ package osm
 import xml.NodeSeq
 import net.liftweb.common.Logger
 import map.Way
+import net.liftweb.util.Props
 
 /**
  * Created by IntelliJ IDEA.
@@ -16,25 +17,8 @@ class OsmWay(id: String, val name: String, val nodes: List[OsmNode], val maxSpee
 
 object OsmWay extends Logger {
   
-  // TODO Default-Geschwindigkeiten in die Konfiguration verschieben
-  val DefaultSpeeds = Map(
-    "motorway" -> 130.0,
-    "motorway_link" -> 80.0,
-    "trunk" -> 100.0,
-    "trunk_link" -> 60.0,
-    "primary" -> 100.0,
-    "primary_link" -> 60.0,
-    "secondary" -> 70.0,
-    "tertiary" -> 50.0,
-    "residental" -> 50.0,
-    "service" -> 3.0,
-    "track" -> 30.0,
-    "" -> 50.0,
-    "none" -> 50.0,
-    "signals" -> 50.0,
-    "walk" -> 10.0
-  )
-  
+  val DefaultSpeed = 50.0
+
   def apply(id: Int, name: String, nodes: List[OsmNode], maxSpeed: Double) = new OsmWay(id.toString, name, nodes, maxSpeed)
 
   def apply(id: Int, nodes: List[OsmNode]) = new OsmWay(id.toString, "", nodes, 0)
@@ -59,10 +43,10 @@ object OsmWay extends Logger {
             Some(value.toDouble)
           } catch {
             case numberFormatException: NumberFormatException => {
-              val speed = DefaultSpeeds.get(value)
-              if (!speed.isDefined)
+              val maxSpeed = Props.get("speed.%s".format(value)).map(_.toDouble)
+              if (maxSpeed.isEmpty)
                 warn("Way %s: unknown max speed \"%s\"" format(id, value))
-              speed
+              maxSpeed
             }
             case exception: Exception => {
               warn("Way %s: exception while parsing max speed \"%s\" of way %d" format(id, value), exception)
@@ -75,9 +59,10 @@ object OsmWay extends Logger {
       }
     }
     def maxSpeedFromHighwayTag: Option[Double] = {
-      DefaultSpeeds.get(tags.getOrElse("highway", ""))
+      Props.get("speed.%s".format(tags.getOrElse("highway", "defaultSpeed"))).map(_.toDouble)
     }
-    val maxSpeed: Double = maxSpeedFromMaxSpeedTag orElse maxSpeedFromHighwayTag getOrElse DefaultSpeeds("")
+    val defaultSpeed = Props.get("speed.defaultSpeed").map(_.toDouble) getOrElse DefaultSpeed
+    val maxSpeed: Double = maxSpeedFromMaxSpeedTag orElse maxSpeedFromHighwayTag getOrElse defaultSpeed
     val oneWay = tags.getOrElse("oneway", "")
     oneWay match {
       case "yes" | "true" | "1" => new OsmOneWay(id, name, wayNodes, maxSpeed)

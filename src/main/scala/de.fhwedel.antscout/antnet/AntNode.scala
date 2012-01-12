@@ -4,9 +4,9 @@ package antnet
 import akka.actor.{ActorRef, Actor}
 import net.liftweb.common.Logger
 import akka.dispatch.Future
-import net.liftweb.util.TimeHelpers
 import collection.immutable.List
 import collection.{Iterable, IterableView, SeqView, IndexedSeq}
+import net.liftweb.util.{Props, TimeHelpers}
 
 /**
  * Created by IntelliJ IDEA.
@@ -41,8 +41,7 @@ class AntNode(id: String) extends Actor with Logger {
           case Left(_) => warn("No travel times")
           case Right(travelTimes) => {
             pheromoneMatrix = PheromoneMatrix(destinations, outgoingWays, travelTimes.toMap)
-            // TODO Konstanten in die Konfiguration verschieben
-            val varsigma = 0.005
+            val varsigma = Props.get("varsigma").map(_.toDouble) openOr TrafficModel.DefaultVarsigma
             trafficModel = TrafficModel(destinations, varsigma, (5 * (0.3 / varsigma)).toInt)
           }
         }

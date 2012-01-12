@@ -4,6 +4,7 @@ package antnet
 import net.liftweb.common.Logger
 import akka.actor.{PoisonPill, Scheduler, ActorRef, Actor}
 import java.util.concurrent.TimeUnit
+import net.liftweb.util.Props
 
 /**
  * Created by IntelliJ IDEA.
@@ -14,9 +15,16 @@ import java.util.concurrent.TimeUnit
 
 class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extends Actor with Logger {
   
+  val DefaultAntLifetime = 30
+  val DefaultTimeUnit = "SECONDS"
+
   var currentNode: ActorRef = _
   var currentWay: ActorRef = _
   val memory = AntMemory()
+
+  override def info(msg: => AnyRef) {
+    super.info("#%s: %s".format(self id, msg))
+  }
 
   def launchBackwardAnt() {
     BackwardAnt(sourceNode, destinationNode, memory)
@@ -27,8 +35,10 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
       warn("Source node equals destination node, exit!")
       self.stop()
     } else {
-      // TODO Zeit in die Konfiguration verschieben
-      Scheduler.scheduleOnce(self, PoisonPill, 30, TimeUnit.SECONDS)
+      self id = "%s-%s".format(sourceNode id, destinationNode id)
+      val antLifetime = Props.getInt("antLifetime", DefaultAntLifetime)
+      val timeUnit = TimeUnit.valueOf(Props.get("timeUnit", DefaultTimeUnit))
+      Scheduler.scheduleOnce(self, PoisonPill, antLifetime, timeUnit)
       visitNode(sourceNode)
     }
   }
@@ -39,6 +49,7 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
       memory.memorize(currentNode, currentWay, tt)
       visitNode(n)
     }
+    case PoisonPill => info("Poison pill!")
     case Propabilities(ps) => selectWay(ps) ! Cross(currentNode)
     case m: Any => warn("Unknown message: %s".format(m))
   }

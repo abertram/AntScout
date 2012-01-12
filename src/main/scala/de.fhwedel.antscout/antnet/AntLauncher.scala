@@ -2,10 +2,10 @@ package de.fhwedel.antscout
 package antnet
 
 import net.liftweb.common.Logger
-import net.liftweb.util.TimeHelpers
 import akka.actor.{Scheduler, Actor}
 import java.util.concurrent.TimeUnit
 import util.Random
+import net.liftweb.util.{Props, TimeHelpers}
 
 /**
  * Created by IntelliJ IDEA.
@@ -16,12 +16,16 @@ import util.Random
 
 class AntLauncher(antMap: AntMap) extends Actor with Logger {
 
+  val DefaultTimeUnit = "SECONDS"
+  val DefaultAntLaunchDelay = 15
+
   val destinations = antMap.nodes.values.toSeq
   val random = Random
   var totalAntCount = 0
 
-  // TODO Zeiten in die Konfiguration verschieben
-  Scheduler.schedule(self, LaunchAnts, 0, 30, TimeUnit.SECONDS)
+  val antLaunchDelay = Props.getInt("antLaunchDelay", DefaultAntLaunchDelay)
+  val timeUnit = TimeUnit.valueOf(Props.get("timeUnit", DefaultTimeUnit))
+  Scheduler.schedule(self, LaunchAnts, 0, antLaunchDelay, timeUnit)
 
   protected def receive = {
     case LaunchAnts => {

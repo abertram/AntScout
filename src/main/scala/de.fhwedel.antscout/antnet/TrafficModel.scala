@@ -28,5 +28,7 @@ class TrafficModel(destinations: IterableView[ActorRef, Iterable[ActorRef]], var
 
 object TrafficModel {
 
+  val DefaultVarsigma = 0.005
+
   def apply(destinations: IterableView[ActorRef, Iterable[ActorRef]], varsigma: Double, wMax: Int) = new TrafficModel(destinations, varsigma, wMax)
 }

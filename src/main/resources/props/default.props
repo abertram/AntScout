@@ -1,0 +1,23 @@
+timeUnit = SECONDS
+
+antLaunchDelay = 1
+
+varsigma = 0.005
+
+antLifetime = 5
+
+speed.defaultSpeed = 50.0
+speed.motorway = 130.0
+speed.motorway_link = 80.0
+speed.trunk = 100.0
+speed.trunk_link = 60.0
+speed.primary = 100.0
+speed.primary_link = 60.0
+speed.secondary = 70.0
+speed.tertiary = 50.0
+speed.residental = 50.0
+speed.service = 3.0
+speed.track = 30.0
+speed.none = 50.0
+speed.signals = 50.0
+speed.walk = 10.0
