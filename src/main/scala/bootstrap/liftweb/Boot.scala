@@ -8,6 +8,7 @@ import sitemap._
 import Loc._
 import akka.actor.Actor
 import de.fhwedel.antscout.ApplicationController
+import de.fhwedel.antscout.rest.Rest
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -27,7 +28,10 @@ class Boot extends Logger {
       // more complex because this menu allows anything in the
       // /static path to be visible
       Menu(Loc("Static", Link(List("static"), true, "/static/index"),
-        "Static Content")))
+        "Static Content")),
+
+      Menu.i("Debug") / "debug" / "index"
+    )
 
     // set the sitemap.  Note if you don't want access control for
     // each page, just comment this line out.
@@ -46,6 +50,10 @@ class Boot extends Logger {
 
     // Force the request to be UTF-8
     LiftRules.early.append(_.setCharacterEncoding("UTF-8"))
+
+    LiftRules.htmlProperties.default.set((r: Req) => new Html5Properties(r.userAgent))
+
+    LiftRules.statelessDispatchTable.append(Rest)
 
     LiftRules.unloadHooks.append(() => {
       info("Shutting down all actors")
