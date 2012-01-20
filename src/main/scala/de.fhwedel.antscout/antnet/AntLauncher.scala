@@ -29,14 +29,14 @@ class AntLauncher extends Actor with Logger {
 
   protected def receive = {
     case LaunchAnts => {
-      debug("Creating forward ants")
+//      debug("Creating forward ants")
       val (time, _) = TimeHelpers.calcTime (AntMap.nodes.values.foreach(sourceNode => {
         val destination = destinations(random.nextInt(AntMap.nodes.size))
 //        debug("Launching forward ant from %s to %s".format(sourceNode id, destination id))
         Actor.actorOf(ForwardAnt(sourceNode, destination)).start()
       }))
       totalAntCount += AntMap.nodes.size
-      debug("%d forward ants created in %d ms (total ant count: %d)".format(AntMap.nodes.size, time, totalAntCount))
+//      debug("%d forward ants created in %d ms (total ant count: %d)".format(AntMap.nodes.size, time, totalAntCount))
     }
     case m: Any => warn("Unknown Message: %s".format(m))
   }
