@@ -21,6 +21,7 @@ class AntWay(id: String, val startNode: ActorRef, val endNode: ActorRef, val len
   protected def receive = {
     case Cross(sn) => if (sn == startNode) self.tryReply(EndNode(endNode, tripTime)) else self.tryReply(EndNode(startNode, tripTime))
     case TravelTimeRequest => self.reply(self -> tripTime)
+    case StartAndEndNode => self.reply(self -> (startNode -> endNode))
   }
 
   override def toString = "#%s #%d - #%d".format(id, startNode.id, endNode.id)
@@ -29,6 +30,7 @@ class AntWay(id: String, val startNode: ActorRef, val endNode: ActorRef, val len
 }
 
 object AntWay extends Logger {
+
   def apply(id: String, startNode: ActorRef, endNode: ActorRef, length: Double, maxSpeed: Double) = {
     Actor.actorOf(new AntWay(id, startNode, endNode, length, maxSpeed)).start
   }
@@ -56,3 +58,4 @@ object AntWay extends Logger {
 
 case class Cross(startNode: ActorRef)
 case object TravelTimeRequest
+case object StartAndEndNode
