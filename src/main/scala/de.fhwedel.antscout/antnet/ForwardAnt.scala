@@ -5,6 +5,8 @@ import net.liftweb.common.Logger
 import akka.actor.{PoisonPill, Scheduler, ActorRef, Actor}
 import java.util.concurrent.TimeUnit
 import net.liftweb.util.Props
+import util.Random
+import extensions.ExtendedDouble._
 
 /**
  * Created by IntelliJ IDEA.
@@ -21,6 +23,11 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
   var currentNode: ActorRef = _
   var currentWay: ActorRef = _
   val memory = AntMemory()
+  val random = Random
+
+  override def debug(msg: => AnyRef) {
+    super.debug("#%s: %s".format(self id, msg))
+  }
 
   override def info(msg: => AnyRef) {
     super.info("#%s: %s".format(self id, msg))
@@ -32,13 +39,16 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
 
   override def preStart() {
     if (sourceNode == destinationNode) {
-      warn("Source node equals destination node, exit!")
+//      warn("Source node equals destination node, exit!")
       self.stop()
     } else {
       self id = "%s-%s".format(sourceNode id, destinationNode id)
       val antLifetime = Props.getInt("antLifetime", DefaultAntLifetime)
       val timeUnit = TimeUnit.valueOf(Props.get("timeUnit", DefaultTimeUnit))
-      Scheduler.scheduleOnce(self, PoisonPill, antLifetime, timeUnit)
+      Scheduler.scheduleOnce(() => {
+//        info("Committing suicide!")
+        self ! PoisonPill
+      }, antLifetime, timeUnit)
       visitNode(sourceNode)
     }
   }
@@ -49,7 +59,6 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
       memory.memorize(currentNode, currentWay, tt)
       visitNode(n)
     }
-    case PoisonPill => info("Poison pill!")
     case Propabilities(ps) => selectWay(ps) ! Cross(currentNode)
     case m: Any => warn("Unknown message: %s".format(m))
   }
@@ -58,10 +67,26 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
 //    debug("Memory: %s".format(memory.items))
     val notVisitedWays = propabilities.filter { case (w, p) => !memory.containsWay(w) }
 //    debug("Not visited ways: %s".format(notVisitedWays.map(_._1.id).mkString(", ")))
-    currentWay = if (!notVisitedWays.isEmpty) notVisitedWays.maxBy(_._2)._1 else propabilities.maxBy(_._2)._1
+    currentWay = if (!notVisitedWays.isEmpty) {
+      // Höchste Wahrscheinlichkeit bestimmen
+      val maxPropability = notVisitedWays.maxBy(_._2)._2
+      // Noch nicht besuchte Wege mit der höchsten Wahrscheinlichkeit bestimmen
+      val maxPropabilityNotVisitedWays = notVisitedWays.filter(_._2 ~= maxPropability)
+      if (maxPropabilityNotVisitedWays.size == 1)
+        // Wenn nur ein Weg gefunden wurde, diesen Weg verwenden
+        maxPropabilityNotVisitedWays.head._1
+      else
+        // Wenn mehrere Wege gefunden werden, zufällig einen bestimmen
+        maxPropabilityNotVisitedWays.toSeq(random.nextInt(maxPropabilityNotVisitedWays.size))._1
+    } else
+      propabilities.toSeq(random.nextInt(propabilities.size))._1
 //    debug("Selected way: #%s".format(currentWay id))
 //    Thread.sleep(30000)
     currentWay
+  }
+
+  override def trace(msg: => AnyRef) {
+    super.trace("#%s: %s".format(self id, msg))
   }
 
   def visitNode(node: ActorRef) {
@@ -74,7 +99,7 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
       }
       node ! Enter(destinationNode)
     } else {
-      info("Destination reached")
+      trace("Destination reached")
       launchBackwardAnt()
       self.stop()
     }
