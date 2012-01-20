@@ -1,10 +1,10 @@
-timeUnit = SECONDS
+timeUnit = MILLISECONDS
 
-antLaunchDelay = 1
+antLaunchDelay = 10
 
 varsigma = 0.005
 
-antLifetime = 5
+antLifetime = 5000
 
 speed.defaultSpeed = 50.0
 speed.motorway = 130.0
