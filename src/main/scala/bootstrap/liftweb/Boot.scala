@@ -28,9 +28,7 @@ class Boot extends Logger {
       // more complex because this menu allows anything in the
       // /static path to be visible
       Menu(Loc("Static", Link(List("static"), true, "/static/index"),
-        "Static Content")),
-
-      Menu.i("Debug") / "debug" / "index"
+        "Static Content"))
     )
 
     // set the sitemap.  Note if you don't want access control for

@@ -16,8 +16,16 @@ $(() ->
     epsg4326Projection = new OpenLayers.Projection("EPSG:4326");
     for node in nodes
       lonLat = new OpenLayers.LonLat(node.longitude, node.latitude).transform(epsg4326Projection, map.getProjectionObject())
-      nodesLayer.addMarker(new OpenLayers.Marker(lonLat, icon.clone()))
+      marker = new OpenLayers.Marker(lonLat, icon.clone())
+      marker.events.register("mousedown", node, (e) ->
+        alert(this.id)
+        OpenLayers.Event.stop(e);
+      )
+      nodesLayer.addMarker(marker)
     map.zoomToExtent(nodesLayer.getDataExtent())
+
+  displayDirections = (directions) ->
+    $("#directions").html("<ol><li>" + directions.join("</li><li>") + "</li></ol>")
 
   initMap = () ->
 
@@ -50,4 +58,17 @@ $(() ->
 
   shouldRetrieveNodes = (event, layerName, nodes) ->
     event.layer.name is layerName and event.property is "visibility" and event.layer.visibility and not nodes?
+
+  retrieveDirections = () ->
+    $.ajax({
+      url: "/directions",
+      data: {
+        source: $("#source").val(),
+        destination: $("#destination").val()
+      }
+      success: (directions) ->
+        displayDirections(directions)
+    })
+
+  $("#retrieveDirections").click(retrieveDirections)
 )

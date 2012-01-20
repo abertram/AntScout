@@ -1,19 +1,36 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
 <head>
     <meta content="text/html; charset=UTF-8" http-equiv="content-type"/>
-    <title>Home</title></head>
-<body class="lift:content_id=main">
-<div id="main" class="lift:surround?with=default;at=content">
-    <h2>Welcome to your project!</h2>
+    <title>AntScout</title>
+    <link rel="stylesheet" type="text/css" href="/css/bootstrap.css">
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="sidebar">
+            <div class="well">
+                <div class="form-stacked">
+                    <p>
+                        <label for="source">Source</label>
+                        <input class="span3" id="source" type="text" value="274071538">
+                        <label for="destination">Destination</label>
+                        <input class="span3" id="destination" type="text" value="274109999">
+                    </p>
+                    <button class="btn" id="retrieveDirections">Retrieve directions</button>
+                </div>
+            </div>
+            <div class="well">
+                <h3>Directions</h3>
+                <div id="directions"></div>
+            </div>
+        </div>
+        <div class="content">
+            <div id="map" style="height: 700px; width: 1300px;"></div>
+        </div>
 
-    <p>
-	<span class="lift:helloWorld.howdy">
-	  Welcome to your Lift app at <span id="time">Time goes here</span>
-	</span>
-    </p>
-</div>
+        <script src="/classpath/jquery.js" type="text/javascript"></script>
+        <script src="/scripts/openlayers/OpenLayers.js"></script>
+        <script src="/scripts/script.js"></script>
+    </div>
 </body>
 </html>
 
