@@ -2,6 +2,7 @@ package de.fhwedel.antscout
 package antnet
 
 import collection.mutable.ListBuffer
+import extensions.ExtendedDouble._
 
 /**
  * Created by IntelliJ IDEA.
@@ -32,7 +33,7 @@ class TrafficModelItem(val varsigma: Double, val windowSize: Int) {
     val z = 1.7
     val iSup = mean + z * (math.sqrt(variance) / math.sqrt(windowSize))
     val stabilityTerm = (iSup - iInf) + (tripTime - iInf)
-    val r = c1 * (bestTripTime / tripTime) + (if (math.abs(stabilityTerm) > Double.MinPositiveValue) c2 * ((iSup - iInf) / stabilityTerm) else 0)
+    val r = c1 * (bestTripTime / tripTime) + (if (stabilityTerm ~> 0.0) c2 * ((iSup - iInf) / stabilityTerm) else 0)
     squash(r, neighbourCount) / squash (1, neighbourCount)
   }
 

@@ -21,3 +21,6 @@ speed.track = 30.0
 speed.none = 50.0
 speed.signals = 50.0
 speed.walk = 10.0
+
+# Schwellwert für den Vergleich von zwei Doubles
+epsilon = 0.00001
