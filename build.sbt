@@ -31,4 +31,6 @@ resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/release
 
 libraryDependencies += "se.scalablesolutions.akka" % "akka-actor" % "1.3-RC6"
 
+libraryDependencies += "se.scalablesolutions.akka" % "akka-testkit" % "1.3-RC6"
+
 seq(webSettings :_*)

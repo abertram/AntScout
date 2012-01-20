@@ -7,6 +7,7 @@ import akka.dispatch.Future
 import collection.immutable.List
 import collection.{Iterable, IterableView, SeqView, IndexedSeq}
 import net.liftweb.util.{Props, TimeHelpers}
+import routing.RoutingService
 
 /**
  * Created by IntelliJ IDEA.
@@ -41,6 +42,10 @@ class AntNode(id: String) extends Actor with Logger {
           case Left(_) => warn("No travel times")
           case Right(travelTimes) => {
             pheromoneMatrix = PheromoneMatrix(destinations, outgoingWays, travelTimes.toMap)
+            destinations.foreach(d => {
+              val ways = pheromoneMatrix(d).toList.sortBy(_._2).map(_._1)
+              RoutingService.updatePropabilities(self, d, ways)
+            })
             val varsigma = Props.get("varsigma").map(_.toDouble) openOr TrafficModel.DefaultVarsigma
             trafficModel = TrafficModel(destinations, varsigma, (5 * (0.3 / varsigma)).toInt)
           }
@@ -50,7 +55,10 @@ class AntNode(id: String) extends Actor with Logger {
     case UpdateDataStructures(d, w, tt) => {
       trace("UpdateDataStructures(%s, %s, %s)".format(d id, w id, tt))
       trafficModel += (d, tt)
+      val oldPheromones = pheromoneMatrix(d).toList.sortBy(_._2)
       pheromoneMatrix.updatePheromones(d, w, trafficModel.reinforcement(d, tt, outgoingWays.size))
+      val newPheromones = pheromoneMatrix(d).toList.sortBy(_._2)
+      if (newPheromones != oldPheromones) RoutingService.updatePropabilities(self, d, newPheromones.map(_._1))
     }
     case m: Any => warn("Unknown message: %s".format(m.toString))
   }
