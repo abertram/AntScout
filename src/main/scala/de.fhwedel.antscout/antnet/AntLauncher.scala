@@ -2,10 +2,12 @@ package de.fhwedel.antscout
 package antnet
 
 import net.liftweb.common.Logger
-import akka.actor.{Scheduler, Actor}
 import java.util.concurrent.TimeUnit
 import util.Random
-import net.liftweb.util.{Props, TimeHelpers}
+import net.liftweb.util.{Helpers, Props, TimeHelpers}
+import net.liftweb.common.Logger._
+import akka.actor._
+import net.liftweb.util.TimeHelpers.TimeSpan
 
 /**
  * Created by IntelliJ IDEA.
@@ -14,7 +16,7 @@ import net.liftweb.util.{Props, TimeHelpers}
  * Time: 16:13
  */
 
-class AntLauncher extends Actor with Logger {
+object AntLauncher {
 
   val DefaultTimeUnit = "SECONDS"
   val DefaultAntLaunchDelay = 15
@@ -25,10 +27,9 @@ class AntLauncher extends Actor with Logger {
 
   val antLaunchDelay = Props.getInt("antLaunchDelay", DefaultAntLaunchDelay)
   val timeUnit = TimeUnit.valueOf(Props.get("timeUnit", DefaultTimeUnit))
-  Scheduler.schedule(self, LaunchAnts, 0, antLaunchDelay, timeUnit)
+  Scheduler.schedule(() => launchAnts, 0, antLaunchDelay, timeUnit)
 
-  protected def receive = {
-    case LaunchAnts => {
+  def launchAnts {
 //      debug("Creating forward ants")
       val (time, _) = TimeHelpers.calcTime (AntMap.nodes.values.foreach(sourceNode => {
         val destination = destinations(random.nextInt(AntMap.nodes.size))
@@ -37,14 +38,5 @@ class AntLauncher extends Actor with Logger {
       }))
       totalAntCount += AntMap.nodes.size
 //      debug("%d forward ants created in %d ms (total ant count: %d)".format(AntMap.nodes.size, time, totalAntCount))
-    }
-    case m: Any => warn("Unknown Message: %s".format(m))
   }
 }
-
-object AntLauncher {
-
-  def apply() = new AntLauncher()
-}
-
-case object LaunchAnts

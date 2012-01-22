@@ -18,10 +18,10 @@ object ApplicationController extends Logger {
 
   Actor.spawn {
     val osmData = XML loadFile("./maps/Hamburg.osm")
-//    val osmData = XML loadFile("./maps/Ellerau-Zoomstufe-16-preprocessed.osm")
+//    val osmData = XML loadFile("./maps/Altona-Zoomstufe-17-preprocessed.osm")
     OsmMap(osmData)
     AntMap()
     RoutingService(AntMap.nodes.values, AntMap.ways.values)
-    Actor.actorOf[AntLauncher].start()
+    AntLauncher
   }
 }
