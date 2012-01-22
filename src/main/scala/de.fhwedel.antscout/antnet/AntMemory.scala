@@ -28,9 +28,12 @@ class AntMemory extends Logger {
 //    debug("Removing circle of #%s".format(node id))
     do {
       items -= items.head
-    } while (items.head.node != node)
-    items -= items.head
+    } while (!items.isEmpty && items.head.node != node)
+    if (!items.isEmpty)
+      items -= items.head
   }
+
+  override def toString = items.toString
 }
 
 object AntMemory {
