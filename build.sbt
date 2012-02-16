@@ -33,4 +33,10 @@ libraryDependencies += "se.scalablesolutions.akka" % "akka-actor" % "1.3.1"
 
 libraryDependencies += "se.scalablesolutions.akka" % "akka-testkit" % "1.3.1"
 
+// coffeescrpted-sbt
+seq(coffeeSettings: _*)
+
+// CoffeeScript-Skripte nach webapp/scripts kompilieren
+(resourceManaged in (Compile, CoffeeKeys.coffee)) <<= (webappResources in Compile)(_.get.head / "scripts")
+
 seq(webSettings :_*)
