@@ -16,27 +16,28 @@ import net.liftweb.util.TimeHelpers.TimeSpan
  * Time: 16:13
  */
 
-object AntLauncher {
+object AntLauncher extends Logger {
 
   val DefaultTimeUnit = "SECONDS"
   val DefaultAntLaunchDelay = 15
 
-  val destinations = AntMap.nodes.values.toSeq
-  val random = Random
-  var totalAntCount = 0
-
   val antLaunchDelay = Props.getInt("antLaunchDelay", DefaultAntLaunchDelay)
   val timeUnit = TimeUnit.valueOf(Props.get("timeUnit", DefaultTimeUnit))
-  Scheduler.schedule(() => launchAnts, 0, antLaunchDelay, timeUnit)
+  Scheduler.schedule(() => launchAnts(), 0, antLaunchDelay, timeUnit)
 
-  def launchAnts {
-//      debug("Creating forward ants")
-      val (time, _) = TimeHelpers.calcTime (AntMap.nodes.values.foreach(sourceNode => {
-        val destination = destinations(random.nextInt(AntMap.nodes.size))
-//        debug("Launching forward ant from %s to %s".format(sourceNode id, destination id))
-        Actor.actorOf(ForwardAnt(sourceNode, destination)).start()
-      }))
-      totalAntCount += AntMap.nodes.size
-//      debug("%d forward ants created in %d ms (total ant count: %d)".format(AntMap.nodes.size, time, totalAntCount))
+  def launchAnts() {
+    debug("Creating forward ants")
+    val (time, _) = TimeHelpers.calcTime {
+      for {
+        source <- AntMap.sources
+        destination <- AntMap.destinations
+        if source != destination
+      } yield {
+        // debug("Launching forward ant from %s to %s".format(source id, destination id))
+        Actor.actorOf(ForwardAnt(source, destination)).start()
+      }
+      // Actor.actorOf(ForwardAnt(sourceNode, destination)).start()
+    }
+    debug("Forward ants created in %d ms".format(time))
   }
 }
