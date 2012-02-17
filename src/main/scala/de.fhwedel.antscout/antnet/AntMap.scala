@@ -6,8 +6,8 @@ import net.liftweb.util.TimeHelpers
 import map.Node
 import collection.immutable.List
 import osm.{OsmOneWay, OsmWay, OsmNode, OsmMap}
-import collection.mutable.{SynchronizedSet, HashSet => MutableHashSet, SynchronizedMap, HashMap => MutableHashMap}
 import akka.actor.{ActorRef, Actor}
+import collection.mutable.{ListBuffer, SynchronizedSet, HashSet => MutableHashSet, SynchronizedMap, HashMap => MutableHashMap}
 
 /**
  * Created by IntelliJ IDEA.
@@ -18,7 +18,9 @@ import akka.actor.{ActorRef, Actor}
 
 object AntMap extends Logger {
 
+  private var _destinations: List[ActorRef] = _
   private var _nodes: Map[String, ActorRef] = _
+  private var _sources: List[ActorRef] = _
   private var _ways: Map[String, ActorRef] = _
 
   def nodes = _nodes
@@ -33,6 +35,30 @@ object AntMap extends Logger {
     antNodes
   }
 
+  /**
+   * Berechnet die Quell- und die Zielknoten mit Hilfe der ein- und ausgehenden Wege.
+   *
+   * @param incomingWays Map, in der die Knoten-Ids als Schlüssel und Ids der eingehenden Wege als Wert gespeichert sind.
+   * @param outgoingWays Map, in der die Knoten-Ids als Schlüssel und Ids der ausgehenden Wege als Wert gespeichert sind.
+   */
+  def computeSourcesAndDestinations(nodes: Map[String, ActorRef], outgoingWays: Map[String, Set[String]], incomingWays: Map[String, Set[String]]) = {
+    info("Computing sources and destinations")
+    val sources = new ListBuffer[ActorRef] // with SynchronizedBuffer[ActorRef]
+    val destinations = new ListBuffer[ActorRef] // with SynchronizedBuffer[ActorRef]
+    val (time, _) = TimeHelpers.calcTime {
+      nodes.foreach {
+        case (id, node) => {
+          // Wenn ein Knoten ausgehende Wege hat, kann er als Quelle dienen 
+          if (outgoingWays.contains(id)) node +=: sources
+          // Wenn ein Knoten eingehende Wege hat, kann er als Ziel dienen
+          if (incomingWays.contains(id)) node +=: destinations
+        }
+      }
+    }
+    info("%d sources and %d destinations computed in %d ms".format(sources.size, destinations.size, time))
+    (sources.toList, destinations.toList)
+  }
+
   def computePrepareAndStartAntWays(nodeIds: List[String]) = {
     info("Computing ant ways data")
     val (time, antWaysData) = TimeHelpers.calcTime(OsmMap.ways.values.par.flatMap(AntMap.computeAntWaysData(_, nodeIds)).toList)
@@ -41,6 +67,9 @@ object AntMap extends Logger {
     val (incomingWays, outgoingWays) = AntMap.computeIncomingAndOutgoingWays(nodeIds, antWaysData)
     info("Nodes without incoming ways: %s".format(_nodes.keys.filter(!incomingWays.contains(_))))
     info("Nodes without outgoing ways: %s".format(_nodes.keys.filter(!outgoingWays.contains(_))))
+    val (sources, destinations) = computeSourcesAndDestinations(_nodes, outgoingWays, incomingWays)
+    _sources = sources
+    _destinations = destinations
     debug("Sending incoming ways")
     incomingWays.par.foreach {
       case (nodeId, wayIds) => {
@@ -94,7 +123,8 @@ object AntMap extends Logger {
           }
         }
       }
-      (tempIncomingWays.toMap, tempOutgoingWays.toMap)
+      // Veränderliche Datenstrukturen in unveränderliche und unsynchronisierte (ohne Synchronized-Traits) umwandeln
+      (tempIncomingWays.map(kv => (kv._1, kv._2.toSet)).toMap, tempOutgoingWays.map(kv => (kv._1, kv._2.toSet)).toMap)
     }
     info("%d incoming and %d outgoing ways computed in %d ms".format(incomingWays.size, outgoingWays.size, time))
     (incomingWays, outgoingWays)
@@ -125,6 +155,10 @@ object AntMap extends Logger {
     info("%d ant nodes created in %d ms".format(antNodes.size, time))
     antNodes
   }
+
+  def destinations = _destinations
+
+  def sources = _sources
 
   def startAntWays(antWaysData: List[AntWayData]) = {
     info("Starting ant ways")
