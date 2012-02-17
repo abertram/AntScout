@@ -6,21 +6,21 @@ scalacOptions += "-deprecation"
 
 resolvers += "Java.net Maven2 Repository" at "http://download.java.net/maven/2/"
 
-libraryDependencies += "net.liftweb" %% "lift-webkit" % "2.4-M5" % "compile->default"
+libraryDependencies += "net.liftweb" %% "lift-webkit" % "2.4" % "compile->default"
 
 libraryDependencies += "org.mortbay.jetty" % "jetty" % "6.1.26" % "container"
 
 libraryDependencies += "org.mortbay.jetty" % "jetty" % "6.1.26" % "test->default"
 
-libraryDependencies += "junit" % "junit" % "4.5" % "test"
+libraryDependencies += "junit" % "junit" % "4.10" % "test"
 
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "0.9.26" % "compile->default"
 
-libraryDependencies += "net.liftweb" %% "lift-mapper" % "2.4-M5" % "compile->default"
+libraryDependencies += "net.liftweb" %% "lift-mapper" % "2.4" % "compile->default"
  
-libraryDependencies += "net.liftweb" %% "lift-wizard" % "2.4-M5" % "compile->default"
+libraryDependencies += "net.liftweb" %% "lift-wizard" % "2.4" % "compile->default"
 
-libraryDependencies += "org.scalatest" %% "scalatest" % "1.6.1" % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % "1.7.1" % "test"
 
 libraryDependencies += "org.scala-tools.testing" %% "specs" % "1.6.9" % "test"
 
