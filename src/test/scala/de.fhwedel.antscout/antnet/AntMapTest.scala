@@ -27,8 +27,19 @@ class AntMapTest extends FunSuite with ShouldMatchers {
     antNodes.size should be (6)
     antNodes should equal (List(0, 2, 3, 5, 6, 7).map(Node(_)))
   }
-  
+
+  test("computeSourcesAndDestinations") {
+    val nodes = AntMap.createAntNodes((0 to 2).map(Node(_)).toList)
+    val outgoingWays = Map("0" -> Set(""))
+    val incomingWays = Map("1" -> Set(""))
+    val (sources, destinations) = AntMap.computeSourcesAndDestinations(nodes, outgoingWays, incomingWays)
+    sources should be (Actor.registry.actorsFor("0").toList)
+    destinations should be (Actor.registry.actorsFor("1").toList)
+  }
+
   test("createAntNodes") {
+    // alle Aktoren runterfahren, um nicht die Testergebnisse zu verfälschen
+    Actor.registry.shutdownAll()
     val nodes = (0 to 4).map(Node(_)).toList
     val antNodes = AntMap.createAntNodes(nodes)
     antNodes.size should be (5)
