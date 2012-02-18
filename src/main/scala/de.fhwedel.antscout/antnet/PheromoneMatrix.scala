@@ -1,10 +1,10 @@
 package de.fhwedel.antscout
 package antnet
 
-import scala.collection.mutable.{HashMap => MutableHashMap, Map => MutableMap}
 import akka.actor.ActorRef
-import net.liftweb.common.Logger
 import collection.IterableView
+import collection.mutable
+import net.liftweb.common.Logger
 
 /**
  * Created by IntelliJ IDEA.
@@ -13,13 +13,13 @@ import collection.IterableView
  * Time: 20:55
  */
 
-class PheromoneMatrix(destinations: IterableView[ActorRef, Iterable[ActorRef]], outgoingWays: List[ActorRef], travelTimes: Map[ActorRef, Double]) extends MutableHashMap[ActorRef, MutableMap[ActorRef, Double]] with Logger {
+class PheromoneMatrix(destinations: IterableView[ActorRef, Iterable[ActorRef]], outgoingWays: List[ActorRef], travelTimes: Map[ActorRef, Double]) extends mutable.HashMap[ActorRef, mutable.Map[ActorRef, Double]] with Logger {
 
   val alpha = 0.3
   val heuristicValues: Map[ActorRef, Double] = initHeuristicValues
-  val pheromones = MutableMap.empty[ActorRef, MutableMap[ActorRef, Double]] 
+  val pheromones = mutable.Map[ActorRef, mutable.Map[ActorRef, Double]]()
     
-  this ++= destinations.map((_ -> MutableHashMap.empty[ActorRef, Double]))
+  this ++= destinations.map((_ -> mutable.Map[ActorRef, Double]()))
   initPheromones()
   calculatePropabilities()
 
@@ -36,19 +36,15 @@ class PheromoneMatrix(destinations: IterableView[ActorRef, Iterable[ActorRef]], 
   def initPheromones() {
     val pheromone = 1.0 / outgoingWays.size
     destinations.foreach(d => {
-      pheromones += d -> MutableMap.empty[ActorRef, Double]
+      pheromones += d -> mutable.Map[ActorRef, Double]()
       outgoingWays.foreach(ow => {
         pheromones(d) += ow -> pheromone
       })
     })
   }
   
-  def calculatePropabilities() = {
-    destinations.foreach(destination => {
-      outgoingWays.foreach(outgoingWay => {
-        this(destination) += outgoingWay -> (pheromones(destination)(outgoingWay) + alpha * heuristicValues(outgoingWay) / (1 + alpha * (outgoingWays.size - 1)))
-      })
-    })
+  def calculatePropabilities(): Unit = {
+    destinations.foreach(calculatePropabilities _)
   }
   
   def calculatePropabilities(destination: ActorRef) = {
