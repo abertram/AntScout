@@ -26,4 +26,19 @@ class PheromoneMatrixTest extends FunSuite with ShouldMatchers {
     pm(ds(1))((ows(0))) should be (0.615384615 plusOrMinus 0.000000001)
     pm(ds(1))((ows(1))) should be (0.615384615 plusOrMinus 0.000000001)
   }
+
+  test("updatePheromones") {
+    val n = AntNode(0)
+    val ds = (1 to 2).map(AntNode(_)).toList
+    val ows = (1 to 2).map(id => AntWay(id.toString, n, ds(id - 1), 1, 1)).toList
+    val tts = ows.map(aw => (aw, 1.0)).toMap
+    val pm = PheromoneMatrix(ds.toIterable.view, ows, tts)
+    val oldPheromones = pm.pheromones(ds(0)).toMap
+    val oldPropabilities = pm(ds(0)).toMap
+    pm updatePheromones (ds(0), ows(0), 1)
+    pm.pheromones(ds(0))(ows(0)) should be > (oldPheromones(ows(0)))
+    pm.pheromones(ds(0))(ows(1)) should be < (oldPheromones(ows(1)))
+    pm(ds(0))(ows(0)) should be > (oldPropabilities(ows(0)))
+    pm(ds(0))(ows(1)) should be < (oldPropabilities(ows(1)))
+  }
 }
