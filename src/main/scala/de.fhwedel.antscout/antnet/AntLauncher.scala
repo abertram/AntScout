@@ -1,13 +1,10 @@
 package de.fhwedel.antscout
 package antnet
 
-import net.liftweb.common.Logger
+import akka.actor.{Actor, Scheduler}
 import java.util.concurrent.TimeUnit
-import util.Random
-import net.liftweb.util.{Helpers, Props, TimeHelpers}
-import net.liftweb.common.Logger._
-import akka.actor._
-import net.liftweb.util.TimeHelpers.TimeSpan
+import net.liftweb.common.Logger
+import net.liftweb.util.{Props, TimeHelpers}
 
 /**
  * Created by IntelliJ IDEA.
@@ -26,18 +23,16 @@ object AntLauncher extends Logger {
   Scheduler.schedule(() => launchAnts(), 0, antLaunchDelay, timeUnit)
 
   def launchAnts() {
-    debug("Creating forward ants")
+    trace("Creating forward ants")
     val (time, _) = TimeHelpers.calcTime {
-      for {
-        source <- AntMap.sources
-        destination <- AntMap.destinations
-        if source != destination
-      } yield {
-        // debug("Launching forward ant from %s to %s".format(source id, destination id))
-        Actor.actorOf(ForwardAnt(source, destination)).start()
-      }
+      AntMap.sources.par.foreach(s => {
+        AntMap.destinations.par.foreach(d => {
+          // debug("Launching forward ant from %s to %s".format(source id, destination id))
+          if (s != d) Actor.actorOf(ForwardAnt(s, d)).start()
+        })
+      })
       // Actor.actorOf(ForwardAnt(sourceNode, destination)).start()
     }
-    debug("Forward ants created in %d ms".format(time))
+    // debug("Forward ants created in %d ms".format(time))
   }
 }
