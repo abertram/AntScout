@@ -55,10 +55,16 @@ class AntNode(id: String) extends Actor with Logger {
     case UpdateDataStructures(d, w, tt) => {
       trace("UpdateDataStructures(%s, %s, %s)".format(d id, w id, tt))
       trafficModel += (d, tt)
-      val oldPheromones = pheromoneMatrix(d).toList.sortBy(_._2)
+      val propabilitiesBeforePheromoneUpdate = pheromoneMatrix(d).toMap
       pheromoneMatrix.updatePheromones(d, w, trafficModel.reinforcement(d, tt, outgoingWays.size))
-      val newPheromones = pheromoneMatrix(d).toList.sortBy(_._2)
-      if (newPheromones != oldPheromones) RoutingService.updatePropabilities(self, d, newPheromones.map(_._1))
+      val propabilitiesAfterPheromoneUpdate = pheromoneMatrix(d).toMap
+      if (propabilitiesAfterPheromoneUpdate != propabilitiesBeforePheromoneUpdate) {
+        val waysSortedByPropabilityInDescendingOrder = propabilitiesAfterPheromoneUpdate.toList
+          .sortBy { case (_, propability) => propability }
+          .reverse
+          .map { case (way, _) => way }
+        RoutingService.updatePropabilities(self, d, waysSortedByPropabilityInDescendingOrder)
+      }
     }
     case m: Any => warn("Unknown message: %s".format(m.toString))
   }
