@@ -38,7 +38,7 @@ object Rest extends Logger with RestHelper {
         val source = Actor.registry.actorsFor(sourceId).head
         val destination = Actor.registry.actorsFor(destinationId).head
         val path = RoutingService.findPath(source, destination)
-        JArray(path.map(w => JString("%s (%s)".format(OsmMap.ways(w.id.split("-").head).name, w.id))))
+        JArray(path.map(w => JString("%s (%s)".format(OsmMap.ways(w.id.split("-").head).name, w.id))) toList)
       }
     case Get(List("osmnodes"), _) => {
       JArray(OsmMap.nodes.values.map(n => {
