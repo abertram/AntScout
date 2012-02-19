@@ -5,32 +5,30 @@
     <link rel="stylesheet" type="text/css" href="/css/bootstrap.css">
 </head>
 <body>
-    <div class="container-fluid">
-        <div class="sidebar">
-            <div class="well">
-                <div class="form-stacked">
-                    <p>
-                        <label for="source">Source</label>
-                        <input class="span3" id="source" type="text" value="274071538">
-                        <label for="destination">Destination</label>
-                        <input class="span3" id="destination" type="text" value="274109999">
-                    </p>
-                    <button class="btn" id="retrieveDirections">Retrieve directions</button>
-                </div>
-            </div>
+<div class="container-fluid">
+    <div class="row-fluid">
+        <div class="span2">
+            <form class="well">
+                <label for="source">Source</label>
+                <input class="span2" id="source" type="text" value="274071538">
+                <label for="destination">Destination</label>
+                <input class="span2" id="destination" type="text" value="274109999">
+                <button class="btn" id="retrieveDirections">Retrieve directions</button>
+            </form>
             <div class="well">
                 <h3>Directions</h3>
+
                 <div id="directions"></div>
             </div>
         </div>
-        <div class="content">
+        <div class="span10">
             <div id="map" style="height: 700px; width: 1300px;"></div>
         </div>
-
-        <script src="/classpath/jquery.js" type="text/javascript"></script>
-        <script src="/scripts/openlayers/OpenLayers.js"></script>
-        <script src="/scripts/script.js"></script>
     </div>
+</div>
+<script src="/classpath/jquery.js" type="text/javascript"></script>
+<script src="/scripts/openlayers/OpenLayers.js"></script>
+<script src="/scripts/script.js"></script>
 </body>
 </html>
 
