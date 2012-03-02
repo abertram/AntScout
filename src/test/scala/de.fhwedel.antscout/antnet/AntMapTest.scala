@@ -20,8 +20,8 @@ class AntMapTest extends FunSuite with ShouldMatchers {
     val osmNodes1 = (0 to 2).map(OsmNode(_, GeographicCoordinate(0.0, 0.0))).toList
     val osmNodes2 = (3 to 5).map(OsmNode(_, GeographicCoordinate(0.0, 0.0))).toList
     val intersections = (6 to 7).map(Node(_)).toList
-    val osmWay1 = OsmWay(1, "", osmNodes1, 0.0)
-    val osmWay2 = OsmWay(2, "", osmNodes2, 0.0)
+    val osmWay1 = OsmWay("", 1, "", osmNodes1, 0.0)
+    val osmWay2 = OsmWay("", 2, "", osmNodes2, 0.0)
     val osmWays = List(osmWay1, osmWay2)
     val antNodes = AntMap.computeAntNodes(osmWays, intersections)
     antNodes.size should be (6)
@@ -51,7 +51,7 @@ class AntMapTest extends FunSuite with ShouldMatchers {
 
   test("computeAntWaysData") {
     val osmNodes = (1 to 3).map(OsmNode(_)).toList
-    val osmWay = OsmWay(1, "", osmNodes.toList, 1)
+    val osmWay = OsmWay("", 1, "", osmNodes.toList, 1)
     val antWaysData = AntMap.computeAntWaysData(osmWay, List("1", "3"))
     antWaysData.size should be (1)
     antWaysData should equal (List(AntWayData("1-1", 1, osmNodes, false)))
@@ -60,8 +60,8 @@ class AntMapTest extends FunSuite with ShouldMatchers {
   test("computeAntWaysData, two OSM ways") {
     val osmNodes1 = (1 to 3).map(OsmNode(_)).toList
     val osmNodes2 = (3 to 5).map(OsmNode(_)).toList
-    val osmWay1 = OsmWay(1, "", osmNodes1.toList, 1)
-    val osmWay2 = OsmWay(2, "", osmNodes2.toList, 2)
+    val osmWay1 = OsmWay("", 1, "", osmNodes1.toList, 1)
+    val osmWay2 = OsmWay("", 2, "", osmNodes2.toList, 2)
     val antWaysData = List(osmWay1, osmWay2).flatMap(AntMap.computeAntWaysData(_, List("1", "3", "5")))
     antWaysData.size should be (2)
     antWaysData should equal (List(AntWayData("1-1", 1, osmNodes1, false), AntWayData("2-1", 2, osmNodes2, false)))
@@ -77,7 +77,7 @@ class AntMapTest extends FunSuite with ShouldMatchers {
 
   test("computeAntWaysData, oneWay") {
     val osmNodes = (1 to 3).map(OsmNode(_)).toList
-    val osmWay = OsmOneWay(1, "", osmNodes.toList, 1)
+    val osmWay = OsmOneWay("", 1, "", osmNodes.toList, 1)
     val antWaysData = AntMap.computeAntWaysData(osmWay, List("1", "3"))
     antWaysData.size should be (1)
     antWaysData should equal (List(AntWayData("1-1", 1, osmNodes, true)))
