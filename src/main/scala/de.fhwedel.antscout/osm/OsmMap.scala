@@ -5,7 +5,8 @@ import net.liftweb.common.Logger
 import xml.{NodeSeq, Elem}
 import collection.immutable.Map
 import net.liftweb.util.TimeHelpers
-import collection.mutable.{SynchronizedSet, SynchronizedMap, HashMap => MutableHashMap, HashSet => MutableHashSet }
+import collection.mutable
+import mutable.{SynchronizedMap, SynchronizedSet}
 
 /**
  * Created by IntelliJ IDEA.
@@ -18,7 +19,7 @@ object OsmMap extends Logger {
 
   private var _intersections: List[OsmNode] = _
   private var _nodes: Map[String, OsmNode] = _
-  private var _nodeWaysMap: MutableHashMap[OsmNode, MutableHashSet[OsmWay] with SynchronizedSet[OsmWay]] with SynchronizedMap[OsmNode, MutableHashSet[OsmWay] with SynchronizedSet[OsmWay]] = _
+  private var _nodeWaysMap: Map[OsmNode, Set[OsmWay]] = _
   private var _ways: Map[String, OsmWay] = _
 
   def intersections = _intersections
@@ -26,30 +27,34 @@ object OsmMap extends Logger {
   def nodeWaysMap = _nodeWaysMap
   def ways = _ways
 
-  def computeIntersetions = {
+  def computeIntersections = {
     info("Computing intersections")
     val (time, result) = TimeHelpers.calcTime(nodeWaysMap.par.filter(_._2.size > 1).seq.keys.toList)
     info("Intersections computed in %d ms".format(time))
     result
   }
 
-  def computeNodeWaysMap() {
+  def computeNodeWaysMap() = {
     info("Computing node ways map")
-    _nodeWaysMap = new MutableHashMap[OsmNode, MutableHashSet[OsmWay] with SynchronizedSet[OsmWay]] with SynchronizedMap[OsmNode, MutableHashSet[OsmWay] with SynchronizedSet[OsmWay]]
-    _nodes.values.map(node => this.nodeWaysMap += (node -> new MutableHashSet[OsmWay] with SynchronizedSet[OsmWay]))
-    val (time, _) = TimeHelpers.calcTime {
+    val synchronizedNodeWaysMap = new mutable.HashMap[OsmNode, mutable.HashSet[OsmWay] with SynchronizedSet[OsmWay]] with SynchronizedMap[OsmNode, mutable.HashSet[OsmWay] with SynchronizedSet[OsmWay]]
+    _nodes.values.map(node => synchronizedNodeWaysMap += (node -> new mutable.HashSet[OsmWay] with SynchronizedSet[OsmWay]))
+    val (time, nodeWaysMap) = TimeHelpers.calcTime {
       _ways.values.par.foreach(way => {
         way.nodes.par.foreach(node => {
-          this.nodeWaysMap(node) += way
+          synchronizedNodeWaysMap(node) += way
         })
       })
+      synchronizedNodeWaysMap map {
+        case (osmNode, osmWays) => (osmNode, osmWays toSet)
+      } toMap
     }
-    info("Node ways map with %d elements computed in %d ms".format(nodeWaysMap.size, time))
+    info("Node ways map with %d elements computed in %d ms".format(synchronizedNodeWaysMap.size, time))
+    nodeWaysMap
   }
 
   def computeNodeWaysMapAndIntersections() {
-    computeNodeWaysMap()
-    _intersections = computeIntersetions
+    _nodeWaysMap = computeNodeWaysMap()
+    _intersections = computeIntersections
   }
 
   def apply(osmData: Elem) {
@@ -74,6 +79,20 @@ object OsmMap extends Logger {
     this(ns, ws)
   }
 
+  def intersectionsByHighway(highways: Set[String]) = {
+    info("Computing intersections by highway")
+    val (time, nodeWaysMapping) = TimeHelpers.calcTime {
+      val nodeRelevantWaysMapping = _nodeWaysMap map {
+        case (node, ways) => (node, ways flatMap { way =>
+          if (highways contains way.highway) Some(way) else None
+        })
+      }
+      (nodeRelevantWaysMapping.par.filter(_._2.size > 1).seq.keys.toList)
+    }
+    info("Intersections by higway computed in %d ms".format(time))
+    nodeWaysMapping
+  }
+
   def parseNodes(nodes: NodeSeq) = {
     info("Parsing nodes")
     val (time, osmNodes) = TimeHelpers.calcTime(nodes.map(node => {
@@ -93,5 +112,12 @@ object OsmMap extends Logger {
     info("%d ways parsed in %d milliseconds".format(osmWays.size, time))
     osmWays
   }
-}
 
+  /**
+   * Liefert nur Wege zurück, deren highway-Tags bestimmten Werten entsprechen.
+   *
+   * @param highways Menge von Werten nach denen gefiltert wird.
+   * @return Wege, deren highways-Tags in der highways-Menge enthalten sind.
+   */
+  def waysByHighway(highways: Set[String]) = ways.par filter { case (id, way) => highways contains (way highway) } seq
+}
