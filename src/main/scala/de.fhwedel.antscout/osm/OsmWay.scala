@@ -22,7 +22,7 @@ import net.liftweb.util.Props
  * @param nodes Knoten, aus denen der Weg besteht.
  * @param maxSpeed maxspeed-Tag
  */
-class OsmWay(highway: String, id: String, val name: String, val nodes: List[OsmNode], val maxSpeed: Double) extends Way(id.toString)
+class OsmWay(val highway: String, id: String, val name: String, val nodes: List[OsmNode], val maxSpeed: Double) extends Way(id.toString)
 
 object OsmWay extends Logger {
   
