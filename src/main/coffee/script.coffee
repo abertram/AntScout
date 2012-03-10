@@ -48,7 +48,7 @@ $(() ->
 
   retrieveNodes = (url, nodes, successFunction) ->
     $.get  url,
-      success: (ns) ->
+      (ns) ->
         successFunction(ns)
 
   shouldRetrieveNodes = (event, layerName, nodes) ->
