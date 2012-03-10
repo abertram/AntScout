@@ -3,11 +3,10 @@ package routing
 
 import akka.actor.{ActorRef}
 import annotation.tailrec
-import collection.immutable.List
 import collection.mutable.{SynchronizedMap, HashMap => MutableHashMap, Map => MutableMap}
 import akka.dispatch.Future
-import antnet.{AntMap, StartAndEndNode}
 import net.liftweb.common.Logger
+import antnet.{OutgoingWaysPropabilitiesRequest, AntWay}
 
 /**
  * Created by IntelliJ IDEA.
@@ -18,23 +17,31 @@ import net.liftweb.common.Logger
 
 object RoutingService extends Logger {
 
-  private val _routingTable = new MutableHashMap[ActorRef, MutableMap[ActorRef, List[ActorRef]] with SynchronizedMap[ActorRef, List[ActorRef]]] with SynchronizedMap[ActorRef, MutableMap[ActorRef, List[ActorRef]] with SynchronizedMap[ActorRef, List[ActorRef]]]
-  private val _ways = new MutableHashMap[ActorRef, (ActorRef, ActorRef)]
+  private val _routingTable = new MutableHashMap[ActorRef, MutableMap[ActorRef, Seq[AntWay]] with SynchronizedMap[ActorRef, Seq[AntWay]]] with SynchronizedMap[ActorRef, MutableMap[ActorRef, Seq[AntWay]] with SynchronizedMap[ActorRef, Seq[AntWay]]]
+  private val _ways = new MutableHashMap[AntWay, (ActorRef, ActorRef)]
 
-  def apply(antNodes: Iterable[ActorRef], antWays: Iterable[ActorRef]) {
-//    debug("Initializing")
-    antNodes.foreach(an => _routingTable += an -> new MutableHashMap[ActorRef, List[ActorRef]] with SynchronizedMap[ActorRef, List[ActorRef]])
-    Future.sequence(antWays.map(aw =>
-      (aw ? StartAndEndNode).mapTo[(ActorRef, (ActorRef, ActorRef))])
-    ).onComplete {
+  def apply(antNodes: Iterable[ActorRef], antWays: Iterable[AntWay]) {
+    debug("Initializing")
+    Future sequence (antNodes.map(an => {
+        (an ? OutgoingWaysPropabilitiesRequest).mapTo[(ActorRef, Map[ActorRef, Seq[AntWay]])]
+      })) onComplete {
       _.value.get match {
-        case Left(_) => warn("Error while retrieving start and end nodes")
-        case Right(startAndEndNodes) => startAndEndNodes.foreach {
-          case (way, startAndEndNode) => _ways += way -> startAndEndNode
+        case Left(_) => error("Initializing RoutingService failed")
+        case Right(outgoingWayPropabilities) => {
+          outgoingWayPropabilities foreach {
+            case (source, propabilities) => {
+              _routingTable += source -> new MutableHashMap[ActorRef, Seq[AntWay]] with SynchronizedMap[ActorRef, Seq[AntWay]]
+              propabilities foreach {
+                case (destination, ways) => {
+                  _routingTable(source) += destination -> ways
+                }
+              }
+            }
+          }
         }
-//        debug("Initialized")
       }
     }
+    antWays foreach (aw => _ways += aw -> (aw.startNode -> aw.endNode))
   }
 
   /**
@@ -42,7 +49,7 @@ object RoutingService extends Logger {
    */
   def findPath(source: ActorRef, destination: ActorRef) = {
     @tailrec
-    def findPathRecursive(source: ActorRef, path: Seq[ActorRef]): Seq[ActorRef] = {
+    def findPathRecursive(source: ActorRef, path: Seq[AntWay]): Seq[AntWay] = {
       if (source == destination || path.size == 100)
         return path
       val bestWay = _routingTable(source)(destination) head
@@ -54,7 +61,7 @@ object RoutingService extends Logger {
 
   def routingTable = _routingTable
 
-  def updatePropabilities(source: ActorRef, destination: ActorRef, ways: List[ActorRef]) {
+  def updatePropabilities(source: ActorRef, destination: ActorRef, ways: Seq[AntWay]) {
     _routingTable(source) += destination -> ways
   }
 

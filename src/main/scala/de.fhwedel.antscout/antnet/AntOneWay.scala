@@ -11,7 +11,7 @@ import akka.actor.{ActorRef, Actor}
  * Time: 14:27
  */
 
-class AntOneWay(id: String, startNode: ActorRef, endNode: ActorRef, length: Double, maxSpeed: Double) extends AntWay(id, startNode, endNode, length, maxSpeed) with Actor {
+class AntOneWay(id: String, startNode: ActorRef, endNode: ActorRef, length: Double, maxSpeed: Double) extends AntWay(id, startNode, endNode, length, maxSpeed) {
 
   override def toString = "#%s #%d -> #%d".format(id, startNode.id, endNode.id)
 }

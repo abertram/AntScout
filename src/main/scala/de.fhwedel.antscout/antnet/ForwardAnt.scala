@@ -21,7 +21,7 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
   val DefaultTimeUnit = "SECONDS"
 
   var currentNode: ActorRef = _
-  var currentWay: ActorRef = _
+  var currentWay: AntWay = _
   val memory = AntMemory()
   val random = Random
 
@@ -54,16 +54,16 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
   }
 
   protected def receive = {
-    case EndNode(n, tt) => {
-//      debug("EndNode(%s)".format(n id))
-      memory.memorize(currentNode, currentWay, tt)
-      visitNode(n)
+    case Propabilities(ps) => {
+      val nextWay = selectWay(ps)
+      val (nextNode, tripTime) = nextWay cross currentNode
+      memory.memorize(currentNode, currentWay, tripTime)
+      visitNode(nextNode)
     }
-    case Propabilities(ps) => selectWay(ps) ! Cross(currentNode)
     case m: Any => warn("Unknown message: %s".format(m))
   }
 
-  def selectWay(propabilities: Map[ActorRef, Double]) = {
+  def selectWay(propabilities: Map[AntWay, Double]) = {
 //    debug("Memory: %s".format(memory.items))
     val notVisitedWays = propabilities.filter { case (w, p) => !memory.containsWay(w) }
 //    debug("Not visited ways: %s".format(notVisitedWays.map(_._1.id).mkString(", ")))
@@ -97,7 +97,7 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
 //        debug("Circle detected")
         memory.removeCircle(node)
       }
-      node ! Enter(destinationNode)
+      node tryTell Enter(destinationNode)
     } else {
       trace("Destination reached")
       launchBackwardAnt()
@@ -110,5 +110,4 @@ object ForwardAnt {
   def apply(sourceNode: ActorRef, destinationNode: ActorRef) = new ForwardAnt(sourceNode, destinationNode)
 }
 
-case class EndNode(node: ActorRef, tripTime: Double)
-case class Propabilities(propabilities: Map[ActorRef, Double])
+case class Propabilities(propabilities: Map[AntWay, Double])

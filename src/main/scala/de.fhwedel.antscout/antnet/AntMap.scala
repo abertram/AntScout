@@ -18,10 +18,10 @@ import collection.mutable.{ListBuffer, SynchronizedSet, HashSet => MutableHashSe
 
 object AntMap extends Logger {
 
-  private var _destinations: List[ActorRef] = _
+  private var _destinations: Iterable[ActorRef] = _
   private var _nodes: Map[String, ActorRef] = _
-  private var _sources: List[ActorRef] = _
-  private var _ways: Map[String, ActorRef] = _
+  private var _sources: Iterable[ActorRef] = _
+  private var _ways: Map[String, AntWay] = _
 
   def nodes = _nodes
   def ways = _ways
@@ -71,17 +71,17 @@ object AntMap extends Logger {
     _sources = sources
     _destinations = destinations
     debug("Sending incoming ways")
-    incomingWays.par.foreach {
+    incomingWays.foreach {
       case (nodeId, wayIds) => {
-        val incomingWaysActors = wayIds.flatMap(Actor.registry.actorsFor(_)).toList
-        _nodes(nodeId) ! IncomingWays(incomingWaysActors)
+        val incomingWays = wayIds.map(wayId => antWays(wayId)).toList
+        _nodes(nodeId) ! IncomingWays(incomingWays)
       }
     }
     debug("Sending outgoing ways")
     outgoingWays.par.foreach {
       case (nodeId, wayIds) => {
-        val outgoingWaysActors = wayIds.flatMap(Actor.registry.actorsFor(_)).toList
-        _nodes(nodeId) ! OutgoingWays(outgoingWaysActors)
+        val outgoingWays = wayIds.map(wayId => antWays(wayId)).toList
+        _nodes(nodeId) ! OutgoingWays(outgoingWays)
       }
     }
     antWays
@@ -162,7 +162,7 @@ object AntMap extends Logger {
 
   def startAntWays(antWaysData: List[AntWayData]) = {
     info("Starting ant ways")
-    val (time, antWays) = TimeHelpers.calcTime(antWaysData.par.map(antWayData => (antWayData.id -> AntWay(antWayData.id, antWayData.maxSpeed,antWayData.nodes))).seq.toMap)
+    val (time, antWays) = TimeHelpers.calcTime(antWaysData.map(antWayData => (antWayData.id -> AntWay(antWayData.id, antWayData.maxSpeed,antWayData.nodes))).toMap)
     info("%d ant ways started in %d ms".format(antWays.size, time))
     antWays
   }

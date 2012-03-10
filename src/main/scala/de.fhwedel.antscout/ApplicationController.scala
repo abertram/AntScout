@@ -14,6 +14,7 @@ import akka.actor.Actor
  * Time: 09:20
  */
 
+// TODO Application-Controller evtl als State-Machine implementieren
 object ApplicationController extends Logger {
 
   Actor.spawn {
@@ -21,7 +22,7 @@ object ApplicationController extends Logger {
 //    val osmData = XML loadFile("./maps/Altona-Zoomstufe-17-preprocessed.osm")
     OsmMap(osmData)
     AntMap()
-    RoutingService(AntMap.nodes.values, AntMap.ways.values)
+    RoutingService(AntMap sources, AntMap.ways.values)
     AntLauncher
   }
 }

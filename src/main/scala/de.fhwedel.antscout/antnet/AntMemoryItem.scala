@@ -10,7 +10,7 @@ import akka.actor.ActorRef
  * Time: 23:12
  */
 
-case class AntMemoryItem(node: ActorRef, way: ActorRef, tripTime: Double) {
+case class AntMemoryItem(node: ActorRef, way: AntWay, tripTime: Double) {
 
   override def equals(that: Any) = {
     that match {

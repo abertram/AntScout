@@ -30,7 +30,7 @@ object Rest extends Logger with RestHelper {
         ("longitude" -> osmNode.geographicCoordinate.longitude)
       }).toList)
     }
-    case Req("directions" :: Nil, _, _) =>
+    case Get(List("directions"), _) =>
       for {
         sourceId <- S.param("source") ?~ "Source is missing" ~> 400
         destinationId <- S.param("destination") ?~ "Destination is missing" ~> 400
@@ -47,6 +47,5 @@ object Rest extends Logger with RestHelper {
         ("longitude" -> n.geographicCoordinate.longitude)
       }).toList)
     }
-
   }
 }

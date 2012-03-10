@@ -13,7 +13,7 @@ import collection.IterableView
  * Time: 20:56
  */
 
-class TrafficModel(destinations: IterableView[ActorRef, Iterable[ActorRef]], varsigma: Double, wMax: Int) extends Logger {
+class TrafficModel(destinations: Iterable[ActorRef], varsigma: Double, wMax: Int) extends Logger {
 
   val items = MutableHashMap.empty[ActorRef, TrafficModelItem]
 
@@ -30,5 +30,5 @@ object TrafficModel {
 
   val DefaultVarsigma = 0.005
 
-  def apply(destinations: IterableView[ActorRef, Iterable[ActorRef]], varsigma: Double, wMax: Int) = new TrafficModel(destinations, varsigma, wMax)
+  def apply(destinations: Iterable[ActorRef], varsigma: Double, wMax: Int) = new TrafficModel(destinations, varsigma, wMax)
 }

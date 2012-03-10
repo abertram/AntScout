@@ -12,17 +12,9 @@ import akka.actor.{ActorRef, Actor}
  * Time: 12:07
  */
 
-class AntWay(id: String, val startNode: ActorRef, val endNode: ActorRef, val length: Double, val maxSpeed: Double) extends Actor with Logger {
+class AntWay(val id: String, val startNode: ActorRef, val endNode: ActorRef, val length: Double, val maxSpeed: Double) extends Logger {
 
-  override def preStart() {
-    self.id = id
-  }
-
-  protected def receive = {
-    case Cross(sn) => if (sn == startNode) self.tryReply(EndNode(endNode, tripTime)) else self.tryReply(EndNode(startNode, tripTime))
-    case TravelTimeRequest => self.reply(self -> tripTime)
-    case StartAndEndNode => self.reply(self -> (startNode -> endNode))
-  }
+  def cross(startNode: ActorRef) = if (startNode == this.startNode) (endNode, tripTime) else (startNode, tripTime)
 
   override def toString = "#%s #%d - #%d".format(id, startNode.id, endNode.id)
 
@@ -32,7 +24,7 @@ class AntWay(id: String, val startNode: ActorRef, val endNode: ActorRef, val len
 object AntWay extends Logger {
 
   def apply(id: String, startNode: ActorRef, endNode: ActorRef, length: Double, maxSpeed: Double) = {
-    Actor.actorOf(new AntWay(id, startNode, endNode, length, maxSpeed)).start
+    new AntWay(id, startNode, endNode, length, maxSpeed)
   }
 
   def apply(id: String, maxSpeed: Double, nodes: List[OsmNode]) = {
@@ -43,7 +35,7 @@ object AntWay extends Logger {
     val endNodes = Actor.registry.actorsFor(nodes.last.id)
     if (endNodes.size > 1)
       warn("Multiple end node actors for node #%s".format(nodes.head.id))
-    Actor.actorOf(new AntWay(id, startNodes(0), endNodes(0), length, maxSpeed)).start()
+    new AntWay(id, startNodes(0), endNodes(0), length, maxSpeed)
   }
 
   def apply(osmWay: OsmOneWay, idSuffix: Int, nodes: List[OsmNode], antNodes: List[String]) = {
@@ -55,7 +47,3 @@ object AntWay extends Logger {
     new AntOneWay("%s-%d".format(osmWay.id, idSuffix), startNode(0), endNode(0), length, osmWay.maxSpeed)
   }
 }
-
-case class Cross(startNode: ActorRef)
-case object TravelTimeRequest
-case object StartAndEndNode

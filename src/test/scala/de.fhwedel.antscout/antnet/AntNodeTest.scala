@@ -23,7 +23,7 @@ class AntNodeTest extends FunSuite with ShouldMatchers {
     Actor.registry.actorsFor("0").size should be (1)
   }
   
-  test("travelTimes") {
+  test("tripTimes") {
     val startNode = AntNode(1)
     val endNode1 = AntNode(2)
     val endNode2 = AntNode(3)

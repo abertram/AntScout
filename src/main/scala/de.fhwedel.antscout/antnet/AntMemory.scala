@@ -18,9 +18,9 @@ class AntMemory extends Logger {
 
   def containsNode(node: ActorRef) = items.find(_.node == node).isDefined
 
-  def containsWay(way: ActorRef) = items.find(_.way == way).isDefined
+  def containsWay(way: AntWay) = items.find(_.way == way).isDefined
 
-  def memorize(node: ActorRef, way: ActorRef, tripTime: Double) {
+  def memorize(node: ActorRef, way: AntWay, tripTime: Double) {
     AntMemoryItem(node, way, tripTime) +=: items
   }
 

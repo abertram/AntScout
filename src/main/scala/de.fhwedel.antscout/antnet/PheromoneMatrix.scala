@@ -13,13 +13,20 @@ import net.liftweb.common.Logger
  * Time: 20:55
  */
 
-class PheromoneMatrix(destinations: IterableView[ActorRef, Iterable[ActorRef]], outgoingWays: List[ActorRef], travelTimes: Map[ActorRef, Double]) extends mutable.HashMap[ActorRef, mutable.Map[ActorRef, Double]] with Logger {
+/**
+ * Pheromon-Matrix
+ *
+ * @param destinations Ziel-Knoten
+ * @param outgoingWays Ausgehende Wege
+ * @param tripTimes Fahrzeiten
+ */
+class PheromoneMatrix(destinations: Iterable[ActorRef], outgoingWays: List[AntWay], tripTimes: Map[AntWay, Double]) extends mutable.HashMap[ActorRef, mutable.Map[AntWay, Double]] with Logger {
 
   val alpha = 0.3
-  val heuristicValues: Map[ActorRef, Double] = initHeuristicValues
-  val pheromones = mutable.Map[ActorRef, mutable.Map[ActorRef, Double]]()
+  val heuristicValues: Map[AntWay, Double] = initHeuristicValues
+  val pheromones = mutable.Map[ActorRef, mutable.Map[AntWay, Double]]()
     
-  this ++= destinations.map((_ -> mutable.Map[ActorRef, Double]()))
+  this ++= destinations.map((_ -> mutable.Map[AntWay, Double]()))
   initPheromones()
   calculatePropabilities()
 
@@ -27,8 +34,8 @@ class PheromoneMatrix(destinations: IterableView[ActorRef, Iterable[ActorRef]], 
    * Berechnet die heuristische Größe η, die sich durch Normalisierung der Größe q aller Kanten, die zu einem benachbarten Knoten führen, ergibt. q ist gleich der Fahrdauer im statischen Fall.
    */
   def initHeuristicValues = {
-    val travelTimesSum = travelTimes.values.sum
-    travelTimes.map {
+    val travelTimesSum = tripTimes.values.sum
+    tripTimes.map {
       case (antWay, travelTime) => (antWay, 1 - travelTime / travelTimesSum)
     }
   }
@@ -36,7 +43,7 @@ class PheromoneMatrix(destinations: IterableView[ActorRef, Iterable[ActorRef]], 
   def initPheromones() {
     val pheromone = 1.0 / outgoingWays.size
     destinations.foreach(d => {
-      pheromones += d -> mutable.Map[ActorRef, Double]()
+      pheromones += d -> mutable.Map[AntWay, Double]()
       outgoingWays.foreach(ow => {
         pheromones(d) += ow -> pheromone
       })
@@ -53,7 +60,7 @@ class PheromoneMatrix(destinations: IterableView[ActorRef, Iterable[ActorRef]], 
     })
   }
 
-  def updatePheromones(destination: ActorRef, way: ActorRef, reinforcement: Double) {
+  def updatePheromones(destination: ActorRef, way: AntWay, reinforcement: Double) {
     trace("updatePheromones")
     outgoingWays.foreach(ow => {
       val oldPheromone = pheromones(destination)(ow)
@@ -68,5 +75,5 @@ class PheromoneMatrix(destinations: IterableView[ActorRef, Iterable[ActorRef]], 
 
 object PheromoneMatrix {
 
-  def apply(destinations: IterableView[ActorRef, Iterable[ActorRef]], outgoingWays: List[ActorRef], travelTimes: Map[ActorRef, Double]) = new PheromoneMatrix(destinations, outgoingWays, travelTimes)
+  def apply(destinations: Iterable[ActorRef], outgoingWays: List[AntWay], tripTimes: Map[AntWay, Double]) = new PheromoneMatrix(destinations, outgoingWays, tripTimes)
 }

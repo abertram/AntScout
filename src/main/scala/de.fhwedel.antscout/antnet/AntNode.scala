@@ -18,9 +18,9 @@ import routing.RoutingService
 
 class AntNode(id: String) extends Actor with Logger {
 
-  var destinations: IterableView[ActorRef, Iterable[ActorRef]] = _
-  var incomingWays: List[ActorRef] = Nil
-  var outgoingWays: List[ActorRef] = Nil
+  var destinations: Iterable[ActorRef] = _
+  var incomingWays: List[AntWay] = Nil
+  var outgoingWays: List[AntWay] = Nil
   var pheromoneMatrix: PheromoneMatrix = null
   var trafficModel: TrafficModel = null
 
@@ -29,31 +29,21 @@ class AntNode(id: String) extends Actor with Logger {
   }
 
   protected def receive = {
-    case Destinations(ds) => destinations = ds.view.filterNot(_ == self)
+    case Destinations(ds) => {
+      destinations = ds.par.filterNot(_ == self).seq
+    }
     case Enter(d) => if (pheromoneMatrix != null) self.tryReply(Propabilities(pheromoneMatrix(d).toMap))
     case IncomingWays(iws) => incomingWays = iws
     case OutgoingWays(ows) => {
       require(destinations != Nil)
       outgoingWays = ows
-      Future.sequence(outgoingWays.map(ow => {
-        (ow ? TravelTimeRequest).mapTo[(ActorRef, Double)]
-      })) onComplete {
-        _.value.get match {
-          case Left(_) => warn("No travel times")
-          case Right(travelTimes) => {
-            pheromoneMatrix = PheromoneMatrix(destinations, outgoingWays, travelTimes.toMap)
-            destinations.foreach(d => {
-              val ways = pheromoneMatrix(d).toList.sortBy(_._2).map(_._1)
-              RoutingService.updatePropabilities(self, d, ways)
-            })
-            val varsigma = Props.get("varsigma").map(_.toDouble) openOr TrafficModel.DefaultVarsigma
-            trafficModel = TrafficModel(destinations, varsigma, (5 * (0.3 / varsigma)).toInt)
-          }
-        }
-      }
+      val tripTimes = ows.map(ow => (ow -> ow.tripTime)).toMap
+      pheromoneMatrix = PheromoneMatrix(destinations, outgoingWays, tripTimes)
+      val varsigma = Props.get("varsigma").map(_.toDouble) openOr TrafficModel.DefaultVarsigma
+      trafficModel = TrafficModel(destinations, varsigma, (5 * (0.3 / varsigma)).toInt)
     }
     case UpdateDataStructures(d, w, tt) => {
-      trace("UpdateDataStructures(%s, %s, %s)".format(d id, w id, tt))
+      trace("UpdateDataStructures(%s, %s, %s)" format (d id, w id, tt))
       trafficModel += (d, tt)
       val propabilitiesBeforePheromoneUpdate = pheromoneMatrix(d).toMap
       pheromoneMatrix.updatePheromones(d, w, trafficModel.reinforcement(d, tt, outgoingWays.size))
@@ -66,7 +56,17 @@ class AntNode(id: String) extends Actor with Logger {
         RoutingService.updatePropabilities(self, d, waysSortedByPropabilityInDescendingOrder)
       }
     }
-    case m: Any => warn("Unknown message: %s".format(m.toString))
+    case OutgoingWaysPropabilitiesRequest => {
+      val propabilities = destinations.map (d => {
+        val propabilities = pheromoneMatrix(d).toSeq
+          .sortBy { case (_, propability) => propability }
+          .reverse
+          .map { case (way, _) => way }
+        (d, propabilities)
+      })
+      self tryReply (self, propabilities)
+    }
+    case m: Any => warn("Unknown message: %s" format m.toString)
   }
 }
 
@@ -79,6 +79,7 @@ object AntNode {
 
 case class Destinations(destinations: Iterable[ActorRef])
 case class Enter(destination: ActorRef)
-case class IncomingWays(incomingWays: List[ActorRef])
-case class OutgoingWays(outgoingWays: List[ActorRef])
-case class UpdateDataStructures(destination: ActorRef, way: ActorRef, tripTime: Double)
+case class IncomingWays(incomingWays: List[AntWay])
+case class OutgoingWays(outgoingWays: List[AntWay])
+case class UpdateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double)
+case object OutgoingWaysPropabilitiesRequest
