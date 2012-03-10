@@ -1,5 +1,4 @@
 $(() ->
-
   map = new OpenLayers.Map("map");
   osmLayer = new OpenLayers.Layer.OSM();
   antNodes = null
@@ -27,12 +26,10 @@ $(() ->
   displayDirections = (directions) ->
     $("#directions").html("<ol><li>" + directions.join("</li><li>") + "</li></ol>")
 
-  initMap = () ->
-
   map.events.on({
     "changelayer": (event) ->
       if shouldRetrieveNodes(event, "Ant nodes", antNodes)
-        antNodes = retrieveNodes("/antnodes", antNodes, memorizeAntNodesAndAddAntNodeMarkers)
+        retrieveNodes("/antnodes", antNodes, memorizeAntNodesAndAddAntNodeMarkers)
       else if shouldRetrieveNodes(event, "OSM nodes", osmNodes)
         retrieveNodes("/osmnodes", osmNodes, memorizeOsmNodesAndAddOsmNodeMarkers)
   })
@@ -50,25 +47,22 @@ $(() ->
     addMarkers("marker-green", size, offset, osmNodes, osmNodesLayer)
 
   retrieveNodes = (url, nodes, successFunction) ->
-    $.ajax({
-      url: url,
+    $.get  url,
       success: (ns) ->
         successFunction(ns)
-    })
 
   shouldRetrieveNodes = (event, layerName, nodes) ->
     event.layer.name is layerName and event.property is "visibility" and event.layer.visibility and not nodes?
 
   retrieveDirections = () ->
-    $.ajax({
-      url: "/directions",
-      data: {
-        source: $("#source").val(),
-        destination: $("#destination").val()
-      }
-      success: (directions) ->
+    destination = $("#destination").val()
+    source = $("#source").val()
+    $.get "/directions", {
+      destination
+      source
+      },
+      (directions) ->
         displayDirections(directions)
-    })
 
   $("#retrieveDirections").click(retrieveDirections)
 )
