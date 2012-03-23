@@ -78,6 +78,24 @@ class OsmNode(id: String, val geographicCoordinate: GeographicCoordinate) extend
     }
   }
 
+  /**
+   * Berechnet, ob ein Knoten eine Verbindung zwischen zwei Strassen-Segmenten ist, die zur selben Strasse gehören.
+   *
+   * Das ist der Fall, wenn folgende Bedingungen erfüllt sind:
+   *
+   * - Der Knoten hat genau zwei adjazente Strassen.
+   * - Die Namen der adjazenten Strassen sind gleich.
+   *
+   * @param nodeToWaysMapping Abbildung von von OSM-Knoten auf OSM-Wege, die für die Berechnung verwendet werden soll.
+   * @return true, wenn der Knoten eine Verbindung ist.
+   */
+  def isConnection(implicit nodeToWaysMapping: Map[OsmNode, Iterable[OsmWay]] = OsmMap nodeWaysMap) = {
+    val adjacentWays = nodeToWaysMapping (this)
+    adjacentWays.size == 2 && {
+      adjacentWays.head.name == adjacentWays.last.name
+    }
+  }
+
   override def toString = "OsmNode #%s".format(id, geographicCoordinate)
 }
 
