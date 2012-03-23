@@ -19,17 +19,17 @@ object OsmMap extends Logger {
 
   private var _intersections: List[OsmNode] = _
   private var _nodes: Map[String, OsmNode] = _
-  private var _nodeWaysMap: Map[OsmNode, Set[OsmWay]] = _
+  private var _nodeWaysMapping: Map[OsmNode, Set[OsmWay]] = _
   private var _ways: Map[String, OsmWay] = _
 
   def intersections = _intersections
   def nodes = _nodes
-  def nodeWaysMap = _nodeWaysMap
+  def nodeWaysMapping = _nodeWaysMapping
   def ways = _ways
 
   def computeIntersections = {
     info("Computing intersections")
-    val (time, result) = TimeHelpers.calcTime(nodeWaysMap.par.filter(_._2.size > 1).seq.keys.toList)
+    val (time, result) = TimeHelpers.calcTime(nodeWaysMapping.par.filter(_._2.size > 1).seq.keys.toList)
     info("Intersections computed in %d ms".format(time))
     result
   }
@@ -53,7 +53,7 @@ object OsmMap extends Logger {
   }
 
   def computeNodeWaysMapAndIntersections() {
-    _nodeWaysMap = computeNodeWaysMap()
+    _nodeWaysMapping = computeNodeWaysMap()
     _intersections = computeIntersections
   }
 
@@ -79,18 +79,31 @@ object OsmMap extends Logger {
     this(ns, ws)
   }
 
-  def intersectionsByHighway(highways: Set[String]) = {
-    info("Computing intersections by highway")
-    val (time, nodeWaysMapping) = TimeHelpers.calcTime {
-      val nodeRelevantWaysMapping = _nodeWaysMap map {
-        case (node, ways) => (node, ways flatMap { way =>
-          if (highways contains way.highway) Some(way) else None
+  def nodeWaysByHighwayMapping(highways: Set[String]) = {
+      _nodeWaysMapping.par.map {
+        case (node, ways) => (node, ways.flatMap { way =>
+          if (highways contains way.highway)
+            Some(way)
+          else
+            None
         })
-      }
-      (nodeRelevantWaysMapping.par.filter(_._2.size > 1).seq.keys.toList)
-    }
-    info("Intersections by higway computed in %d ms".format(time))
-    nodeWaysMapping
+      }.seq
+  }
+  
+  /**
+   * Berechnet den Aussen-Knoten zweier Wege.
+   *
+   * Zuerst wird der Knoten gesucht, der die beiden Wege verbindet und anhand dieses Ergebnisses der Aussen-Knoten bestimmt.
+   *
+   * @param outerWay Weg, der aussen liegt. Der erste oder der letzte Knoten dieses Weges ist der Aussen-Knoten.
+   * @param innerWay Weg, der innen liegt.
+   * @return Aussen-Knoten
+   */
+  def outerNode(outerWay: OsmWay, innerWay: OsmWay): OsmNode = {
+    if (outerWay.nodes.head == innerWay.nodes.head || outerWay.nodes.head == innerWay.nodes.last)
+      outerWay.nodes.last
+    else
+      outerWay.nodes.head
   }
 
   def parseNodes(nodes: NodeSeq) = {
@@ -111,6 +124,20 @@ object OsmMap extends Logger {
     }) toMap)
     info("%d ways parsed in %d milliseconds".format(osmWays.size, time))
     osmWays
+  }
+
+  /**
+   * Berechnet die beiden Aussen-Knoten einer Wege-Sequenz.
+   *
+   * @param ways Wege-Sequenz
+   * @return Tupel, dessen Elemente die beiden Aussen-Knoten sind.
+   */
+  def outerNodes(ways: Seq[OsmWay]): (OsmNode, OsmNode) = {
+    if (ways.size == 1)
+      (ways.head.nodes.head, ways.head.nodes.last)
+    else {
+      (outerNode(ways.head, ways.tail.head), outerNode(ways.last, ways.init.last))
+    }
   }
 
   /**

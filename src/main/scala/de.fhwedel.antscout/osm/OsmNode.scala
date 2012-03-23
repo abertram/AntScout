@@ -90,7 +90,7 @@ class OsmNode(id: String, val geographicCoordinate: GeographicCoordinate) extend
    * @param nodeToWaysMapping Abbildung von von OSM-Knoten auf OSM-Wege, die für die Berechnung verwendet werden soll.
    * @return true, wenn der Knoten eine Verbindung ist.
    */
-  def isConnection(implicit nodeToWaysMapping: Map[OsmNode, Iterable[OsmWay]] = OsmMap nodeWaysMap) = {
+  def isConnection(implicit nodeToWaysMapping: Map[OsmNode, Iterable[OsmWay]] = OsmMap nodeWaysMapping) = {
     val adjacentWays = nodeToWaysMapping (this)
     adjacentWays.size == 2 && {
       val way1 = adjacentWays.head
