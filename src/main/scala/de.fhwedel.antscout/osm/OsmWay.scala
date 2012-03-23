@@ -22,7 +22,26 @@ import net.liftweb.util.Props
  * @param nodes Knoten, aus denen der Weg besteht.
  * @param maxSpeed maxspeed-Tag
  */
-class OsmWay(val highway: String, id: String, val name: String, val nodes: List[OsmNode], val maxSpeed: Double) extends Way(id.toString)
+class OsmWay(val highway: String, id: String, val name: String, val nodes: List[OsmNode], val maxSpeed: Double) extends Way(id.toString) {
+
+  /**
+   * Weg-Länge in Metern
+   */
+  val length = nodes.zip(nodes.tail).map(n => n._1.distanceTo(n._2)).sum
+
+  /**
+   * Berechnet den Endknoten des Weges. Dieser ist davon abhängig, welcher Knoten als Startknoten definiert wird.
+   *
+   * @param startNode der als Startknoten definierte Knoten.
+   * @return Endknoten
+   */
+  def endNode(startNode: OsmNode) = {
+    if (nodes.head == startNode)
+      nodes last
+    else
+      nodes head
+  }
+}
 
 object OsmWay extends Logger {
   
