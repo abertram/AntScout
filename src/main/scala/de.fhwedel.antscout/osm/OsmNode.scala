@@ -85,6 +85,7 @@ class OsmNode(id: String, val geographicCoordinate: GeographicCoordinate) extend
    *
    * - Der Knoten hat genau zwei adjazente Strassen.
    * - Die Namen der adjazenten Strassen sind gleich.
+   * - Die adjazenten Wege sind entweder beide Einbahnstrassen oder beide keine Einbahnstrassen.
    *
    * @param nodeToWaysMapping Abbildung von von OSM-Knoten auf OSM-Wege, die für die Berechnung verwendet werden soll.
    * @return true, wenn der Knoten eine Verbindung ist.
@@ -92,7 +93,10 @@ class OsmNode(id: String, val geographicCoordinate: GeographicCoordinate) extend
   def isConnection(implicit nodeToWaysMapping: Map[OsmNode, Iterable[OsmWay]] = OsmMap nodeWaysMap) = {
     val adjacentWays = nodeToWaysMapping (this)
     adjacentWays.size == 2 && {
-      adjacentWays.head.name == adjacentWays.last.name
+      val way1 = adjacentWays.head
+      val way2 = adjacentWays.last
+      way1.name == way2.name &&
+        way1.getClass == way2.getClass
     }
   }
 
