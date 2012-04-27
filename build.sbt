@@ -11,7 +11,7 @@ resolvers += "Java.net Maven2 Repository" at "http://download.java.net/maven/2/"
 // Akka
 resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
 
-libraryDependencies += "ch.qos.logback" % "logback-classic" % "0.9.26" % "compile->default"
+libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.0.2" % "compile->default"
 
 libraryDependencies += "junit" % "junit" % "4.10" % "test"
 
