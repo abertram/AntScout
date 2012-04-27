@@ -10,15 +10,18 @@ import net.liftweb.common.Logger
  * Time: 14:02
  */
 
-class Way(val id: String) extends Logger {
+class Way(val id: String, val nodes: Seq[Node]) extends Logger {
+
+  def canEqual(that: Any) = that.isInstanceOf[Way]
+
   override def equals(that: Any) = {
     that match {
-      case way: Way => id == way.id
+      case way: Way => (this canEqual that) && nodes == way.nodes
       case _ => false
     }
   }
 
-  override def hashCode = id.hashCode
+  override def hashCode = nodes.hashCode
 
   override def toString = "#%s".format(id)
 }

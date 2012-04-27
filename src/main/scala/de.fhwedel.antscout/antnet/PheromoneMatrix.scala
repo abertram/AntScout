@@ -20,7 +20,7 @@ import net.liftweb.common.Logger
  * @param outgoingWays Ausgehende Wege
  * @param tripTimes Fahrzeiten
  */
-class PheromoneMatrix(destinations: Iterable[ActorRef], outgoingWays: List[AntWay], tripTimes: Map[AntWay, Double]) extends mutable.HashMap[ActorRef, mutable.Map[AntWay, Double]] with Logger {
+class PheromoneMatrix(destinations: Iterable[ActorRef], outgoingWays: Iterable[AntWay], tripTimes: Map[AntWay, Double]) extends mutable.HashMap[ActorRef, mutable.Map[AntWay, Double]] with Logger {
 
   val alpha = 0.3
   val heuristicValues: Map[AntWay, Double] = initHeuristicValues
@@ -75,5 +75,5 @@ class PheromoneMatrix(destinations: Iterable[ActorRef], outgoingWays: List[AntWa
 
 object PheromoneMatrix {
 
-  def apply(destinations: Iterable[ActorRef], outgoingWays: List[AntWay], tripTimes: Map[AntWay, Double]) = new PheromoneMatrix(destinations, outgoingWays, tripTimes)
+  def apply(destinations: Iterable[ActorRef], outgoingWays: Iterable[AntWay], tripTimes: Map[AntWay, Double]) = new PheromoneMatrix(destinations, outgoingWays, tripTimes)
 }

@@ -3,8 +3,8 @@ package osm
 
 import xml.NodeSeq
 import net.liftweb.common.Logger
-import map.Way
 import net.liftweb.util.Props
+import map.{Node, Way}
 
 /**
  * Created by IntelliJ IDEA.
@@ -22,7 +22,7 @@ import net.liftweb.util.Props
  * @param nodes Knoten, aus denen der Weg besteht.
  * @param maxSpeed maxspeed-Tag
  */
-class OsmWay(val highway: String, id: String, val name: String, val nodes: List[OsmNode], val maxSpeed: Double) extends Way(id.toString) {
+class OsmWay(val highway: String, id: String, val name: String, override val nodes: Seq[OsmNode], val maxSpeed: Double) extends Way(id, nodes) {
 
   /**
    * Weg-Länge in Metern
@@ -41,6 +41,10 @@ class OsmWay(val highway: String, id: String, val name: String, val nodes: List[
     else
       nodes head
   }
+
+  def isEndNode(node: Node) = node == nodes.last
+
+  override def toString = "#%s #%s - #%s".format(id, nodes.head.id, nodes.last.id)
 }
 
 object OsmWay extends Logger {
@@ -59,12 +63,13 @@ object OsmWay extends Logger {
     def parseNodes(wayId: String, wayNodes: NodeSeq) = {
       wayNodes.flatMap(wayNode => {
         val id = (wayNode \ "@ref").text
+        assert(nodes.isDefinedAt(id), "Way id: %s, node id: %s".format(wayId, id))
         nodes.get(id)
       }).toList
     }
     val id = (way \ "@id").text
     val wayNodes = parseNodes(id, way \ "nd")
-    val tags = Map(way \ "tag" map (tag => ((tag \ "@k").text, (tag \ "@v").text)): _*)
+    val tags = (way \ "tag" map (tag => ((tag \ "@k").text, (tag \ "@v").text))).toMap
     val highway = tags getOrElse ("highway", "")
     val name = tags.getOrElse("name", "")
     def maxSpeedFromMaxSpeedTag: Option[Double] = {

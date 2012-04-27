@@ -2,11 +2,11 @@ package de.fhwedel.antscout
 package osm
 
 import net.liftweb.common.Logger
-import xml.{NodeSeq, Elem}
 import collection.immutable.Map
 import net.liftweb.util.TimeHelpers
 import collection.mutable
 import mutable.{SynchronizedMap, SynchronizedSet}
+import xml.{XML, NodeSeq, Elem}
 
 /**
  * Created by IntelliJ IDEA.
@@ -55,6 +55,10 @@ object OsmMap extends Logger {
   def computeNodeWaysMapAndIntersections() {
     _nodeWaysMapping = computeNodeWaysMap()
     _intersections = computeIntersections
+  }
+
+  def apply(fileName: String) {
+    apply(XML loadFile(fileName))
   }
 
   def apply(osmData: Elem) {

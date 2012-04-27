@@ -1,6 +1,9 @@
+# Karte, die verwendet werden soll.
+map = maps/hamburg.osm
+
 timeUnit = MILLISECONDS
 
-antLaunchDelay = 10
+antLaunchDelay = 10000
 
 varsigma = 0.005
 
@@ -24,3 +27,5 @@ speed.walk = 10.0
 
 # Schwellwert für den Vergleich von zwei Doubles
 epsilon = 0.00001
+
+antMap.relevantHighways = motorway,motorway_link,trunk,trunk_link,primary,primary_link

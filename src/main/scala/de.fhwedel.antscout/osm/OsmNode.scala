@@ -83,24 +83,26 @@ class OsmNode(id: String, val geographicCoordinate: GeographicCoordinate) extend
    *
    * Das ist der Fall, wenn folgende Bedingungen erfüllt sind:
    *
-   * - Der Knoten hat genau zwei adjazente Strassen.
+   * - Der Knoten hat genau zwei adjazente Strassen
+   * - Der Knoten ist ein äußerer Knoten in beiden Strassen.
    * - Die Namen der adjazenten Strassen sind gleich.
    * - Die adjazenten Wege sind entweder beide Einbahnstrassen oder beide keine Einbahnstrassen.
    *
-   * @param nodeToWaysMapping Abbildung von von OSM-Knoten auf OSM-Wege, die für die Berechnung verwendet werden soll.
+   * @param nodeWaysMapping Abbildung von von OSM-Knoten auf OSM-Wege, die für die Berechnung verwendet werden soll.
    * @return true, wenn der Knoten eine Verbindung ist.
    */
-  def isConnection(implicit nodeToWaysMapping: Map[OsmNode, Iterable[OsmWay]] = OsmMap nodeWaysMapping) = {
-    val adjacentWays = nodeToWaysMapping (this)
+  def isConnection(implicit nodeWaysMapping: Map[OsmNode, Iterable[OsmWay]] = OsmMap nodeWaysMapping) = {
+    val adjacentWays = nodeWaysMapping (this)
     adjacentWays.size == 2 && {
       val way1 = adjacentWays.head
       val way2 = adjacentWays.last
-      way1.name == way2.name &&
+      (this == way1.nodes.head || this == way1.nodes.last) && (this == way2.nodes.head || this == way2.nodes.last) &&
+        way1.name == way2.name &&
         way1.getClass == way2.getClass
     }
   }
 
-  override def toString = "OsmNode #%s".format(id, geographicCoordinate)
+  override def toString = "OsmNode #%s".format(id)
 }
 
 object OsmNode extends Logger {

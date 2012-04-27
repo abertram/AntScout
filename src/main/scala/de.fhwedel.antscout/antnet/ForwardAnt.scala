@@ -92,14 +92,17 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
   def visitNode(node: ActorRef) {
 //    debug("Visiting node #%s".format(node id))
     currentNode = node
-    if (node != destinationNode) {
+    // Der Knoten hat keine ausgehenden Wege, wir sind in einer Sackgasse angekommen.
+    if (!AntMap.outgoingWays.contains(node))
+      self stop
+    else if (node != destinationNode) {
       if (memory.containsNode(node)) {
 //        debug("Circle detected")
         memory.removeCircle(node)
       }
       node tryTell Enter(destinationNode)
     } else {
-      trace("Destination reached")
+//      info("Destination reached")
       launchBackwardAnt()
       self.stop()
     }

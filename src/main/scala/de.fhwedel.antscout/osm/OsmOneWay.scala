@@ -8,7 +8,10 @@ package osm
  * Time: 15:49
  */
 
-class OsmOneWay(highway: String, id: String, name: String, nodes: List[OsmNode], maxSpeed: Double) extends OsmWay(highway, id, name, nodes, maxSpeed)
+class OsmOneWay(highway: String, id: String, name: String, nodes: List[OsmNode], maxSpeed: Double) extends OsmWay(highway, id, name, nodes, maxSpeed) {
+
+  override def toString = "#%s #%s -> #%s".format(id, nodes.head.id, nodes.last.id)
+}
 
 object OsmOneWay {
   

@@ -9,9 +9,10 @@ package map
  */
 
 class Node(val id: String) {
+
   override def equals(that: Any) = {
     that match {
-      case node: Node => this.id == node.id
+      case node: Node => id == node.id
       case _ => false
     }
   }

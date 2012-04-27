@@ -2,12 +2,12 @@ package de.fhwedel.antscout
 package antnet
 
 import net.liftweb.common.Logger
-import net.liftweb.util.TimeHelpers
-import map.Node
-import collection.immutable.List
 import osm.{OsmOneWay, OsmWay, OsmNode, OsmMap}
-import akka.actor.{ActorRef, Actor}
-import collection.mutable.{ListBuffer, SynchronizedSet, HashSet => MutableHashSet, SynchronizedMap, HashMap => MutableHashMap}
+import akka.actor.ActorRef
+import net.liftweb.util.{Props, TimeHelpers}
+import annotation.tailrec
+import collection.immutable.{Set, Map}
+import collection.mutable.ListBuffer
 
 /**
  * Created by IntelliJ IDEA.
@@ -18,21 +18,206 @@ import collection.mutable.{ListBuffer, SynchronizedSet, HashSet => MutableHashSe
 
 object AntMap extends Logger {
 
-  private var _destinations: Iterable[ActorRef] = _
-  private var _nodes: Map[String, ActorRef] = _
-  private var _sources: Iterable[ActorRef] = _
-  private var _ways: Map[String, AntWay] = _
+  val DefaultRelevantHighways = ""
 
-  def nodes = _nodes
-  def ways = _ways
+  /**
+   * Ziele
+   */
+  private var _destinations: Set[ActorRef] = _
+  /**
+   * Eingehende Wege pro Knoten
+   */
+  private var _incomingWays: Map[ActorRef, Set[AntWay]] = _
+  /**
+   * Knoten
+   */
+  private var _nodes: Set[ActorRef] = _
+  /**
+   * Ausgehende Wege pro Knoten
+   */
+  private var _outgoingWays: Map[ActorRef, Set[AntWay]] = _
+  /**
+   * Ziele
+   */
+  private var _sources: Set[ActorRef] = _
+  /**
+   * Wege
+   */
+  private var _ways: Set[AntWay] = _
 
-  def initAntNodes = {
-    val computedAntNodes = AntMap.computeAntNodes(OsmMap.ways.values.toList, OsmMap.intersections)
-    val antNodes = AntMap.createAntNodes(computedAntNodes)
-    info("Sending destinations to ant nodes")
-    val (time, _) = TimeHelpers.calcTime(antNodes.values.foreach(_ ! Destinations(antNodes.values)))
-    info("Sent %d destinations to %d ant nodes in %d ms".format(antNodes.size, antNodes.size, time))
-    antNodes
+  def apply() {
+    val nodeWaysMapping = OsmMap.nodeWaysByHighwayMapping(relevantHighways).par.filter {
+      case (node, ways) =>
+        ways.size >= 2
+    }.seq
+    _ways = computeAntWays(nodeWaysMapping)
+    assert(_ways.map(_.id).toSet.size == _ways.size, "%s ids, %s ways".format(_ways.map(_.id).toSet.size, _ways.size))
+    val (incomingWays, outgoingWays) = computeIncomingAndOutgoingWays(_ways)
+    _incomingWays = incomingWays
+    _outgoingWays = outgoingWays
+    _nodes = _ways.flatMap(w => Iterable[ActorRef](w.startNode, w.endNode)).toSet
+    info("%d ant nodes".format(_nodes.size))
+//    info("Nodes without incoming ways: %s".format(_nodes.filter(n => !incomingWays.contains(n)).map(n => "\nhttp://www.openstreetmap.org/browse/node/%s".format(n.id))))
+//    info("Nodes without outgoing ways: %s".format(_nodes.filter(n => !outgoingWays.contains(n)).map(n => "\nhttp://www.openstreetmap.org/browse/node/%s".format(n.id))))
+    val (sources, destinations) = computeSourcesAndDestinations(_nodes, _incomingWays, _outgoingWays)
+    _sources = sources
+    _destinations = destinations
+  }
+
+  /**
+   * Berechnet Ant-Wege anhand einer Abbildung von Knoten auf die adjazenten Wege.
+   *
+   * @param nodeWaysMapping Abbildung von Knoten auf die adjazenten Wege.
+   * @return Eine Menge von Ant-Wegen.
+   */
+  def computeAntWays(nodeWaysMapping: Map[OsmNode, Set[OsmWay]]): Set[AntWay] = {
+    @tailrec
+    def computeAntWaysRec(id: Int, innerNodeWaysMapping: Map[OsmNode, Set[OsmWay]], osmNodeAntWaysMapping: Map[OsmNode, Set[AntWay]], antWays: Set[AntWay]): Set[AntWay] = {
+      // Das Mapping ist leer, wir sind fertig.
+      if (innerNodeWaysMapping.isEmpty)
+        antWays
+      else {
+        // der aktuell zu verarbeitende Knoten und die adjazenten Wege
+        val (node, ways) = innerNodeWaysMapping.head
+        // Der aktuelle Knoten hat keine adjazenten Wege mehr, weiter mit dem nächsten Knoten.
+        if (ways.isEmpty)
+          computeAntWaysRec(id, innerNodeWaysMapping tail, osmNodeAntWaysMapping, antWays)
+        else {
+          // der aktuell zu verarbeitende Weg
+          val way = ways.head
+          // Start- und End-Indices ausgehend von dem aktuellen Knoten berechnen. Diese werden benutzt, um einen Knoten-Segment aus dem aktuellen Weg auszuschneiden und daraus einen Ant-Weg zu erstellen.
+          val (startNodeIndex, endNodeIndex) = {
+            // Der aktuelle Knoten ist der End-Knoten des Weges.
+            if (!way.isEndNode(node)) {
+              // Strt-Index ist der Index des aktuellen Knoten. Der passende End-Index muss gesucht werden.
+              val startNodeIndex = way.nodes.indexOf(node)
+              (startNodeIndex, {
+                // passenden End-Knoten-Index (Verbindungs-Knoten zwischen mehreren Wegen) suchen
+                val index = way.nodes.indexWhere(nodeWaysMapping.contains(_), startNodeIndex + 1)
+                // Wenn kein passender Knoten gefunden wird, den Index des End-Knotens des Weges verwenden.
+                if (index != -1) index else way.nodes.size - 1
+              })
+            }
+            // Der aktuelle Knoten ist nicht der End-Knoten des Weges.
+            else {
+              // End-Index ist der Index des aktuellen Knoten. Der passende Start-Index muss gesucht werden.
+              ({
+                // Index des letzten Verbindungsknotens vom End-Knoten des Weges aus suchen.
+                val index = way.nodes.lastIndexWhere(nodeWaysMapping.contains(_), way.nodes.size - 2)
+                // Wenn kein passender Knoten gefunden wird, des Index des Start-Knotens des Weges verwenden.
+                if (index != -1) index else 0
+              }, way.nodes.indexOf(node))
+            }
+          }
+          // Die aktuell zu verarbeitende Knoten-Sequenz besteht aus Knoten zwischen dem berechneten Start- und End-Index.
+          val nodes = way.nodes.slice(startNodeIndex, endNodeIndex + 1)
+          // Verarbeitung der berechneten Knoten-Sequenz. Es werden fünf mögliche Fälle unterschieden.
+          // Fall 1: Die Knoten-Sequenz ist bereits in einem anderen Ant-Weg enthalten.
+          val (newWays, newAntWays, oldWays) = if ((osmNodeAntWaysMapping.contains(nodes.head) && osmNodeAntWaysMapping(nodes.head).find(_.nodes.containsSlice(nodes)).isDefined) || (osmNodeAntWaysMapping.contains(nodes.last) && osmNodeAntWaysMapping(nodes.last).find(_.nodes.containsSlice(nodes)).isDefined) || (osmNodeAntWaysMapping.contains(nodes.head) && osmNodeAntWaysMapping.contains(nodes.last) && osmNodeAntWaysMapping(nodes.head) == osmNodeAntWaysMapping(nodes.last)))
+            (Set[AntWay](), antWays, Set[AntWay]())
+          // Fall 2: Die Knoten-Sequenz ist das Verbindungsstück zwischen zwei bereits existierenden Ant-Wegen.
+          else if (osmNodeAntWaysMapping.contains(nodes.head) && osmNodeAntWaysMapping(nodes.head).size == 1 && osmNodeAntWaysMapping(nodes.head).find(w => w.isExtendable(nodes.head)(nodeWaysMapping)).isDefined && osmNodeAntWaysMapping.contains(nodes.last) && osmNodeAntWaysMapping(nodes.last).size == 1 && osmNodeAntWaysMapping(nodes.last).find(w => w.isExtendable(nodes.last)(nodeWaysMapping)).isDefined) {
+            // Beide Wege ermitteln, die verbunden werden sollen.
+            val oldWay1 = osmNodeAntWaysMapping(nodes.head).head
+            val oldWay2 = osmNodeAntWaysMapping(nodes.last).head
+            // Weg erweitern
+            val newWays = Set(oldWay1.extend(nodes).extend(oldWay2.nodes))
+            // oldWays musste explizit erstellt werden.
+            // Bei (newWays, antWays -- oldWays ++ newWays, Set(oldWay1, oldWay2)) hat der Compiler gemeckert (recursive value ... needs type)
+            val oldWays = Set(oldWay1, oldWay2)
+            (newWays, antWays -- oldWays ++ newWays, oldWays)
+          }
+          // Fall 3: Ein oder mehrere bereits vorhandene Wege können am Kopf um die Knoten-Sequens erweitert werden.
+          else if (osmNodeAntWaysMapping.contains(nodes.head) && osmNodeAntWaysMapping(nodes.head).find(_.isExtendable(nodes.head)(nodeWaysMapping)).isDefined) {
+            val oldWays = osmNodeAntWaysMapping(nodes.head).filter(_.isExtendable(nodes.head)(nodeWaysMapping))
+            val newWays = oldWays.map(_.extend(nodes))
+            (newWays, antWays -- oldWays ++ newWays, oldWays)
+          // Fall 4: Ein oder mehrere bereits vorhandene Wege können am Ende um die Knoten-Sequens erweitert werden.
+          } else if (osmNodeAntWaysMapping.contains(nodes.last) && osmNodeAntWaysMapping(nodes.last).find(_.isExtendable(nodes.last)(nodeWaysMapping)).isDefined) {
+            val oldWays = osmNodeAntWaysMapping(nodes.last).filter(_.isExtendable(nodes.last)(nodeWaysMapping))
+            val newWays = oldWays.map(_.extend(nodes))
+            (newWays, antWays -- oldWays ++ newWays, oldWays)
+          // Fall 5: Keiner der oberen Fälle trifft zu. Es muss ein neuer Weg erstellt werden.
+          } else {
+            val antWay = AntWay(id toString, nodes, way.maxSpeed, way.isInstanceOf[OsmOneWay])
+            (Set(antWay), antWays + antWay, Set[AntWay]())
+          }
+          // Mapping aktualisieren, sodass neu berechnte Wege die alten Wege ersetzen.
+          val updatedAntNodeAntWaysMapping = osmNodeAntWaysMapping ++ oldWays.flatMap { ow =>
+            val nodeWaysMappingToUpdate = osmNodeAntWaysMapping.filter { case (n, ws) => ws.contains(ow) }
+            val newWay = newWays.find(_.containsSlice(ow.nodes)).get
+            nodeWaysMappingToUpdate.map {
+              case (n, ws) => n -> (osmNodeAntWaysMapping.getOrElse(n, Set[AntWay]()) - ow + newWay)
+            }
+          }
+          // Mapping um die neu berechneten Wege und dessen Start- und End-Knoten ergänzen
+          val newAntNodeAntWaysMapping = (updatedAntNodeAntWaysMapping ++ newWays.map { nw =>
+            val startNode = OsmMap.nodes(nw.startNode.id)
+            startNode -> (updatedAntNodeAntWaysMapping.getOrElse(startNode, Set.empty[AntWay]) + nw)
+          } ++ newWays.map { nw =>
+            val endNode = OsmMap.nodes(nw.endNode.id)
+            endNode -> (updatedAntNodeAntWaysMapping.getOrElse(endNode, Set.empty[AntWay]) + nw)
+          }).filterNot(_._2.isEmpty) // leere Einträge entfernen
+          computeAntWaysRec(id + 1, innerNodeWaysMapping + (node -> (ways - way)), newAntNodeAntWaysMapping, newAntWays)
+        }
+      }
+    }
+    info("Computing ant ways")
+    val (time, ways) = TimeHelpers.calcTime(computeAntWaysRec(0, nodeWaysMapping, Map.empty[OsmNode, Set[AntWay]], Set.empty[AntWay]))
+    info("%d ant ways computed in %d ms".format(ways.size, time))
+    ways
+  }
+
+  /**
+   * Berechnet die eingehenden und ausgehenden Wege pro Knoten.
+   *
+   * @param ways Wege
+   * @return 2-Tupel. Das erste Element repräsentiert die eingehenden, das zweite Element die ausgehenden Wege. Die Datenstruktur ist jeweils eine Map, deren Schlüssel die einzelnen Knoten und die Werte die zugehörigen Wege sind.
+   */
+  def computeIncomingAndOutgoingWays(ways: Iterable[AntWay]): (Map[ActorRef, Set[AntWay]], Map[ActorRef, Set[AntWay]]) = {
+    @tailrec
+    def computeIncomingAndOutgoingWaysRec(ways: Set[AntWay], incomingWays: Map[ActorRef, Set[AntWay]], outgoingWays: Map[ActorRef, Set[AntWay]]): (Map[ActorRef, Set[AntWay]], Map[ActorRef, Set[AntWay]]) = {
+      if (ways.isEmpty)
+        (incomingWays, outgoingWays)
+      else {
+        // eingehende Wege
+        val newIncomingWays = {
+          ways.head match {
+            // Einbahn-Strasse
+            case oneWay: AntOneWay => {
+              // nur der End-Knoten enthält einen eingehenden Weg
+              Map(oneWay.endNode -> (incomingWays.getOrElse(oneWay.endNode, Set.empty[AntWay]) + oneWay))
+            }
+            // normaler Weg
+            case way: AntWay => {
+              // sowohl der Start- als auch der End-Knoten enthalten eingehende Wege
+              Map(
+                way.startNode -> (incomingWays.getOrElse(way.startNode, Set.empty[AntWay]) + way),
+                way.endNode -> (incomingWays.getOrElse(way.endNode, Set.empty[AntWay]) + way))
+            }
+          }
+        }
+        // ausgehende Wege
+        val newOutgoingWays = {
+          ways.head match {
+            // Einbahn-Strasse
+            case oneWay: AntOneWay => {
+              // nur der Start-Knoten enthält einen ausgehenden Weg
+              Map(oneWay.startNode -> (outgoingWays.getOrElse(oneWay.startNode, Set.empty[AntWay]) + oneWay))
+            }
+            // normaler Weg
+            case way: AntWay => {
+              // sowohl der Start- als auch der End-Knoten enthalten ausgehende Wege
+              Map(
+                way.startNode -> (outgoingWays.getOrElse(way.startNode, Set.empty[AntWay]) + way),
+                way.endNode -> (outgoingWays.getOrElse(way.endNode, Set.empty[AntWay]) + way))
+            }
+          }
+        }
+        computeIncomingAndOutgoingWaysRec(ways.tail, incomingWays ++ newIncomingWays, outgoingWays ++ newOutgoingWays)
+      }
+    }
+    computeIncomingAndOutgoingWaysRec(ways toSet, Map.empty[ActorRef, Set[AntWay]], Map.empty[ActorRef, Set[AntWay]])
   }
 
   /**
@@ -41,129 +226,38 @@ object AntMap extends Logger {
    * @param incomingWays Map, in der die Knoten-Ids als Schlüssel und Ids der eingehenden Wege als Wert gespeichert sind.
    * @param outgoingWays Map, in der die Knoten-Ids als Schlüssel und Ids der ausgehenden Wege als Wert gespeichert sind.
    */
-  def computeSourcesAndDestinations(nodes: Map[String, ActorRef], outgoingWays: Map[String, Set[String]], incomingWays: Map[String, Set[String]]) = {
+  def computeSourcesAndDestinations(nodes: Iterable[ActorRef], incomingWays: Map[ActorRef, Set[AntWay]], outgoingWays: Map[ActorRef, Set[AntWay]]): (Set[ActorRef], Set[ActorRef]) = {
     info("Computing sources and destinations")
-    val sources = new ListBuffer[ActorRef] // with SynchronizedBuffer[ActorRef]
-    val destinations = new ListBuffer[ActorRef] // with SynchronizedBuffer[ActorRef]
+    val sources = new ListBuffer[ActorRef]
+    val destinations = new ListBuffer[ActorRef]
     val (time, _) = TimeHelpers.calcTime {
       nodes.foreach {
-        case (id, node) => {
-          // Wenn ein Knoten ausgehende Wege hat, kann er als Quelle dienen 
-          if (outgoingWays.contains(id)) node +=: sources
+        n => {
           // Wenn ein Knoten eingehende Wege hat, kann er als Ziel dienen
-          if (incomingWays.contains(id)) node +=: destinations
+          if (incomingWays.contains(n)) n +=: destinations
+          // Wenn ein Knoten ausgehende Wege hat, kann er als Quelle dienen
+          if (outgoingWays.contains(n)) n +=: sources
         }
       }
     }
     info("%d sources and %d destinations computed in %d ms".format(sources.size, destinations.size, time))
-    (sources.toList, destinations.toList)
-  }
-
-  def computePrepareAndStartAntWays(nodeIds: List[String]) = {
-    info("Computing ant ways data")
-    val (time, antWaysData) = TimeHelpers.calcTime(OsmMap.ways.values.par.flatMap(AntMap.computeAntWaysData(_, nodeIds)).toList)
-    info("%d ant ways data computed in %d ms".format(antWaysData.size, time))
-    val antWays = AntMap.startAntWays(antWaysData)
-    val (incomingWays, outgoingWays) = AntMap.computeIncomingAndOutgoingWays(nodeIds, antWaysData)
-    info("Nodes without incoming ways: %s".format(_nodes.keys.filter(!incomingWays.contains(_))))
-    info("Nodes without outgoing ways: %s".format(_nodes.keys.filter(!outgoingWays.contains(_))))
-    val (sources, destinations) = computeSourcesAndDestinations(_nodes, outgoingWays, incomingWays)
-    _sources = sources
-    _destinations = destinations
-    debug("Sending incoming ways")
-    incomingWays.foreach {
-      case (nodeId, wayIds) => {
-        val incomingWays = wayIds.map(wayId => antWays(wayId)).toList
-        _nodes(nodeId) ! IncomingWays(incomingWays)
-      }
-    }
-    debug("Sending outgoing ways")
-    outgoingWays.par.foreach {
-      case (nodeId, wayIds) => {
-        val outgoingWays = wayIds.map(wayId => antWays(wayId)).toList
-        _nodes(nodeId) ! OutgoingWays(outgoingWays)
-      }
-    }
-    antWays
-  }
-  
-  def apply() {
-    _nodes = initAntNodes
-    _ways = computePrepareAndStartAntWays(_nodes.keys.toList)
-  }
-
-  def computeAntNodes(ways: List[OsmWay], intersections: List[Node]) = {
-    info("Computing ant nodes")
-    val (time, antNodes) = TimeHelpers.calcTime {
-      val startAndEndNodes = ways.par.flatMap(way => List(way.nodes.head, way.nodes.last))
-      (startAndEndNodes ++ intersections).distinct.seq.toList
-    }
-    info("%d ant nodes computed in %d ms".format(antNodes.size, time))
-    antNodes
-  }
-
-  def computeIncomingAndOutgoingWays(nodeIds: List[String], waysData: List[AntWayData]) = {
-    info("Computing incoming and outgoing ways")
-    val tempIncomingWays = new MutableHashMap[String, MutableHashSet[String] with SynchronizedSet[String]] with SynchronizedMap[String, MutableHashSet[String] with SynchronizedSet[String]]
-    val tempOutgoingWays = new MutableHashMap[String, MutableHashSet[String] with SynchronizedSet[String]] with SynchronizedMap[String, MutableHashSet[String] with SynchronizedSet[String]]
-    val (time, (incomingWays, outgoingWays)) = TimeHelpers.calcTime {
-      waysData.par.foreach {wayData =>
-        wayData.oneWay match {
-          case true => {
-            val lastNodeId = wayData.nodes.last.id
-            tempIncomingWays(lastNodeId) = tempIncomingWays.getOrElse(lastNodeId, new MutableHashSet[String] with SynchronizedSet[String]) += wayData.id
-            tempOutgoingWays(wayData.nodes.head.id) = tempOutgoingWays.getOrElse(wayData.nodes.head.id, new MutableHashSet[String] with SynchronizedSet[String]) += wayData.id
-          }
-          case false => {
-            val lastNodeId = wayData.nodes.last.id
-            tempIncomingWays(wayData.nodes.head.id) = tempIncomingWays.getOrElse(wayData.nodes.head.id, new MutableHashSet[String] with SynchronizedSet[String]) += wayData.id
-            tempIncomingWays(lastNodeId) = tempIncomingWays.getOrElse(lastNodeId, new MutableHashSet[String] with SynchronizedSet[String]) += wayData.id
-            tempOutgoingWays(wayData.nodes.head.id) = tempOutgoingWays.getOrElse(wayData.nodes.head.id, new MutableHashSet[String] with SynchronizedSet[String]) += wayData.id
-            tempOutgoingWays(lastNodeId) = tempOutgoingWays.getOrElse(lastNodeId, new MutableHashSet[String] with SynchronizedSet[String]) += wayData.id
-          }
-        }
-      }
-      // Veränderliche Datenstrukturen in unveränderliche und unsynchronisierte (ohne Synchronized-Traits) umwandeln
-      (tempIncomingWays.map(kv => (kv._1, kv._2.toSet)).toMap, tempOutgoingWays.map(kv => (kv._1, kv._2.toSet)).toMap)
-    }
-    info("%d incoming and %d outgoing ways computed in %d ms".format(incomingWays.size, outgoingWays.size, time))
-    (incomingWays, outgoingWays)
-  }
-
-  def computeAntWaysData(osmWay: OsmWay, antNodesIds: List[String]): List[AntWayData] = {
-    def computeAntWaysDataRecursive(usedNodes: List[OsmNode], remainingNodes: List[OsmNode], computedWays: Int): List[AntWayData] = {
-      (usedNodes, remainingNodes) match {
-        // usedNodes ist leer, die Berechnung ist zu Ende
-        case (Nil, _) =>
-          Nil
-        // usedNodes besteht nur noch aus einem Element, remainingNodes ist leer, die Berechnung ist zu Ende
-        case (head :: Nil, Nil) =>
-          Nil
-        case (_, head :: tail) =>
-          val id = "%s-%d".format(osmWay.id, computedWays + 1)
-          AntWayData(id, osmWay.maxSpeed, usedNodes :+ head, osmWay.isInstanceOf[OsmOneWay]) :: computeAntWaysDataRecursive(head :: tail.takeWhile(n => !antNodesIds.contains(n.id)), tail.dropWhile(n => !antNodesIds.contains(n.id)), computedWays + 1)
-      }
-    }
-    val usedNodes = osmWay.nodes.head :: osmWay.nodes.tail.takeWhile(n => !antNodesIds.contains(n.id))
-    val remainingNodes = osmWay.nodes.tail.dropWhile(n => !antNodesIds.contains(n.id))
-    computeAntWaysDataRecursive(usedNodes, remainingNodes, 0)
-  }
-
-  def createAntNodes(nodes: List[Node]) = {
-    info("Creating ant nodes")
-    val (time, antNodes) = TimeHelpers.calcTime(nodes.par.map(node => (node.id -> AntNode(node.id))).seq.toMap)
-    info("%d ant nodes created in %d ms".format(antNodes.size, time))
-    antNodes
+    (sources.toSet, destinations.toSet)
   }
 
   def destinations = _destinations
 
+  def nodes = _nodes
+
+  def outgoingWays = _outgoingWays
+
+  lazy val relevantHighways = {
+    val relevantHighwaysValue = Props get ("antMap.relevantHighways", DefaultRelevantHighways)
+    val untrimmedRelevantHighways = relevantHighwaysValue.split(',')
+    val trimmedRelevantHighways = untrimmedRelevantHighways.map(_.trim)
+    trimmedRelevantHighways.toSet
+  }
+
   def sources = _sources
 
-  def startAntWays(antWaysData: List[AntWayData]) = {
-    info("Starting ant ways")
-    val (time, antWays) = TimeHelpers.calcTime(antWaysData.map(antWayData => (antWayData.id -> AntWay(antWayData.id, antWayData.maxSpeed,antWayData.nodes))).toMap)
-    info("%d ant ways started in %d ms".format(antWays.size, time))
-    antWays
-  }
+  def ways = _ways
 }
