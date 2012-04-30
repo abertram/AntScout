@@ -47,10 +47,13 @@ object AntMap extends Logger {
 
   def apply() {
     val nodeWaysMapping = OsmMap.nodeWaysByHighwayMapping(relevantHighways).par.filter {
-      case (node, ways) =>
-        ways.size >= 2
+      case (node, ways) => ways.size >= 2
     }.seq
-    _ways = computeAntWays(nodeWaysMapping)
+    val wayData = computeAntWays(nodeWaysMapping)
+    _ways = (1 to wayData.size).zip(wayData).map {
+      case (id, wd) => AntWay(id.toString, wd.nodes, wd.maxSpeed, wd.isInstanceOf[AntOneWayData])
+    }.toSet
+    assert(_ways.size == wayData.size)
     assert(_ways.map(_.id).toSet.size == _ways.size, "%s ids, %s ways".format(_ways.map(_.id).toSet.size, _ways.size))
     val (incomingWays, outgoingWays) = computeIncomingAndOutgoingWays(_ways)
     _incomingWays = incomingWays
@@ -70,9 +73,9 @@ object AntMap extends Logger {
    * @param nodeWaysMapping Abbildung von Knoten auf die adjazenten Wege.
    * @return Eine Menge von Ant-Wegen.
    */
-  def computeAntWays(nodeWaysMapping: Map[OsmNode, Set[OsmWay]]): Set[AntWay] = {
+  def computeAntWays(nodeWaysMapping: Map[OsmNode, Set[OsmWay]]): Set[AntWayData] = {
     @tailrec
-    def computeAntWaysRec(id: Int, innerNodeWaysMapping: Map[OsmNode, Set[OsmWay]], osmNodeAntWaysMapping: Map[OsmNode, Set[AntWay]], antWays: Set[AntWay]): Set[AntWay] = {
+    def computeAntWaysRec(id: Int, innerNodeWaysMapping: Map[OsmNode, Set[OsmWay]], osmNodeAntWaysMapping: Map[OsmNode, Set[AntWayData]], antWays: Set[AntWayData]): Set[AntWayData] = {
       // Das Mapping ist leer, wir sind fertig.
       if (innerNodeWaysMapping.isEmpty)
         antWays
@@ -114,7 +117,7 @@ object AntMap extends Logger {
           // Verarbeitung der berechneten Knoten-Sequenz. Es werden fünf mögliche Fälle unterschieden.
           // Fall 1: Die Knoten-Sequenz ist bereits in einem anderen Ant-Weg enthalten.
           val (newWays, newAntWays, oldWays) = if ((osmNodeAntWaysMapping.contains(nodes.head) && osmNodeAntWaysMapping(nodes.head).find(_.nodes.containsSlice(nodes)).isDefined) || (osmNodeAntWaysMapping.contains(nodes.last) && osmNodeAntWaysMapping(nodes.last).find(_.nodes.containsSlice(nodes)).isDefined) || (osmNodeAntWaysMapping.contains(nodes.head) && osmNodeAntWaysMapping.contains(nodes.last) && osmNodeAntWaysMapping(nodes.head) == osmNodeAntWaysMapping(nodes.last)))
-            (Set[AntWay](), antWays, Set[AntWay]())
+            (Set[AntWayData](), antWays, Set[AntWayData]())
           // Fall 2: Die Knoten-Sequenz ist das Verbindungsstück zwischen zwei bereits existierenden Ant-Wegen.
           else if (osmNodeAntWaysMapping.contains(nodes.head) && osmNodeAntWaysMapping(nodes.head).size == 1 && osmNodeAntWaysMapping(nodes.head).find(w => w.isExtendable(nodes.head)(nodeWaysMapping)).isDefined && osmNodeAntWaysMapping.contains(nodes.last) && osmNodeAntWaysMapping(nodes.last).size == 1 && osmNodeAntWaysMapping(nodes.last).find(w => w.isExtendable(nodes.last)(nodeWaysMapping)).isDefined) {
             // Beide Wege ermitteln, die verbunden werden sollen.
@@ -139,31 +142,31 @@ object AntMap extends Logger {
             (newWays, antWays -- oldWays ++ newWays, oldWays)
           // Fall 5: Keiner der oberen Fälle trifft zu. Es muss ein neuer Weg erstellt werden.
           } else {
-            val antWay = AntWay(id toString, nodes, way.maxSpeed, way.isInstanceOf[OsmOneWay])
-            (Set(antWay), antWays + antWay, Set[AntWay]())
+            val antWay = AntWayData(way.maxSpeed, nodes, way.isInstanceOf[OsmOneWay])
+            (Set(antWay), antWays + antWay, Set[AntWayData]())
           }
           // Mapping aktualisieren, sodass neu berechnte Wege die alten Wege ersetzen.
           val updatedAntNodeAntWaysMapping = osmNodeAntWaysMapping ++ oldWays.flatMap { ow =>
             val nodeWaysMappingToUpdate = osmNodeAntWaysMapping.filter { case (n, ws) => ws.contains(ow) }
             val newWay = newWays.find(_.containsSlice(ow.nodes)).get
             nodeWaysMappingToUpdate.map {
-              case (n, ws) => n -> (osmNodeAntWaysMapping.getOrElse(n, Set[AntWay]()) - ow + newWay)
+              case (n, ws) => n -> (osmNodeAntWaysMapping.getOrElse(n, Set[AntWayData]()) - ow + newWay)
             }
           }
           // Mapping um die neu berechneten Wege und dessen Start- und End-Knoten ergänzen
           val newAntNodeAntWaysMapping = (updatedAntNodeAntWaysMapping ++ newWays.map { nw =>
-            val startNode = OsmMap.nodes(nw.startNode.id)
-            startNode -> (updatedAntNodeAntWaysMapping.getOrElse(startNode, Set.empty[AntWay]) + nw)
+            val startNode = nw.nodes.head
+            startNode -> (updatedAntNodeAntWaysMapping.getOrElse(startNode, Set.empty[AntWayData]) + nw)
           } ++ newWays.map { nw =>
-            val endNode = OsmMap.nodes(nw.endNode.id)
-            endNode -> (updatedAntNodeAntWaysMapping.getOrElse(endNode, Set.empty[AntWay]) + nw)
+            val endNode = nw.nodes.last
+            endNode -> (updatedAntNodeAntWaysMapping.getOrElse(endNode, Set.empty[AntWayData]) + nw)
           }).filterNot(_._2.isEmpty) // leere Einträge entfernen
           computeAntWaysRec(id + 1, innerNodeWaysMapping + (node -> (ways - way)), newAntNodeAntWaysMapping, newAntWays)
         }
       }
     }
     info("Computing ant ways")
-    val (time, ways) = TimeHelpers.calcTime(computeAntWaysRec(0, nodeWaysMapping, Map.empty[OsmNode, Set[AntWay]], Set.empty[AntWay]))
+    val (time, ways) = TimeHelpers.calcTime(computeAntWaysRec(0, nodeWaysMapping, Map[OsmNode, Set[AntWayData]](), Set[AntWayData]()))
     info("%d ant ways computed in %d ms".format(ways.size, time))
     ways
   }
