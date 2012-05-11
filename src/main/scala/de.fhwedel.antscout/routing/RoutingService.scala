@@ -2,12 +2,13 @@ package de.fhwedel.antscout
 package routing
 
 import annotation.tailrec
-import akka.dispatch.Future
 import net.liftweb.common.Logger
-import akka.actor.{Actor, ActorRef}
-import antnet.{AntMap, OutgoingWaysPropabilitiesRequest, AntWay}
-import routing.RoutingService.{Init, FindPath, UpdatePropabilities}
 import collection.mutable
+import akka.actor.Actor
+import akka.util.duration._
+import akka.util.Timeout
+import antnet.{AntNode, AntMap, AntWay}
+import akka.dispatch.Future
 
 /**
  * Created by IntelliJ IDEA.
@@ -18,14 +19,19 @@ import collection.mutable
 
 class RoutingService extends Actor with Logger {
 
-  private val _routingTable = new mutable.HashMap[ActorRef, mutable.Map[ActorRef, Seq[AntWay]]]
+  import context.dispatcher // context == ActorContext and "dispatcher" in it is already implicit
+
+  import RoutingService._
+
+  val _routingTable = mutable.Map[AntNode, mutable.Map[AntNode, Seq[AntWay]]]()
+  implicit val timeout = Timeout(5 seconds)
 
   /**
    * Sucht einen Pfad von einem Quell- zu einem Ziel-Knoten.
    */
-  def findPath(source: ActorRef, destination: ActorRef): Seq[AntWay] = {
+  def findPath(source: AntNode, destination: AntNode): Seq[AntWay] = {
     @tailrec
-    def findPathRecursive(source: ActorRef, path: Seq[AntWay]): Seq[AntWay] = {
+    def findPathRecursive(source: AntNode, path: Seq[AntWay]): Seq[AntWay] = {
       if (source == destination || path.size == 100)
         return path
       val bestWay = _routingTable(source)(destination) head
@@ -35,52 +41,59 @@ class RoutingService extends Actor with Logger {
     findPathRecursive(source, Seq()).reverse
   }
 
-  def init = {
-    debug("Initializing")
-    Future sequence (AntMap.sources.map(n => {
-        (n ? OutgoingWaysPropabilitiesRequest).mapTo[(ActorRef, Map[ActorRef, Seq[AntWay]])]
-      })) onComplete {
-      _.value.get match {
-        case Left(_) => error("Initializing RoutingService failed")
-        case Right(outgoingWayPropabilities) => {
-          info("%d outgoing way propabilities received")
-          outgoingWayPropabilities foreach {
-            case (source, propabilities) => {
-              _routingTable += source -> new mutable.HashMap[ActorRef, Seq[AntWay]]
-              propabilities foreach {
-                case (destination, ways) => {
-                  _routingTable(source) += destination -> ways
+  def init() {
+    info("Initializing")
+    (Future.traverse(AntMap.sources)(source => source.propabilities(240 seconds))).onComplete {
+      case Left(e) =>
+        error(e)
+      case Right(propabilities) => {
+        propabilities foreach {
+          case (source, propabilities) => {
+            propabilities foreach {
+              case (destination, waysAndPropabilities) =>
+                val sortedWays = waysAndPropabilities.toSeq.sortBy {
+                  case (_, propability) => propability
+                }.reverse.map {
+                  case (way, _) => way
                 }
-              }
+                val a1 = _routingTable.getOrElse(source, mutable.Map[AntNode, Seq[AntWay]]())
+                _routingTable += (source -> (_routingTable.getOrElse(source, mutable.Map[AntNode, Seq[AntWay]]()) + (destination -> sortedWays)))
+                val a2 = _routingTable.getOrElse(source, mutable.Map[AntNode, Seq[AntWay]]())
+                assert(a1.size < a2.size)
             }
           }
-          ApplicationController.instance ! RoutingServiceInitialized
         }
+        assert(_routingTable.size == AntMap.sources.size, _routingTable.size)
+        AntMap.sources.foreach { source =>
+          assert(_routingTable.isDefinedAt(source), source)
+          assert((_routingTable(source).keySet & AntMap.destinations) == _routingTable(source).keySet && (AntMap.destinations &~ _routingTable(source).keySet).size <= 1)
+          (AntMap.destinations - source).foreach { destination =>
+            assert(_routingTable(source).isDefinedAt(destination), "%s, %s" format(destination, source))
+            assert(_routingTable(source)(destination).size == AntMap.outgoingWays(source).size, _routingTable(source)(destination).size)
+          }
+        }
+        info("Initialized")
+        AntScout.instance ! AntScout.RoutingServiceInitialized
       }
-    } onException {
-      case e: Exception => error(e)
-    } onTimeout {
-      _ => error("Timeout")
     }
   }
 
   protected def receive = {
-    case FindPath(source, destination) => self tryReply findPath(source, destination)
-    case Init => init
-    case UpdatePropabilities(source, destination, ways) => _routingTable(source) += destination -> ways
-    case m: Any => warn("Unknown message: %s" format m.toString)
+    case FindPath(source, destination) =>
+      sender ! findPath(source, destination)
+    case Initialize =>
+      init()
+    case UpdatePropabilities(source, destination, ways) =>
+      _routingTable(source) += destination -> ways
+    case m: Any =>
+      warn("Unknown message: %s" format m.toString)
   }
 }
 
 object RoutingService {
 
-  case class FindPath(source: ActorRef, destination: ActorRef)
-  case object Init
-  case class UpdatePropabilities(source: ActorRef, destination: ActorRef, ways: Seq[AntWay])
-
-  val instance = {
-    val a = Actor.actorOf(new RoutingService).start
-    a ! Init
-    a
-  }
+  case class FindPath(source: AntNode, destination: AntNode)
+  case object Initialize
+  case object Initialized
+  case class UpdatePropabilities(source: AntNode, destination: AntNode, ways: Seq[AntWay])
 }

@@ -2,11 +2,12 @@ package de.fhwedel.antscout
 package antnet
 
 import net.liftweb.common.Logger
-import akka.actor.{PoisonPill, Scheduler, ActorRef, Actor}
+import akka.actor.{PoisonPill, Actor}
 import java.util.concurrent.TimeUnit
 import net.liftweb.util.Props
 import util.Random
 import extensions.ExtendedDouble._
+import akka.util.Duration
 
 /**
  * Created by IntelliJ IDEA.
@@ -15,52 +16,41 @@ import extensions.ExtendedDouble._
  * Time: 15:21
  */
 
-class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extends Actor with Logger {
+class ForwardAnt(val source: AntNode, val destination: AntNode) extends Actor with Logger {
   
   val DefaultAntLifetime = 30
   val DefaultTimeUnit = "SECONDS"
 
-  var currentNode: ActorRef = _
+  var currentNode: AntNode = _
   var currentWay: AntWay = _
   val memory = AntMemory()
   val random = Random
 
   override def debug(msg: => AnyRef) {
-    super.debug("#%s: %s".format(self id, msg))
+    super.debug("#%s: %s".format(self.path, msg))
   }
 
   override def info(msg: => AnyRef) {
-    super.info("#%s: %s".format(self id, msg))
+    super.info("#%s: %s".format(self.path, msg))
   }
 
   def launchBackwardAnt() {
-    BackwardAnt(sourceNode, destinationNode, memory)
+    BackwardAnt(source, destination, memory)
   }
 
   override def preStart() {
-    if (sourceNode == destinationNode) {
-//      warn("Source node equals destination node, exit!")
-      self.stop()
-    } else {
-      self id = "%s-%s".format(sourceNode id, destinationNode id)
-      val antLifetime = Props.getInt("antLifetime", DefaultAntLifetime)
-      val timeUnit = TimeUnit.valueOf(Props.get("timeUnit", DefaultTimeUnit))
-      Scheduler.scheduleOnce(() => {
-//        info("Committing suicide!")
-        self ! PoisonPill
-      }, antLifetime, timeUnit)
-      visitNode(sourceNode)
+    val antLifetime = Props.getInt("antLifetime", DefaultAntLifetime)
+    val timeUnit = TimeUnit.valueOf(Props.get("timeUnit", DefaultTimeUnit))
+    context.system.scheduler.scheduleOnce(Duration(antLifetime, timeUnit)) {
+      info("Committing suicide!")
+      self ! PoisonPill
     }
+    visitNode(source)
   }
 
   protected def receive = {
-    case Propabilities(ps) => {
-      val nextWay = selectWay(ps)
-      val (nextNode, tripTime) = nextWay cross currentNode
-      memory.memorize(currentNode, currentWay, tripTime)
-      visitNode(nextNode)
-    }
-    case m: Any => warn("Unknown message: %s".format(m))
+    case m: Any =>
+      warn("Unknown message: %s".format(m))
   }
 
   def selectWay(propabilities: Map[AntWay, Double]) = {
@@ -86,31 +76,32 @@ class ForwardAnt(val sourceNode: ActorRef, val destinationNode: ActorRef) extend
   }
 
   override def trace(msg: => AnyRef) {
-    super.trace("#%s: %s".format(self id, msg))
+    super.trace("#%s: %s".format(self.path, msg))
   }
 
-  def visitNode(node: ActorRef) {
+  def visitNode(node: AntNode) {
 //    debug("Visiting node #%s".format(node id))
     currentNode = node
     // Der Knoten hat keine ausgehenden Wege, wir sind in einer Sackgasse angekommen.
     if (!AntMap.outgoingWays.contains(node))
-      self stop
-    else if (node != destinationNode) {
+      self ! PoisonPill
+    else if (node != destination) {
       if (memory.containsNode(node)) {
 //        debug("Circle detected")
         memory.removeCircle(node)
       }
-      node tryTell Enter(destinationNode)
+      node.enter(destination).onComplete {
+        case Left(e) => error("Entering node %s failed (%s)".format(node, e))
+        case Right(propabilities) =>
+          val nextWay = selectWay(propabilities)
+          val (nextNode, tripTime) = nextWay cross currentNode
+          memory.memorize(currentNode, currentWay, tripTime)
+          visitNode(nextNode)
+      }
     } else {
 //      info("Destination reached")
       launchBackwardAnt()
-      self.stop()
+      self ! PoisonPill
     }
   }
 }
-
-object ForwardAnt {
-  def apply(sourceNode: ActorRef, destinationNode: ActorRef) = new ForwardAnt(sourceNode, destinationNode)
-}
-
-case class Propabilities(propabilities: Map[AntWay, Double])

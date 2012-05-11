@@ -1,10 +1,10 @@
 package de.fhwedel.antscout
 package antnet
 
-import akka.actor.ActorRef
-import collection.IterableView
+import akka.actor.Actor
 import collection.mutable
 import net.liftweb.common.Logger
+import routing.RoutingService
 
 /**
  * Created by IntelliJ IDEA.
@@ -18,25 +18,45 @@ import net.liftweb.common.Logger
  *
  * @param destinations Ziel-Knoten
  * @param outgoingWays Ausgehende Wege
- * @param tripTimes Fahrzeiten
  */
-class PheromoneMatrix(destinations: Iterable[ActorRef], outgoingWays: Iterable[AntWay], tripTimes: Map[AntWay, Double]) extends mutable.HashMap[ActorRef, mutable.Map[AntWay, Double]] with Logger {
+class PheromoneMatrix(destinations: Set[AntNode], outgoingWays: Set[AntWay]) extends Actor with Logger {
+
+  assert((destinations & AntMap.destinations) == destinations && (AntMap.destinations &~ destinations).size <= 1)
+
+  import PheromoneMatrix._
 
   val alpha = 0.3
-  val heuristicValues: Map[AntWay, Double] = initHeuristicValues
-  val pheromones = mutable.Map[ActorRef, mutable.Map[AntWay, Double]]()
+  val propabilities = mutable.Map[AntNode, mutable.Map[AntWay, Double]]()
+  val heuristicValues = mutable.Map[AntWay, Double]()
+  val pheromones = mutable.Map[AntNode, mutable.Map[AntWay, Double]]()
     
-  this ++= destinations.map((_ -> mutable.Map[AntWay, Double]()))
-  initPheromones()
-  calculatePropabilities()
+  def calculatePropabilities() {
+    destinations.foreach(calculatePropabilities _)
+  }
+
+  def calculatePropabilities(destination: AntNode) = {
+    outgoingWays.foreach(ow => {
+      propabilities(destination) +=
+        ow -> (pheromones(destination)(ow) + alpha * heuristicValues(ow) / (1 + alpha * (outgoingWays.size - 1)))
+    })
+  }
+
+  def init(tripTimes: Map[AntWay, Double]) {
+    trace("Initializing")
+    propabilities ++= destinations.map((_ -> mutable.Map[AntWay, Double]()))
+    initHeuristicValues(tripTimes)
+    initPheromones()
+    calculatePropabilities()
+    sender ! Initialized
+  }
 
   /**
    * Berechnet die heuristische Größe η, die sich durch Normalisierung der Größe q aller Kanten, die zu einem benachbarten Knoten führen, ergibt. q ist gleich der Fahrdauer im statischen Fall.
    */
-  def initHeuristicValues = {
+  def initHeuristicValues(tripTimes: Map[AntWay, Double]) {
     val travelTimesSum = tripTimes.values.sum
     tripTimes.map {
-      case (antWay, travelTime) => (antWay, 1 - travelTime / travelTimesSum)
+      case (antWay, travelTime) => heuristicValues += (antWay -> (1 - travelTime / travelTimesSum))
     }
   }
 
@@ -50,17 +70,7 @@ class PheromoneMatrix(destinations: Iterable[ActorRef], outgoingWays: Iterable[A
     })
   }
   
-  def calculatePropabilities(): Unit = {
-    destinations.foreach(calculatePropabilities _)
-  }
-  
-  def calculatePropabilities(destination: ActorRef) = {
-    outgoingWays.foreach(ow => {
-      this(destination) += ow -> (pheromones(destination)(ow) + alpha * heuristicValues(ow) / (1 + alpha * (outgoingWays.size - 1)))
-    })
-  }
-
-  def updatePheromones(destination: ActorRef, way: AntWay, reinforcement: Double) {
+  def updatePheromones(destination: AntNode, way: AntWay, reinforcement: Double) {
     trace("updatePheromones")
     outgoingWays.foreach(ow => {
       val oldPheromone = pheromones(destination)(ow)
@@ -71,9 +81,36 @@ class PheromoneMatrix(destinations: Iterable[ActorRef], outgoingWays: Iterable[A
     })
     calculatePropabilities(destination)
   }
+
+  protected def receive = {
+    case GetAllPropabilities(source) =>
+      val immutablePropabilities = propabilities.map {
+        case (destination, propabilities) => (destination -> propabilities.toMap)
+      }.toMap
+      sender ! (source, immutablePropabilities)
+    case GetPropabilities(_, destination) =>
+      sender ! propabilities(destination).toMap
+    case Initialize(tripTimes) =>
+      init(tripTimes)
+    case UpdatePheromones(source: AntNode, destination: AntNode, way: AntWay, reinforcement: Double) =>
+      val propabilitiesBeforePheromoneUpdate = propabilities(destination)
+      updatePheromones(destination, way, reinforcement)
+      val propabilitiesAfterPheromoneUpdate = propabilities(destination)
+      if (propabilitiesAfterPheromoneUpdate != propabilitiesBeforePheromoneUpdate) {
+        val waysSortedByPropabilityInDescendingOrder = propabilitiesAfterPheromoneUpdate.toList
+          .sortBy { case (_, propability) => propability }
+          .reverse
+          .map { case (way, _) => way }
+        AntScout.routingService ! RoutingService.UpdatePropabilities(source, destination, waysSortedByPropabilityInDescendingOrder)
+      }
+  }
 }
 
 object PheromoneMatrix {
 
-  def apply(destinations: Iterable[ActorRef], outgoingWays: Iterable[AntWay], tripTimes: Map[AntWay, Double]) = new PheromoneMatrix(destinations, outgoingWays, tripTimes)
+  case class GetAllPropabilities(node: AntNode)
+  case class GetPropabilities(node: AntNode, destination: AntNode)
+  case class Initialize(tripTimes: Map[AntWay, Double])
+  case object Initialized
+  case class UpdatePheromones(node: AntNode, destination: AntNode, way: AntWay, reinforcement: Double)
 }

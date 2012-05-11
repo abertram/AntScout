@@ -1,16 +1,18 @@
 package de.fhwedel.antscout
 package rest
 
+import akka.pattern.ask
+import akka.util.duration._
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.Extraction
-import net.liftweb.json.JsonAST.{JArray, JObject, JString, JField}
+import net.liftweb.json.JsonAST.{JArray, JString}
 import osm.OsmMap
 import net.liftweb.json.JsonDSL._
-import net.liftweb.http.{S, Req}
+import net.liftweb.http.S
 import routing.RoutingService
-import akka.actor.{Actor, ActorRef}
-import net.liftweb.common.{Logger, Full, Box}
+import net.liftweb.common.Logger
 import antnet.{AntWay, AntMap}
+import akka.dispatch.Await
+import akka.util.Timeout
 
 /**
  * Created by IntelliJ IDEA.
@@ -20,6 +22,8 @@ import antnet.{AntWay, AntMap}
  */
 
 object Rest extends Logger with RestHelper {
+
+  implicit val timeout = Timeout(5 seconds)
 
   serve {
     case Get(List("antnodes"), _) => {
@@ -35,10 +39,11 @@ object Rest extends Logger with RestHelper {
         sourceId <- S.param("source") ?~ "Source is missing" ~> 400
         destinationId <- S.param("destination") ?~ "Destination is missing" ~> 400
       } yield {
-        val source = Actor.registry.actorsFor(sourceId).head
-        val destination = Actor.registry.actorsFor(destinationId).head
-        val path = (RoutingService.instance ? RoutingService.FindPath(source, destination)).mapTo[Seq[AntWay]].get
-        JArray(path.map(w => JString(w toString)) toList)
+        val source = AntMap.nodes.find(_.id == sourceId).get
+        val destination = AntMap.nodes.find(_.id == destinationId).get
+        val pathFuture = (AntScout.routingService ? RoutingService.FindPath(source, destination))
+        val path = Await.result(pathFuture, 5 seconds).asInstanceOf[Seq[AntWay]].toList
+        JArray(path.map(w => JString(w toString)))
       }
     case Get(List("osmnodes"), _) => {
       JArray(OsmMap.nodes.values.map(n => {

@@ -2,10 +2,8 @@ package de.fhwedel.antscout
 package antnet
 
 import net.liftweb.common.Logger
-import akka.actor.{ActorRef, Actor}
-import antnet.AntNode._
 import osm._
-import map.{Node, Way}
+import map.Way
 
 /**
  * Created by IntelliJ IDEA.
@@ -14,9 +12,9 @@ import map.{Node, Way}
  * Time: 12:07
  */
 
-class AntWay(id: String, override val nodes: Seq[OsmNode], val startNode: ActorRef, val endNode: ActorRef, val length: Double, val maxSpeed: Double) extends Way(id, nodes) with Logger {
+class AntWay(id: String, override val nodes: Seq[OsmNode], val startNode: AntNode, val endNode: AntNode, val length: Double, val maxSpeed: Double) extends Way(id, nodes) with Logger {
 
-  def cross(startNode: ActorRef) = if (startNode == this.startNode) (endNode, tripTime) else (startNode, tripTime)
+  def cross(startNode: AntNode) = if (startNode == this.startNode) (endNode, tripTime) else (startNode, tripTime)
 
   /**
    * Berechnet den Endknoten des Weges. Dieser ist davon abhängig, welcher Knoten als Startknoten definiert wird.
@@ -24,7 +22,7 @@ class AntWay(id: String, override val nodes: Seq[OsmNode], val startNode: ActorR
    * @param startNode Der als Startknoten definierte Knoten.
    * @return Endknoten
    */
-  def endNode(startNode: ActorRef): ActorRef = {
+  def endNode(startNode: AntNode): AntNode = {
     if (startNode == this.startNode)
       endNode
     else
@@ -38,15 +36,15 @@ class AntWay(id: String, override val nodes: Seq[OsmNode], val startNode: ActorR
 
 object AntWay extends Logger {
 
-  def apply(id: String, startNode: ActorRef, endNode: ActorRef, length: Double, maxSpeed: Double) = {
+  def apply(id: String, startNode: AntNode, endNode: AntNode, length: Double, maxSpeed: Double) = {
     new AntWay(id, Seq(), startNode, endNode, length, maxSpeed)
   }
 
   def apply(id: String, nodes: Seq[OsmNode], maxSpeed: Double, oneWay: Boolean = false) = {
     val startNodeId = nodes.head.id
     val endNodeId = nodes.last.id
-    val startNode = Actor.registry.actors.find (_.id == startNodeId) getOrElse AntNode(startNodeId)
-    val endNode = Actor.registry.actors.find (_.id == endNodeId) getOrElse AntNode(endNodeId)
+    val startNode = AntMap.nodes.find (_.id == startNodeId) getOrElse AntNode(startNodeId)
+    val endNode = AntMap.nodes.find (_.id == endNodeId) getOrElse AntNode(endNodeId)
     val length = nodes.zip(nodes.tail).map(n => n._1.distanceTo(n._2)).sum
     if (oneWay)
       new AntOneWay(id, nodes, startNode, endNode, length, maxSpeed)

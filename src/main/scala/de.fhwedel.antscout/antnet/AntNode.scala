@@ -1,13 +1,11 @@
 package de.fhwedel.antscout
 package antnet
 
-import akka.actor.{ActorRef, Actor}
+import akka.pattern.ask
 import net.liftweb.common.Logger
-import akka.dispatch.Future
-import collection.immutable.List
-import collection.{Iterable, IterableView, SeqView, IndexedSeq}
-import net.liftweb.util.{Props, TimeHelpers}
-import routing.RoutingService
+import map.Node
+import akka.util.duration._
+import akka.util.Timeout
 
 /**
  * Created by IntelliJ IDEA.
@@ -16,63 +14,37 @@ import routing.RoutingService
  * Time: 12:06
  */
 
-class AntNode(id: String) extends Actor with Logger {
+class AntNode(id: String) extends Node(id) with Logger {
 
-  lazy val pheromoneMatrix = {
-    assert(AntMap.outgoingWays != null)
-    val tripTimes =  AntMap.outgoingWays(self).map(ow => (ow -> ow.tripTime)).toMap
-    PheromoneMatrix(AntMap destinations, AntMap.outgoingWays(self), tripTimes)
-  }
-  lazy val trafficModel = {
-    assert(AntMap.destinations != null)
-    val varsigma = Props.get("varsigma").map(_.toDouble) openOr TrafficModel.DefaultVarsigma
-    TrafficModel(AntMap destinations, varsigma, (5 * (0.3 / varsigma)).toInt)
+  implicit val timeout = Timeout(5 seconds)
+
+  def enter(destination: AntNode) = {
+    (AntScout.pheromonMatrixSupervisor
+      ? PheromoneMatrix.GetPropabilities(this, destination))
+      .mapTo[Map[AntWay, Double]]
   }
 
-  override def preStart() {
-    self.id = id
+  def propabilities(implicit timeout: Timeout) = {
+    (AntScout.pheromonMatrixSupervisor
+      ? PheromoneMatrix.GetAllPropabilities(this))(timeout)
+      .mapTo[(AntNode, Map[AntNode, Map[AntWay, Double]])]
   }
 
-  protected def receive = {
-    case Enter(d) => {
-      if (pheromoneMatrix != null)
-        self.tryReply(Propabilities(pheromoneMatrix(d).toMap))
+  def updateDataStructures(destination: AntNode, way: AntWay, tripTime: Double) = {
+    trace("UpdateDataStructures(%s, %s, %s)" format (destination.id, way.id, tripTime))
+    AntScout.trafficModelSupervisor ! TrafficModel.AddSample(this, destination, tripTime)
+    (AntScout.trafficModelSupervisor
+      ? TrafficModel.GetReinforcement(this, destination, tripTime, AntMap.outgoingWays(this).size))
+      .mapTo[Double] onComplete {
+      case Left(e) =>
+        error("%s" format(e))
+      case Right(reinforcement) =>
+        AntScout.pheromonMatrixSupervisor ! PheromoneMatrix.UpdatePheromones(this, destination, way, reinforcement)
     }
-    case UpdateDataStructures(d, w, tt) => {
-      trace("UpdateDataStructures(%s, %s, %s)" format (d id, w id, tt))
-      trafficModel += (d, tt)
-      val propabilitiesBeforePheromoneUpdate = pheromoneMatrix(d).toMap
-      pheromoneMatrix.updatePheromones(d, w, trafficModel.reinforcement(d, tt, AntMap.outgoingWays(self).size))
-      val propabilitiesAfterPheromoneUpdate = pheromoneMatrix(d).toMap
-      if (propabilitiesAfterPheromoneUpdate != propabilitiesBeforePheromoneUpdate) {
-        val waysSortedByPropabilityInDescendingOrder = propabilitiesAfterPheromoneUpdate.toList
-          .sortBy { case (_, propability) => propability }
-          .reverse
-          .map { case (way, _) => way }
-        RoutingService.instance ! RoutingService.UpdatePropabilities(self, d, waysSortedByPropabilityInDescendingOrder)
-      }
-    }
-    case OutgoingWaysPropabilitiesRequest => {
-      val propabilities = AntMap.destinations map { d =>
-        val propabilities = pheromoneMatrix(d).toSeq
-          .sortBy { case (_, propability) => propability }
-          .reverse
-          .map { case (way, _) => way }
-        (d, propabilities)
-      }
-      self reply (self, propabilities)
-    }
-    case m: Any => warn("Unknown message: %s" format m.toString)
   }
 }
 
 object AntNode {
 
-  def apply(id: Int) = Actor.actorOf(new AntNode(id.toString)).start()
-
-  def apply(id: String) = Actor.actorOf(new AntNode(id)).start()
+  def apply(id: String) = new AntNode(id)
 }
-
-case class Enter(destination: ActorRef)
-case class UpdateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double)
-case object OutgoingWaysPropabilitiesRequest

@@ -6,8 +6,7 @@ import common._
 import http._
 import sitemap._
 import Loc._
-import akka.actor.Actor
-import de.fhwedel.antscout.ApplicationController
+import de.fhwedel.antscout.AntScout
 import de.fhwedel.antscout.rest.Rest
 
 /**
@@ -20,7 +19,8 @@ class Boot extends Logger {
     // where to search snippet
     LiftRules.addToPackages("de.fhwedel.antscout")
 
-    ApplicationController
+    // AntScout-Initialisierung anstoßen
+    AntScout.init()
 
     // Build SiteMap
     val entries = List(
@@ -55,8 +55,9 @@ class Boot extends Logger {
     LiftRules.statelessDispatchTable.append(Rest)
 
     LiftRules.unloadHooks.append(() => {
-      info("Shutting down all actors")
-      Actor.registry.shutdownAll()
+      // System runterfahren
+      info("Shutting down")
+      AntScout.shutDown()
     })
   }
 }

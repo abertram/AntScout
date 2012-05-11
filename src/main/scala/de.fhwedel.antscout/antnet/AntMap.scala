@@ -3,10 +3,10 @@ package antnet
 
 import net.liftweb.common.Logger
 import osm.{OsmOneWay, OsmWay, OsmNode, OsmMap}
-import akka.actor.ActorRef
 import net.liftweb.util.{Props, TimeHelpers}
 import annotation.tailrec
 import collection.immutable.{Set, Map}
+import collection.mutable
 import collection.mutable.ListBuffer
 
 /**
@@ -23,42 +23,46 @@ object AntMap extends Logger {
   /**
    * Ziele
    */
-  private var _destinations: Set[ActorRef] = _
+  private var _destinations: Set[AntNode] = _
   /**
    * Eingehende Wege pro Knoten
    */
-  private var _incomingWays: Map[ActorRef, Set[AntWay]] = _
+  private var _incomingWays: Map[AntNode, Set[AntWay]] = _
   /**
    * Knoten
    */
-  private var _nodes: Set[ActorRef] = _
+  private val _nodes = mutable.Set[AntNode]()
   /**
    * Ausgehende Wege pro Knoten
    */
-  private var _outgoingWays: Map[ActorRef, Set[AntWay]] = _
+  private var _outgoingWays: Map[AntNode, Set[AntWay]] = _
   /**
    * Ziele
    */
-  private var _sources: Set[ActorRef] = _
+  private var _sources: Set[AntNode] = _
   /**
    * Wege
    */
   private var _ways: Set[AntWay] = _
 
   def apply() {
+    info("Initializing")
     val nodeWaysMapping = OsmMap.nodeWaysByHighwayMapping(relevantHighways).par.filter {
       case (node, ways) => ways.size >= 2
     }.seq
     val wayData = computeAntWays(nodeWaysMapping)
     _ways = (1 to wayData.size).zip(wayData).map {
-      case (id, wd) => AntWay(id.toString, wd.nodes, wd.maxSpeed, wd.isInstanceOf[AntOneWayData])
+      case (id, wd) => {
+        val antWay = AntWay(id.toString, wd.nodes, wd.maxSpeed, wd.isInstanceOf[AntOneWayData])
+        _nodes += antWay.startNode += antWay.endNode
+        antWay
+      }
     }.toSet
     assert(_ways.size == wayData.size)
     assert(_ways.map(_.id).toSet.size == _ways.size, "%s ids, %s ways".format(_ways.map(_.id).toSet.size, _ways.size))
     val (incomingWays, outgoingWays) = computeIncomingAndOutgoingWays(_ways)
     _incomingWays = incomingWays
     _outgoingWays = outgoingWays
-    _nodes = _ways.flatMap(w => Iterable[ActorRef](w.startNode, w.endNode)).toSet
     info("%d ant nodes".format(_nodes.size))
 //    info("Nodes without incoming ways: %s".format(_nodes.filter(n => !incomingWays.contains(n)).map(n => "\nhttp://www.openstreetmap.org/browse/node/%s".format(n.id))))
 //    info("Nodes without outgoing ways: %s".format(_nodes.filter(n => !outgoingWays.contains(n)).map(n => "\nhttp://www.openstreetmap.org/browse/node/%s".format(n.id))))
@@ -177,9 +181,10 @@ object AntMap extends Logger {
    * @param ways Wege
    * @return 2-Tupel. Das erste Element repräsentiert die eingehenden, das zweite Element die ausgehenden Wege. Die Datenstruktur ist jeweils eine Map, deren Schlüssel die einzelnen Knoten und die Werte die zugehörigen Wege sind.
    */
-  def computeIncomingAndOutgoingWays(ways: Iterable[AntWay]): (Map[ActorRef, Set[AntWay]], Map[ActorRef, Set[AntWay]]) = {
+  def computeIncomingAndOutgoingWays(ways: Iterable[AntWay]): (Map[AntNode, Set[AntWay]], Map[AntNode, Set[AntWay]]) = {
+    info("Computing incoming and outgoing ways")
     @tailrec
-    def computeIncomingAndOutgoingWaysRec(ways: Set[AntWay], incomingWays: Map[ActorRef, Set[AntWay]], outgoingWays: Map[ActorRef, Set[AntWay]]): (Map[ActorRef, Set[AntWay]], Map[ActorRef, Set[AntWay]]) = {
+    def computeIncomingAndOutgoingWaysRec(ways: Set[AntWay], incomingWays: Map[AntNode, Set[AntWay]], outgoingWays: Map[AntNode, Set[AntWay]]): (Map[AntNode, Set[AntWay]], Map[AntNode, Set[AntWay]]) = {
       if (ways.isEmpty)
         (incomingWays, outgoingWays)
       else {
@@ -220,7 +225,7 @@ object AntMap extends Logger {
         computeIncomingAndOutgoingWaysRec(ways.tail, incomingWays ++ newIncomingWays, outgoingWays ++ newOutgoingWays)
       }
     }
-    computeIncomingAndOutgoingWaysRec(ways toSet, Map.empty[ActorRef, Set[AntWay]], Map.empty[ActorRef, Set[AntWay]])
+    computeIncomingAndOutgoingWaysRec(ways toSet, Map.empty[AntNode, Set[AntWay]], Map.empty[AntNode, Set[AntWay]])
   }
 
   /**
@@ -229,10 +234,10 @@ object AntMap extends Logger {
    * @param incomingWays Map, in der die Knoten-Ids als Schlüssel und Ids der eingehenden Wege als Wert gespeichert sind.
    * @param outgoingWays Map, in der die Knoten-Ids als Schlüssel und Ids der ausgehenden Wege als Wert gespeichert sind.
    */
-  def computeSourcesAndDestinations(nodes: Iterable[ActorRef], incomingWays: Map[ActorRef, Set[AntWay]], outgoingWays: Map[ActorRef, Set[AntWay]]): (Set[ActorRef], Set[ActorRef]) = {
+  def computeSourcesAndDestinations(nodes: Iterable[AntNode], incomingWays: Map[AntNode, Set[AntWay]], outgoingWays: Map[AntNode, Set[AntWay]]): (Set[AntNode], Set[AntNode]) = {
     info("Computing sources and destinations")
-    val sources = new ListBuffer[ActorRef]
-    val destinations = new ListBuffer[ActorRef]
+    val sources = new ListBuffer[AntNode]
+    val destinations = new ListBuffer[AntNode]
     val (time, _) = TimeHelpers.calcTime {
       nodes.foreach {
         n => {

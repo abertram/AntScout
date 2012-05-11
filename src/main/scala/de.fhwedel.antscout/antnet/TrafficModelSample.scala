@@ -1,8 +1,8 @@
 package de.fhwedel.antscout
 package antnet
 
-import collection.mutable.ListBuffer
 import extensions.ExtendedDouble._
+import collection.mutable.Buffer
 
 /**
  * Created by IntelliJ IDEA.
@@ -11,10 +11,10 @@ import extensions.ExtendedDouble._
  * Time: 12:05
  */
 
-class TrafficModelItem(val varsigma: Double, val windowSize: Int) {
+class TrafficModelSample(val varsigma: Double, val windowSize: Int) {
 
   private var mean = 0.0
-  val tripTimes = ListBuffer.empty[Double]
+  val tripTimes = Buffer[Double]()
   private var variance = 0.0
 
   def +=(tripTime: Double) {
@@ -43,7 +43,7 @@ class TrafficModelItem(val varsigma: Double, val windowSize: Int) {
   }
 }
 
-object TrafficModelItem {
+object TrafficModelSample {
 
-  def apply(varsigma: Double, windowSize: Int) = new TrafficModelItem(varsigma, windowSize)
+  def apply(varsigma: Double, windowSize: Int) = new TrafficModelSample(varsigma, windowSize)
 }

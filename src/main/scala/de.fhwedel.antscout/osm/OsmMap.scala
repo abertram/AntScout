@@ -62,6 +62,7 @@ object OsmMap extends Logger {
   }
 
   def apply(osmData: Elem) {
+    info("Initializing")
     _nodes = parseNodes(osmData \ "node")
     _ways = parseWays(osmData \ "way", _nodes)
     computeNodeWaysMapAndIntersections()

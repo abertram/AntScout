@@ -29,9 +29,9 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "1.7.1" % "test"
 
 libraryDependencies += "org.scala-tools.testing" %% "specs" % "1.6.9" % "test"
 
-libraryDependencies += "se.scalablesolutions.akka" % "akka-actor" % "1.3.1"
+libraryDependencies += "com.typesafe.akka" % "akka-actor" % "2.0.1"
 
-libraryDependencies += "se.scalablesolutions.akka" % "akka-testkit" % "1.3.1"
+libraryDependencies += "com.typesafe.akka" % "akka-testkit" % "2.0.1"
 
 // coffeescrpted-sbt
 seq(coffeeSettings: _*)
