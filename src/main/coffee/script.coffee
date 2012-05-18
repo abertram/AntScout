@@ -2,33 +2,32 @@ $(() ->
 
   map = new OpenLayers.Map "map"
   osmLayer = new OpenLayers.Layer.OSM()
-  antNodes = null
-  antNodesLayer = new OpenLayers.Layer.Markers("Ant nodes", {opacity: 0.5, visibility: false})
-  directionsLayer = new OpenLayers.Layer.Vector("Directions",
+  nodes = null
+  nodesLayer = new OpenLayers.Layer.Vector(
+    "Nodes"
+    {
+      opacity: 0.5
+      visibility: false
+    }
+  )
+  nodesLayer.events.on({
+    "featureselected": (e) ->
+      alert(e.feature.attributes.node.id)
+    "visibilitychanged": (e) ->
+      if nodesLayer.getVisibility() and not nodes?
+        retrieveNodes()
+  })
+  directionsLayer = new OpenLayers.Layer.Vector(
+    "Directions"
     renderers: ["Canvas", "SVG", "VML"]
   )
   EPSG4326Projection = new OpenLayers.Projection("EPSG:4326")
-  nodesLayer = new OpenLayers.Layer.Vector("Nodes")
-  osmNodes = null
-  osmNodesLayer = new OpenLayers.Layer.Markers("OSM nodes", {opacity: 0.5, visibility: false});
+  selectFeatureControl = new OpenLayers.Control.SelectFeature(nodesLayer);
 
-  map.addControl(new OpenLayers.Control.LayerSwitcher());
-  map.addLayers([osmLayer, antNodesLayer, osmNodesLayer, directionsLayer]);
+  map.addControls([new OpenLayers.Control.LayerSwitcher(), selectFeatureControl]);
+  map.addLayers([osmLayer, nodesLayer, directionsLayer]);
+  selectFeatureControl.activate();
   map.zoomToMaxExtent()
-
-  addMarkers = (iconName, size, offset, nodes, nodesLayer) ->
-    icon = new OpenLayers.Icon("/scripts/openlayers/img/" + iconName + ".png", size, offset)
-    for node in nodes
-      (() ->
-        lonLat = new OpenLayers.LonLat(node.longitude, node.latitude)
-          .transform(EPSG4326Projection, map.getProjectionObject())
-        marker = new OpenLayers.Marker(lonLat, icon.clone())
-        marker.events.register("mousedown", node, (e) ->
-          alert(this.id)
-          OpenLayers.Event.stop(e);
-        )
-        nodesLayer.addMarker(marker))()
-    map.zoomToExtent(nodesLayer.getDataExtent())
 
   displayDirections = (directions) ->
     $("#directions").html("<ol><li>" + directions.join("</li><li>") + "</li></ol>")
@@ -78,33 +77,22 @@ $(() ->
     directionsLayer.addFeatures([sourceFeature, targetFeature])
     map.zoomToExtent(directionsLayer.getDataExtent())
 
-  map.events.on({
-    "changelayer": (event) ->
-      if shouldRetrieveNodes(event, "Ant nodes", antNodes)
-        retrieveNodes("/antnodes", antNodes, memorizeAntNodesAndAddAntNodeMarkers)
-      else if shouldRetrieveNodes(event, "OSM nodes", osmNodes)
-        retrieveNodes("/osmnodes", osmNodes, memorizeOsmNodesAndAddOsmNodeMarkers)
-  })
-
-  memorizeAntNodesAndAddAntNodeMarkers = (nodes) ->
-    antNodes = nodes
-    size = new OpenLayers.Size(21, 25)
-    offset = new OpenLayers.Pixel(-(size.w / 2) - 3, -size.h - 3)
-    addMarkers("marker-blue", size, offset, antNodes, antNodesLayer)
-
-  memorizeOsmNodesAndAddOsmNodeMarkers = (nodes) ->
-    osmNodes = nodes
-    size = new OpenLayers.Size(21, 25)
-    offset = new OpenLayers.Pixel(-(size.w / 2), -size.h)
-    addMarkers("marker-green", size, offset, osmNodes, osmNodesLayer)
-
-  retrieveNodes = (url, nodes, successFunction) ->
-    $.get  url,
+  retrieveNodes = (successFunction) ->
+    $.get "nodes",
       (ns) ->
-        successFunction(ns)
-
-  shouldRetrieveNodes = (event, layerName, nodes) ->
-    event.layer.name is layerName and event.property is "visibility" and event.layer.visibility and not nodes?
+        nodes = ns
+        features = for node in nodes
+          (() ->
+            point = new OpenLayers.Geometry.Point(node.longitude, node.latitude)
+              .transform(EPSG4326Projection, map.getProjectionObject())
+            feature = new OpenLayers.Feature.Vector(
+              point
+              {
+                node: node
+              }
+            ))()
+        nodesLayer.addFeatures(features)
+        map.zoomToExtent(nodesLayer.getDataExtent())
 
   retrieveDirections = () ->
     destination = $("#destination").val()

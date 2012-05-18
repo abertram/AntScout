@@ -4,7 +4,7 @@ package rest
 import akka.pattern.ask
 import akka.util.duration._
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.JsonAST.{JArray, JString}
+import net.liftweb.json.JsonAST.JArray
 import osm.OsmMap
 import net.liftweb.json.JsonDSL._
 import net.liftweb.http.S
@@ -26,7 +26,7 @@ object Rest extends Logger with RestHelper {
   implicit val timeout = Timeout(5 seconds)
 
   serve {
-    case Get(List("antnodes"), _) => {
+    case Get(List("nodes"), _) => {
       JArray(AntMap.nodes.map(n => {
         val osmNode = OsmMap.nodes(n.id)
         ("id" -> n.id) ~
@@ -42,8 +42,14 @@ object Rest extends Logger with RestHelper {
         val source = AntMap.nodes.find(_.id == sourceId).get
         val destination = AntMap.nodes.find(_.id == destinationId).get
         val pathFuture = (AntScout.routingService ? RoutingService.FindPath(source, destination))
-        val path = Await.result(pathFuture, 5 seconds).asInstanceOf[Seq[AntWay]].toList
-        JArray(path.map(w => JString(w toString)))
+        val path = Await.result(pathFuture, 5 seconds).asInstanceOf[Seq[AntWay]]
+        JArray(path.map { antWay =>
+          ("id" -> antWay.id) ~
+          ("nodes" -> antWay.nodes.map { node =>
+            ("latitude" -> node.geographicCoordinate.latitude) ~
+            ("longitude" -> node.geographicCoordinate.longitude)
+          })
+        }.toList)
       }
     case Get(List("osmnodes"), _) => {
       JArray(OsmMap.nodes.values.map(n => {
