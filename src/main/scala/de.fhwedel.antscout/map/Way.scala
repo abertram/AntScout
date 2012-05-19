@@ -2,6 +2,7 @@ package de.fhwedel.antscout
 package map
 
 import net.liftweb.common.Logger
+import net.liftweb.json.JsonDSL._
 
 /**
  * Created by IntelliJ IDEA.
@@ -22,6 +23,11 @@ class Way(val id: String, val nodes: Seq[Node]) extends Logger {
   }
 
   override def hashCode = nodes.hashCode
+
+  def toJson = {
+    ("id" -> id) ~
+    ("nodes" -> nodes.map(_.toJson))
+  }
 
   override def toString = "#%s".format(id)
 }

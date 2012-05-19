@@ -3,6 +3,7 @@ package osm
 
 import scala.math._
 import net.liftweb.common.Logger
+import net.liftweb.json.JsonDSL._
 import map.Node
 
 /**
@@ -100,6 +101,13 @@ class OsmNode(id: String, val geographicCoordinate: GeographicCoordinate) extend
         way1.name == way2.name &&
         way1.getClass == way2.getClass
     }
+  }
+
+
+  override def toJson = {
+    super.toJson ~
+    ("longitude" -> geographicCoordinate.longitude) ~
+    ("latitude" -> geographicCoordinate.latitude)
   }
 
   override def toString = "OsmNode #%s".format(id)

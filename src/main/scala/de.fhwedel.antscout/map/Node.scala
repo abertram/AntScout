@@ -1,6 +1,9 @@
 package de.fhwedel.antscout
 package map
 
+import net.liftweb.json.JsonAST.JObject
+import net.liftweb.json.JsonDSL._
+
 /**
  * Created by IntelliJ IDEA.
  * User: alex
@@ -18,6 +21,8 @@ class Node(val id: String) {
   }
 
   override def hashCode = id.hashCode
+
+  def toJson: JObject = ("id" -> id)
 
   override def toString = "Node #%s".format(id)
 }

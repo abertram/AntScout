@@ -7,6 +7,13 @@ $(() ->
     "Nodes"
     {
       opacity: 0.5
+      style:
+        fillColor: "lightblue"
+        fillOpacity: 0.5
+        pointRadius: 6
+        strokeColor: "blue"
+        strokeOpacity: 0.5
+        strokeWidth:5
       visibility: false
     }
   )
@@ -23,9 +30,27 @@ $(() ->
   )
   EPSG4326Projection = new OpenLayers.Projection("EPSG:4326")
   selectFeatureControl = new OpenLayers.Control.SelectFeature(nodesLayer);
+  ways = null
+  waysLayer = new OpenLayers.Layer.Vector(
+    "Ways"
+    {
+      style:
+        fillColor: "lightblue"
+        fillOpacity: 0.5
+        strokeColor: "blue"
+        strokeOpacity: 0.5
+        strokeWidth: 5
+      visibility: false
+    }
+  )
+  waysLayer.events.on({
+  "visibilitychanged": (e) ->
+    if waysLayer.getVisibility() and not ways?
+      retrieveWays()
+  })
 
   map.addControls([new OpenLayers.Control.LayerSwitcher(), selectFeatureControl]);
-  map.addLayers([osmLayer, nodesLayer, directionsLayer]);
+  map.addLayers([osmLayer, nodesLayer, waysLayer, directionsLayer]);
   selectFeatureControl.activate();
   map.zoomToMaxExtent()
 
@@ -104,6 +129,18 @@ $(() ->
       (directions) ->
         displayDirections(directions)
         drawDirections(directions)
+
+  retrieveWays = () ->
+    $.get "ways",
+      (ws) ->
+        ways = ws
+        lines = for way in ways
+          points = for node in way.nodes
+            new OpenLayers.Geometry.Point(node.longitude, node.latitude)
+              .transform(EPSG4326Projection, map.getProjectionObject())
+          new OpenLayers.Feature.Vector(new OpenLayers.Geometry.LineString(points))
+        waysLayer.addFeatures(lines)
+        map.zoomToExtent(waysLayer.getDataExtent())
 
   $("#retrieveDirections").click(retrieveDirections)
 )
