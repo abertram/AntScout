@@ -254,6 +254,8 @@ object AntMap extends Logger {
 
   def destinations = _destinations
 
+  def incomingWays = _incomingWays
+
   def nodes = _nodes
 
   def outgoingWays = _outgoingWays
