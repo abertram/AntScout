@@ -2,27 +2,37 @@
 <head>
     <meta content="text/html; charset=UTF-8" http-equiv="content-type"/>
     <title>AntScout</title>
-    <link rel="stylesheet" type="text/css" href="/css/bootstrap.css">
+    <link rel="stylesheet" href="/css/bootstrap.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
+<div class="navbar">
+    <div class="navbar-inner">
+        <div class="container-fluid">
+            <span class="brand">AntScout</span>
+        </div>
+    </div>
+</div>
 <div class="container-fluid">
     <div class="row-fluid">
         <div class="span2">
             <form class="well">
                 <label for="source">Source</label>
-                <input class="span2" id="source" type="text" value="271474885">
+                <input class="span2" id="source" type="text" value="17479069">
                 <label for="destination">Destination</label>
-                <input class="span2" id="destination" type="text" value="1514366845">
+                <input class="span2" id="destination" type="text" value="705531295">
                 <button class="btn" id="retrieveDirections" type="button">Retrieve directions</button>
             </form>
             <div class="well">
                 <h3>Directions</h3>
-
                 <div id="directions"></div>
             </div>
         </div>
-        <div class="span10">
-            <div id="map" style="height: 700px; width: 1300px;"></div>
+        <div class="span8">
+            <div id="map" style="height: 600px; width: 100%;"></div>
+        </div>
+        <div class="span2">
+            <div class="well"></div>
         </div>
     </div>
 </div>
@@ -32,3 +42,4 @@
 </body>
 </html>
 
+<head>
