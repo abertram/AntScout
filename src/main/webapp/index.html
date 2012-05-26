@@ -29,10 +29,52 @@
             </div>
         </div>
         <div class="span8">
-            <div id="map" style="height: 600px; width: 100%;"></div>
+            <div id="map" style="height: 600px;"></div>
         </div>
         <div class="span2">
-            <div class="well"></div>
+            <div class="well">
+                <h2>Node</h2>
+                <table class="table table-bordered table-condensed table-striped">
+                    <tr>
+                        <td>Id</td><td id="nodeId"></td>
+                    </tr>
+                    <tr>
+                        <td>Longitude</td><td id="nodeLongitude"></td>
+                    </tr>
+                    <tr>
+                        <td>Latitude</td><td id="nodeLatitude"></td>
+                    </tr>
+                </table>
+                <a class="btn" id="setNodeAsSource"><i class="icon-home"></i> As source</a>
+                <a class="btn" id="setNodeAsDestination"><i class="icon-flag"></i> As target</a>
+            </div>
+            <div class="well">
+                <h2>Way</h2>
+                <table class="table table-bordered table-condensed table-striped">
+                    <tr>
+                        <td>Id</td><td id="wayId"></td>
+                    </tr>
+                    <tr>
+                        <td>Length</td><td id="wayLength"></td>
+                    </tr>
+                    <tr>
+                        <td>Max speed</td>
+                        <td>
+                            <form>
+                                <div class="input-append">
+                                    <input id="wayMaxSpeed" class="input-mini" disabled><span class="add-on">m/s</span>
+                                </div>
+                                <button id="wayEditMaxSpeed" class="btn" type="button"><i class="icon-edit"></i></button>
+                                <button id="waySaveMaxSpeed" class="btn" disabled type="button"><i class="icon-ok"></i></button>
+                                <button id="wayCancelEditMaxSpeed" class="btn" disabled type="button"><i class="icon-remove"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Nodes</td><td id="wayNodes"></td>
+                    </tr>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -41,5 +83,4 @@
 <script src="/scripts/script.js"></script>
 </body>
 </html>
-
 <head>

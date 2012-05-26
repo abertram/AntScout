@@ -51,8 +51,12 @@ nodesLayer = new OpenLayers.Layer.Vector(
 )
 nodesLayer.events.on({
   "featureselected": (e) ->
-    retrieveNode(e.feature.attributes.node.id)
-    alert(e.feature.attributes.node.id)
+    id = e.feature.attributes.node.id
+    $("#nodeId").html("<a href=\"http://www.openstreetmap.org/browse/node/#{ id }\">#{ id }</a>")
+    $("#nodeLongitude").html(e.feature.attributes.node.longitude)
+    $("#nodeLatitude").html(e.feature.attributes.node.latitude)
+    retrieveNode(id)
+#    alert(e.feature.attributes.node.id)
   "visibilitychanged": (e) ->
     if nodesLayer.getVisibility() and not nodes?
       retrieveNodes()
@@ -65,7 +69,6 @@ outgoingWaysLayer = new OpenLayers.Layer.Vector(
     visibility: false
   }
 )
-selectFeatureControl = new OpenLayers.Control.SelectFeature(nodesLayer);
 ways = null
 waysLayer = new OpenLayers.Layer.Vector(
   "Ways"
@@ -75,10 +78,20 @@ waysLayer = new OpenLayers.Layer.Vector(
   }
 )
 waysLayer.events.on({
-"visibilitychanged": (e) ->
-  if waysLayer.getVisibility() and not ways?
-    retrieveWays()
+  "featureselected": (e) ->
+    way = e.feature.attributes.way
+    id = way.id
+    $("#wayId").html(id)
+    $("#wayLength").html(way.length)
+    $("#wayMaxSpeed").val(way.maxSpeed)
+    nodes = for node in way.nodes
+      "<a href=\"http://www.openstreetmap.org/browse/node/#{ node.id }\">#{ node.id }</a>"
+    $("#wayNodes").html("<ul><li>" + nodes.join("</li><li>") + "</li></ul>")
+  "visibilitychanged": (e) ->
+    if waysLayer.getVisibility() and not ways?
+      retrieveWays()
 })
+selectFeatureControl = new OpenLayers.Control.SelectFeature([nodesLayer, waysLayer]);
 
 $(() ->
   map = new OpenLayers.Map "map"
@@ -86,9 +99,21 @@ $(() ->
   map.addLayers([directionsLayer, incomingWaysLayer, nodesLayer, osmLayer, outgoingWaysLayer, waysLayer]);
   selectFeatureControl.activate();
   map.zoomToMaxExtent()
-
-
   $("#retrieveDirections").click(retrieveDirections)
+  $("#setNodeAsSource").click(setNodeAsSource)
+  $("#setNodeAsDestination").click(setNodeAsDestination)
+  $("#wayEditMaxSpeed, #waySaveMaxSpeed, #wayCancelEditMaxSpeed").click(() -> toggleWayEditMaxSpeedControls())
+  $("#wayEditMaxSpeed").click(() -> $("#wayMaxSpeed").select())
+  $("#waySaveMaxSpeed").click(() ->
+    id = waysLayer.selectedFeatures[0].attributes.way.id
+    $.ajax({
+      contentType: "application/json"
+      type: "PUT"
+      url: "way/#{ id }"
+      data:
+        maxSpeed: $("#wayMaxSpeed").val()
+    })
+  )
 )
 
 addWaysToLayer = (ways, layer) ->
@@ -96,8 +121,16 @@ addWaysToLayer = (ways, layer) ->
     points = for node in way.nodes
       new OpenLayers.Geometry.Point(node.longitude, node.latitude)
         .transform(EPSG4326Projection, map.getProjectionObject())
-    new OpenLayers.Feature.Vector(new OpenLayers.Geometry.LineString(points))
+    new OpenLayers.Feature.Vector(
+      new OpenLayers.Geometry.LineString(points)
+      {
+        way: way
+      }
+    )
   layer.addFeatures(lines)
+
+disable = (elementId) ->
+  $("##{ elementId }").prop("disabled", true)
 
 displayDirections = (directions) ->
   $("#directions").html("<ol><li>" + directions.join("</li><li>") + "</li></ol>")
@@ -131,6 +164,9 @@ drawDirections = (directions) ->
   )
   directionsLayer.addFeatures([sourceFeature, targetFeature])
   map.zoomToExtent(directionsLayer.getDataExtent())
+
+enable = (elementId) ->
+  $("##{ elementId }").prop("disabled", false)
 
 retrieveNode = (id) ->
   $.get "node/#{ id }",
@@ -174,3 +210,25 @@ retrieveWays = () ->
       ways = ws
       addWaysToLayer(ways, waysLayer)
       map.zoomToExtent(waysLayer.getDataExtent())
+
+setNode = (input) ->
+  id = nodesLayer.selectedFeatures.length > 0 and nodesLayer.selectedFeatures[0].attributes.node.id
+  input.val(id) if not id?
+
+setNodeAsSource = () ->
+  setNode($("#source"))
+
+setNodeAsDestination = () ->
+  setNode($("#destination"))
+
+toggleDisabledProperty = (elementId) ->
+  if $("##{ elementId }").prop("disabled") is true
+    enable elementId
+  else
+    disable elementId
+
+toggleWayEditMaxSpeedControls = () ->
+  toggleDisabledProperty("wayMaxSpeed")
+  toggleDisabledProperty("wayEditMaxSpeed")
+  toggleDisabledProperty("waySaveMaxSpeed")
+  toggleDisabledProperty("wayCancelEditMaxSpeed")

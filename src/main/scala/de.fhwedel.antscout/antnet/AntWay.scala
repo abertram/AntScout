@@ -2,6 +2,7 @@ package de.fhwedel.antscout
 package antnet
 
 import net.liftweb.common.Logger
+import net.liftweb.json.JsonDSL._
 import osm._
 import map.Way
 
@@ -27,6 +28,12 @@ class AntWay(id: String, override val nodes: Seq[OsmNode], val startNode: AntNod
       endNode
     else
       this.startNode
+  }
+
+  override def toJson = {
+    super.toJson ~
+    ("length" -> length.round) ~
+    ("maxSpeed" -> maxSpeed)
   }
 
   override def toString = "#%s #%s - #%s".format(id, startNode.id, endNode.id)

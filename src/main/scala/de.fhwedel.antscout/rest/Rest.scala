@@ -71,6 +71,8 @@ object Rest extends Logger with RestHelper {
         ("longitude" -> n.geographicCoordinate.longitude)
       }).toList)
     }
+    case Get(List("way", id), _) =>
+      AntMap.ways.find(_.id == id).map(_.toJson)
     case Get(List("ways"), _) => {
       JArray(AntMap.ways.map(_.toJson).toList)
     }
