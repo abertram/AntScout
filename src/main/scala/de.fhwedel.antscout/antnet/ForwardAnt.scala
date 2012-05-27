@@ -25,6 +25,7 @@ class ForwardAnt(val source: AntNode, val destination: AntNode) extends Actor wi
   var currentWay: AntWay = _
   val memory = AntMemory()
   val random = Random
+  var startTime: Long = _
 
   override def debug(msg: => AnyRef) {
     super.debug("#%s: %s".format(self.path, msg))
@@ -42,13 +43,20 @@ class ForwardAnt(val source: AntNode, val destination: AntNode) extends Actor wi
     val antLifetime = Props.getInt("antLifetime", DefaultAntLifetime)
     val timeUnit = TimeUnit.valueOf(Props.get("timeUnit", DefaultTimeUnit))
     context.system.scheduler.scheduleOnce(Duration(antLifetime, timeUnit)) {
-      info("Committing suicide!")
+//      info("Committing suicide!")
       self ! PoisonPill
     }
+    startTime = System.currentTimeMillis
     visitNode(source)
   }
 
   protected def receive = {
+    case AntNode.Propabilities(propabilities) =>
+//      debug("Propabilities")
+      val nextWay = selectWay(propabilities)
+      val (nextNode, tripTime) = nextWay cross currentNode
+      memory.memorize(currentNode, currentWay, tripTime)
+      visitNode(nextNode)
     case m: Any =>
       warn("Unknown message: %s".format(m))
   }
@@ -85,23 +93,16 @@ class ForwardAnt(val source: AntNode, val destination: AntNode) extends Actor wi
     // Der Knoten hat keine ausgehenden Wege, wir sind in einer Sackgasse angekommen.
     if (!AntMap.outgoingWays.contains(node))
       self ! PoisonPill
-    else if (node != destination) {
+    else if (node == destination) {
+//      debug("Destination reached, needed %s ms" format(System.currentTimeMillis - startTime))
+      launchBackwardAnt()
+      self ! PoisonPill
+    } else {
       if (memory.containsNode(node)) {
 //        debug("Circle detected")
         memory.removeCircle(node)
       }
-      node.enter(destination).onComplete {
-        case Left(e) => error("Entering node %s failed (%s)".format(node, e))
-        case Right(propabilities) =>
-          val nextWay = selectWay(propabilities)
-          val (nextNode, tripTime) = nextWay cross currentNode
-          memory.memorize(currentNode, currentWay, tripTime)
-          visitNode(nextNode)
-      }
-    } else {
-//      info("Destination reached")
-      launchBackwardAnt()
-      self ! PoisonPill
+      node.enter(destination, self)
     }
   }
 }

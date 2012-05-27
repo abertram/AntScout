@@ -71,7 +71,7 @@ class PheromoneMatrix(destinations: Set[AntNode], outgoingWays: Set[AntWay]) ext
   }
   
   def updatePheromones(destination: AntNode, way: AntWay, reinforcement: Double) {
-    trace("updatePheromones")
+//    trace("updatePheromones")
     outgoingWays.foreach(ow => {
       val oldPheromone = pheromones(destination)(ow)
       if (ow == way) 
@@ -89,7 +89,8 @@ class PheromoneMatrix(destinations: Set[AntNode], outgoingWays: Set[AntWay]) ext
       }.toMap
       sender ! (source, immutablePropabilities)
     case GetPropabilities(_, destination) =>
-      sender ! propabilities(destination).toMap
+//      debug("GetPropabilities, sender: %s" format(sender))
+      sender ! AntNode.Propabilities(propabilities(destination).toMap)
     case Initialize(tripTimes) =>
       init(tripTimes)
     case UpdatePheromones(source: AntNode, destination: AntNode, way: AntWay, reinforcement: Double) =>

@@ -6,6 +6,7 @@ import net.liftweb.common.Logger
 import map.Node
 import akka.util.duration._
 import akka.util.Timeout
+import akka.actor.ActorRef
 
 /**
  * Created by IntelliJ IDEA.
@@ -18,10 +19,8 @@ class AntNode(id: String) extends Node(id) with Logger {
 
   implicit val timeout = Timeout(5 seconds)
 
-  def enter(destination: AntNode) = {
-    (AntScout.pheromonMatrixSupervisor
-      ? PheromoneMatrix.GetPropabilities(this, destination))
-      .mapTo[Map[AntWay, Double]]
+  def enter(destination: AntNode, sender: ActorRef) = {
+    AntScout.pheromonMatrixSupervisor.tell(PheromoneMatrix.GetPropabilities(this, destination), sender = sender)
   }
 
   def propabilities(implicit timeout: Timeout) = {
@@ -31,7 +30,7 @@ class AntNode(id: String) extends Node(id) with Logger {
   }
 
   def updateDataStructures(destination: AntNode, way: AntWay, tripTime: Double) = {
-    trace("UpdateDataStructures(%s, %s, %s)" format (destination.id, way.id, tripTime))
+//    debug("UpdateDataStructures(%s, %s, %s)" format (destination.id, way.id, tripTime))
     AntScout.trafficModelSupervisor ! TrafficModel.AddSample(this, destination, tripTime)
     (AntScout.trafficModelSupervisor
       ? TrafficModel.GetReinforcement(this, destination, tripTime, AntMap.outgoingWays(this).size))
@@ -45,6 +44,8 @@ class AntNode(id: String) extends Node(id) with Logger {
 }
 
 object AntNode {
+
+  case class Propabilities(propabilities: Map[AntWay, Double])
 
   def apply(id: String) = new AntNode(id)
 }
