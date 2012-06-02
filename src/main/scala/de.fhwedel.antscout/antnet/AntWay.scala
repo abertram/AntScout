@@ -1,6 +1,7 @@
 package de.fhwedel.antscout
 package antnet
 
+import akka.agent.Agent
 import net.liftweb.common.Logger
 import net.liftweb.json.JsonDSL._
 import osm._
@@ -13,7 +14,9 @@ import map.Way
  * Time: 12:07
  */
 
-class AntWay(id: String, override val nodes: Seq[OsmNode], val startNode: AntNode, val endNode: AntNode, val length: Double, val maxSpeed: Double) extends Way(id, nodes) with Logger {
+class AntWay(id: String, override val nodes: Seq[OsmNode], val startNode: AntNode, val endNode: AntNode, val length: Double, originalMaxSpeed: Double) extends Way(id, nodes) with Logger {
+
+  private val _maxSpeed = Agent(originalMaxSpeed)(AntScout.system)
 
   def cross(startNode: AntNode) = if (startNode == this.startNode) (endNode, tripTime) else (startNode, tripTime)
 
@@ -30,6 +33,10 @@ class AntWay(id: String, override val nodes: Seq[OsmNode], val startNode: AntNod
       this.startNode
   }
 
+  def maxSpeed = _maxSpeed()
+
+  def maxSpeed_=(value: Double) = _maxSpeed send value
+
   override def toJson = {
     super.toJson ~
     ("length" -> length.round) ~
@@ -39,9 +46,15 @@ class AntWay(id: String, override val nodes: Seq[OsmNode], val startNode: AntNod
   override def toString = "#%s #%s - #%s".format(id, startNode.id, endNode.id)
 
   def tripTime = length / maxSpeed
+
+  def update(update: AntWay.Update) = {
+    maxSpeed = update.maxSpeed
+  }
 }
 
 object AntWay extends Logger {
+
+  case class Update(maxSpeed: Double)
 
   def apply(id: String, startNode: AntNode, endNode: AntNode, length: Double, maxSpeed: Double) = {
     new AntWay(id, Seq(), startNode, endNode, length, maxSpeed)

@@ -1,234 +1,245 @@
-style =
-  fillOpacity: 0.5
-  pointRadius: 6
-  strokeOpacity: 0.5
-  strokeWidth:5
-directionsStyle = $.extend({}, style,
-  fillColor: "lightblue"
-  strokeColor: "blue"
-)
-incomingWaysStyle = $.extend({}, style,
-  fillColor: "lightgreen"
-  strokeColor: "green"
-)
-nodesStyle = $.extend({}, style,
-  fillColor: "lightblue"
-  strokeColor: "blue"
-)
-outgoingWaysStyle = $.extend({}, style,
-  fillColor: "lightcoral"
-  strokeColor: "red"
-)
-waysStyle = $.extend({}, style,
-  fillColor: "lightblue"
-  strokeColor: "blue"
-)
+require(["jquery", "openlayers/OpenLayers", "underscore"], ($) ->
 
-directionsLayer = new OpenLayers.Layer.Vector(
-  "Directions"
-  {
-    renderers: ["Canvas", "SVG", "VML"]
-    style: directionsStyle
-  }
-)
-EPSG4326Projection = new OpenLayers.Projection("EPSG:4326")
-incomingWaysLayer = new OpenLayers.Layer.Vector(
-  "Incoming ways"
-  {
-    style: incomingWaysStyle
-    visibility: false
-  }
-)
-map = null
-nodes = null
-nodesLayer = new OpenLayers.Layer.Vector(
-  "Nodes"
-  {
-    opacity: 0.5
-    style: nodesStyle
-    visibility: false
-  }
-)
-nodesLayer.events.on({
-  "featureselected": (e) ->
-    id = e.feature.attributes.node.id
-    $("#nodeId").html("<a href=\"http://www.openstreetmap.org/browse/node/#{ id }\">#{ id }</a>")
-    $("#nodeLongitude").html(e.feature.attributes.node.longitude)
-    $("#nodeLatitude").html(e.feature.attributes.node.latitude)
-    retrieveNode(id)
-#    alert(e.feature.attributes.node.id)
-  "visibilitychanged": (e) ->
-    if nodesLayer.getVisibility() and not nodes?
-      retrieveNodes()
-})
-osmLayer = new OpenLayers.Layer.OSM()
-outgoingWaysLayer = new OpenLayers.Layer.Vector(
-  "Outgoing ways"
-  {
-    style: outgoingWaysStyle
-    visibility: false
-  }
-)
-ways = null
-waysLayer = new OpenLayers.Layer.Vector(
-  "Ways"
-  {
-    style: waysStyle
-    visibility: false
-  }
-)
-waysLayer.events.on({
-  "featureselected": (e) ->
-    way = e.feature.attributes.way
-    id = way.id
-    $("#wayId").html(id)
-    $("#wayLength").html(way.length)
-    $("#wayMaxSpeed").val(way.maxSpeed)
-    nodes = for node in way.nodes
-      "<a href=\"http://www.openstreetmap.org/browse/node/#{ node.id }\">#{ node.id }</a>"
-    $("#wayNodes").html("<ul><li>" + nodes.join("</li><li>") + "</li></ul>")
-  "visibilitychanged": (e) ->
-    if waysLayer.getVisibility() and not ways?
-      retrieveWays()
-})
-selectFeatureControl = new OpenLayers.Control.SelectFeature([nodesLayer, waysLayer]);
-
-$(() ->
-  map = new OpenLayers.Map "map"
-  map.addControls([new OpenLayers.Control.LayerSwitcher(), selectFeatureControl]);
-  map.addLayers([directionsLayer, incomingWaysLayer, nodesLayer, osmLayer, outgoingWaysLayer, waysLayer]);
-  selectFeatureControl.activate();
-  map.zoomToMaxExtent()
-  $("#retrieveDirections").click(retrieveDirections)
-  $("#setNodeAsSource").click(setNodeAsSource)
-  $("#setNodeAsDestination").click(setNodeAsDestination)
-  $("#wayEditMaxSpeed, #waySaveMaxSpeed, #wayCancelEditMaxSpeed").click(() -> toggleWayEditMaxSpeedControls())
-  $("#wayEditMaxSpeed").click(() -> $("#wayMaxSpeed").select())
-  $("#waySaveMaxSpeed").click(() ->
-    id = waysLayer.selectedFeatures[0].attributes.way.id
-    $.ajax({
-      contentType: "application/json"
-      type: "PUT"
-      url: "way/#{ id }"
-      data:
-        maxSpeed: $("#wayMaxSpeed").val()
-    })
+  style =
+    fillOpacity: 0.5
+    pointRadius: 6
+    strokeOpacity: 0.5
+    strokeWidth:5
+  directionsStyle = $.extend({}, style,
+    fillColor: "lightblue"
+    strokeColor: "blue"
   )
-)
+  incomingWaysStyle = $.extend({}, style,
+    fillColor: "lightgreen"
+    strokeColor: "green"
+  )
+  nodesStyle = $.extend({}, style,
+    fillColor: "lightblue"
+    strokeColor: "blue"
+  )
+  outgoingWaysStyle = $.extend({}, style,
+    fillColor: "lightcoral"
+    strokeColor: "red"
+  )
+  waysStyle = $.extend({}, style,
+    fillColor: "lightblue"
+    strokeColor: "blue"
+  )
 
-addWaysToLayer = (ways, layer) ->
-  lines = for way in ways
-    points = for node in way.nodes
-      new OpenLayers.Geometry.Point(node.longitude, node.latitude)
-        .transform(EPSG4326Projection, map.getProjectionObject())
-    new OpenLayers.Feature.Vector(
-      new OpenLayers.Geometry.LineString(points)
+  directionsLayer = new OpenLayers.Layer.Vector(
+    "Directions"
+    {
+      renderers: ["Canvas", "SVG", "VML"]
+      style: directionsStyle
+    }
+  )
+  EPSG4326Projection = new OpenLayers.Projection("EPSG:4326")
+  incomingWaysLayer = new OpenLayers.Layer.Vector(
+    "Incoming ways"
+    {
+      style: incomingWaysStyle
+      visibility: false
+    }
+  )
+  map = null
+  nodes = null
+  nodesLayer = new OpenLayers.Layer.Vector(
+    "Nodes"
+    {
+      opacity: 0.5
+      style: nodesStyle
+      visibility: false
+    }
+  )
+  nodesLayer.events.on({
+    "featureselected": (e) ->
+      id = e.feature.attributes.node.id
+      $("#nodeId").html("<a href=\"http://www.openstreetmap.org/browse/node/#{ id }\">#{ id }</a>")
+      $("#nodeLongitude").html(e.feature.attributes.node.longitude)
+      $("#nodeLatitude").html(e.feature.attributes.node.latitude)
+      retrieveNode(id)
+    "visibilitychanged": (e) ->
+      if nodesLayer.getVisibility() and not nodes?
+        retrieveNodes()
+  })
+  osmLayer = new OpenLayers.Layer.OSM()
+  outgoingWaysLayer = new OpenLayers.Layer.Vector(
+    "Outgoing ways"
+    {
+      style: outgoingWaysStyle
+      visibility: false
+    }
+  )
+  ways = null
+  waysLayer = new OpenLayers.Layer.Vector(
+    "Ways"
+    {
+      style: waysStyle
+      visibility: false
+    }
+  )
+  waysLayer.events.on({
+    "featureselected": (e) ->
+      way = e.feature.attributes.way
+      id = way.id
+      $("#wayId").html(id)
+      $("#wayLength").html(way.length)
+      $("#wayMaxSpeed").val(way.maxSpeed)
+      nodes = for node in way.nodes
+        "<a href=\"http://www.openstreetmap.org/browse/node/#{ node.id }\">#{ node.id }</a>"
+      $("#wayNodes").html("<ul><li>" + nodes.join("</li><li>") + "</li></ul>")
+    "visibilitychanged": (e) ->
+      if waysLayer.getVisibility() and waysLayer.features.length is 0
+        retrieveWays()
+  })
+  selectFeatureControl = new OpenLayers.Control.SelectFeature([nodesLayer, waysLayer]);
+
+  $(() ->
+    map = new OpenLayers.Map "map"
+    map.addControls([new OpenLayers.Control.LayerSwitcher(), selectFeatureControl]);
+    map.addLayers([directionsLayer, incomingWaysLayer, nodesLayer, osmLayer, outgoingWaysLayer, waysLayer]);
+    selectFeatureControl.activate();
+    map.zoomToMaxExtent()
+    $("#retrieveDirections").click(retrieveDirections)
+    $("#setNodeAsSource").click(setNodeAsSource)
+    $("#setNodeAsDestination").click(setNodeAsDestination)
+    $("#wayEditMaxSpeed, #waySaveMaxSpeed, #wayCancelEditMaxSpeed").click(() -> toggleWayEditMaxSpeedControls())
+    $("#wayEditMaxSpeed").click(() -> $("#wayMaxSpeed").select())
+    $("#waySaveMaxSpeed").click(() ->
+      id = waysLayer.selectedFeatures[0].attributes.way.id
+      maxSpeed = parseFloat($("#wayMaxSpeed").val().replace(",", "."))
+      $.ajax({
+        contentType: "application/json"
+        type: "PUT"
+        url: "way/#{ id }"
+        data: JSON.stringify(
+          maxSpeed: maxSpeed
+        )
+      }).done(updateWay(id))
+    )
+  )
+
+  addWaysToLayer = (ways, layer) ->
+    lines = for way in ways
+      points = for node in way.nodes
+        new OpenLayers.Geometry.Point(node.longitude, node.latitude)
+          .transform(EPSG4326Projection, map.getProjectionObject())
+      new OpenLayers.Feature.Vector(
+        new OpenLayers.Geometry.LineString(points)
+        {
+          way: way
+        }
+      )
+    layer.addFeatures(lines)
+
+  disable = (elementId) ->
+    $("##{ elementId }").prop("disabled", true)
+
+  displayDirections = (directions) ->
+    $("#directions").html("<ol><li>" + directions.join("</li><li>") + "</li></ol>")
+
+  drawDirections = (directions) ->
+    sourceNode = directions[0].nodes[0]
+    sourcePoint = new OpenLayers.Geometry.Point(sourceNode.longitude, sourceNode.latitude)
+      .transform(EPSG4326Projection, map.getProjectionObject())
+    sourceFeature = new OpenLayers.Feature.Vector(
+      sourcePoint
+      null
       {
-        way: way
+        fillColor: "green"
+        pointRadius: 10
+        strokeColor: "green"
       }
     )
-  layer.addFeatures(lines)
+    addWaysToLayer(directions, directionsLayer)
+    lastDirection = directions[directions.length - 1]
+    targetNode = lastDirection.nodes[lastDirection.nodes.length - 1]
+    targetPoint = new OpenLayers.Geometry.Point(targetNode.longitude, targetNode.latitude)
+      .transform(EPSG4326Projection, map.getProjectionObject())
+    targetFeature = new OpenLayers.Feature.Vector(
+      targetPoint
+      null
+      {
+        fillColor: "red"
+        pointRadius: 10
+        strokeColor: "red"
+      }
+    )
+    directionsLayer.addFeatures([sourceFeature, targetFeature])
+    map.zoomToExtent(directionsLayer.getDataExtent())
 
-disable = (elementId) ->
-  $("##{ elementId }").prop("disabled", true)
+  enable = (elementId) ->
+    $("##{ elementId }").prop("disabled", false)
 
-displayDirections = (directions) ->
-  $("#directions").html("<ol><li>" + directions.join("</li><li>") + "</li></ol>")
+  retrieveNode = (id) ->
+    $.get "node/#{ id }",
+      (nodeData) ->
+        incomingWaysLayer.removeAllFeatures()
+        addWaysToLayer(nodeData.incomingWays, incomingWaysLayer)
+        outgoingWaysLayer.removeAllFeatures()
+        addWaysToLayer(nodeData.outgoingWays, outgoingWaysLayer)
 
-drawDirections = (directions) ->
-  sourceNode = directions[0].nodes[0]
-  sourcePoint = new OpenLayers.Geometry.Point(sourceNode.longitude, sourceNode.latitude)
-    .transform(EPSG4326Projection, map.getProjectionObject())
-  sourceFeature = new OpenLayers.Feature.Vector(
-    sourcePoint
-    null
-    {
-      fillColor: "green"
-      pointRadius: 10
-      strokeColor: "green"
-    }
-  )
-  addWaysToLayer(directions, directionsLayer)
-  lastDirection = directions[directions.length - 1]
-  targetNode = lastDirection.nodes[lastDirection.nodes.length - 1]
-  targetPoint = new OpenLayers.Geometry.Point(targetNode.longitude, targetNode.latitude)
-    .transform(EPSG4326Projection, map.getProjectionObject())
-  targetFeature = new OpenLayers.Feature.Vector(
-    targetPoint
-    null
-    {
-      fillColor: "red"
-      pointRadius: 10
-      strokeColor: "red"
-    }
-  )
-  directionsLayer.addFeatures([sourceFeature, targetFeature])
-  map.zoomToExtent(directionsLayer.getDataExtent())
+  retrieveNodes = () ->
+    $.get "nodes",
+      (ns) ->
+        nodes = ns
+        features = for node in nodes
+          do ->
+            point = new OpenLayers.Geometry.Point(node.longitude, node.latitude)
+              .transform(EPSG4326Projection, map.getProjectionObject())
+            feature = new OpenLayers.Feature.Vector(
+              point
+              {
+                node: node
+              }
+            )
+        nodesLayer.addFeatures(features)
+        map.zoomToExtent(nodesLayer.getDataExtent())
 
-enable = (elementId) ->
-  $("##{ elementId }").prop("disabled", false)
+  retrieveDirections = () ->
+    destination = $("#destination").val()
+    source = $("#source").val()
+    $.get "/directions", {
+      destination
+      source
+      },
+      (directions) ->
+        displayDirections(directions)
+        drawDirections(directions)
 
-retrieveNode = (id) ->
-  $.get "node/#{ id }",
-    (nodeData) ->
-      incomingWaysLayer.removeAllFeatures()
-      addWaysToLayer(nodeData.incomingWays, incomingWaysLayer)
-      outgoingWaysLayer.removeAllFeatures()
-      addWaysToLayer(nodeData.outgoingWays, outgoingWaysLayer)
+  retrieveWays = () ->
+    $.get "ways",
+      (ways) ->
+        addWaysToLayer(ways, waysLayer)
+        map.zoomToExtent(waysLayer.getDataExtent())
 
-retrieveNodes = () ->
-  $.get "nodes",
-    (ns) ->
-      nodes = ns
-      features = for node in nodes
-        do ->
-          point = new OpenLayers.Geometry.Point(node.longitude, node.latitude)
-            .transform(EPSG4326Projection, map.getProjectionObject())
-          feature = new OpenLayers.Feature.Vector(
-            point
-            {
-              node: node
-            }
-          )
-      nodesLayer.addFeatures(features)
-      map.zoomToExtent(nodesLayer.getDataExtent())
+  setNode = (input) ->
+    id = nodesLayer.selectedFeatures.length > 0 and nodesLayer.selectedFeatures[0].attributes.node.id
+    input.val(id) if id?
 
-retrieveDirections = () ->
-  destination = $("#destination").val()
-  source = $("#source").val()
-  $.get "/directions", {
-    destination
-    source
-    },
-    (directions) ->
-      displayDirections(directions)
-      drawDirections(directions)
+  setNodeAsSource = () ->
+    setNode($("#source"))
 
-retrieveWays = () ->
-  $.get "ways",
-    (ws) ->
-      ways = ws
-      addWaysToLayer(ways, waysLayer)
-      map.zoomToExtent(waysLayer.getDataExtent())
+  setNodeAsDestination = () ->
+    setNode($("#destination"))
 
-setNode = (input) ->
-  id = nodesLayer.selectedFeatures.length > 0 and nodesLayer.selectedFeatures[0].attributes.node.id
-  input.val(id) if not id?
+  toggleDisabledProperty = (elementId) ->
+    if $("##{ elementId }").prop("disabled") is true
+      enable elementId
+    else
+      disable elementId
 
-setNodeAsSource = () ->
-  setNode($("#source"))
+  toggleWayEditMaxSpeedControls = () ->
+    toggleDisabledProperty("wayMaxSpeed")
+    toggleDisabledProperty("wayEditMaxSpeed")
+    toggleDisabledProperty("waySaveMaxSpeed")
+    toggleDisabledProperty("wayCancelEditMaxSpeed")
 
-setNodeAsDestination = () ->
-  setNode($("#destination"))
-
-toggleDisabledProperty = (elementId) ->
-  if $("##{ elementId }").prop("disabled") is true
-    enable elementId
-  else
-    disable elementId
-
-toggleWayEditMaxSpeedControls = () ->
-  toggleDisabledProperty("wayMaxSpeed")
-  toggleDisabledProperty("wayEditMaxSpeed")
-  toggleDisabledProperty("waySaveMaxSpeed")
-  toggleDisabledProperty("wayCancelEditMaxSpeed")
+  updateWay = (id) ->
+    $.get "way/#{ id }",
+      (way) ->
+        wayFeature = _.find(waysLayer.features, (feature) -> feature.attributes.way.id == id)
+        wayFeature.attributes.way = way
+        selectFeatureControl.unselect(wayFeature)
+        selectFeatureControl.select(wayFeature)
+)

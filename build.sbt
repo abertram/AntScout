@@ -31,6 +31,8 @@ libraryDependencies += "org.scala-tools.testing" %% "specs" % "1.6.9" % "test"
 
 libraryDependencies += "com.typesafe.akka" % "akka-actor" % "2.0.1"
 
+libraryDependencies += "com.typesafe.akka" % "akka-agent" % "2.0.1"
+
 libraryDependencies += "com.typesafe.akka" % "akka-testkit" % "2.0.1"
 
 // coffeescrpted-sbt
