@@ -100,12 +100,12 @@ require(["jquery", "openlayers/OpenLayers", "underscore"], ($) ->
     map.addLayers([directionsLayer, incomingWaysLayer, nodesLayer, osmLayer, outgoingWaysLayer, waysLayer]);
     selectFeatureControl.activate();
     map.zoomToMaxExtent()
-    $("#retrieveDirections").click(retrieveDirections)
-    $("#setNodeAsSource").click(setNodeAsSource)
-    $("#setNodeAsDestination").click(setNodeAsDestination)
-    $("#wayEditMaxSpeed, #waySaveMaxSpeed, #wayCancelEditMaxSpeed").click(() -> toggleWayEditMaxSpeedControls())
-    $("#wayEditMaxSpeed").click(() -> $("#wayMaxSpeed").select())
-    $("#waySaveMaxSpeed").click(() ->
+    $("#retrieveDirections").click -> retrieveDirections
+    $("#setNodeAsSource").click -> setNodeAsSource
+    $("#setNodeAsDestination").click -> setNodeAsDestination
+    $("#wayEditMaxSpeed, #waySaveMaxSpeed, #wayCancelEditMaxSpeed").click -> toggleWayEditMaxSpeedControls
+    $("#wayEditMaxSpeed").click -> $("#wayMaxSpeed").select
+    $("#waySaveMaxSpeed").click ->
       id = waysLayer.selectedFeatures[0].attributes.way.id
       maxSpeed = parseFloat($("#wayMaxSpeed").val().replace(",", "."))
       $.ajax({
@@ -116,7 +116,6 @@ require(["jquery", "openlayers/OpenLayers", "underscore"], ($) ->
           maxSpeed: maxSpeed
         )
       }).done(updateWay(id))
-    )
   )
 
   addWaysToLayer = (ways, layer) ->
