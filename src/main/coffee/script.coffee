@@ -138,6 +138,7 @@ require(["jquery", "openlayers/OpenLayers", "underscore"], ($) ->
     $("#directions").html("<ol><li>" + directions.join("</li><li>") + "</li></ol>")
 
   drawDirections = (directions) ->
+    directionsLayer.removeAllFeatures()
     sourceNode = directions[0].nodes[0]
     sourcePoint = new OpenLayers.Geometry.Point(sourceNode.longitude, sourceNode.latitude)
       .transform(EPSG4326Projection, map.getProjectionObject())
@@ -165,7 +166,6 @@ require(["jquery", "openlayers/OpenLayers", "underscore"], ($) ->
       }
     )
     directionsLayer.addFeatures([sourceFeature, targetFeature])
-    map.zoomToExtent(directionsLayer.getDataExtent())
 
   enable = (elementId) ->
     $("##{ elementId }").prop("disabled", false)
@@ -193,7 +193,6 @@ require(["jquery", "openlayers/OpenLayers", "underscore"], ($) ->
               }
             )
         nodesLayer.addFeatures(features)
-        map.zoomToExtent(nodesLayer.getDataExtent())
 
   retrieveDirections = () ->
     destination = $("#destination").val()
@@ -210,7 +209,6 @@ require(["jquery", "openlayers/OpenLayers", "underscore"], ($) ->
     $.get "ways",
       (ways) ->
         addWaysToLayer(ways, waysLayer)
-        map.zoomToExtent(waysLayer.getDataExtent())
 
   setNode = (input) ->
     id = nodesLayer.selectedFeatures.length > 0 and nodesLayer.selectedFeatures[0].attributes.node.id
