@@ -1,43 +1,17 @@
-require(["jquery", "openlayers/OpenLayers", "underscore"], ($) ->
-
-  style =
-    fillOpacity: 0.5
-    pointRadius: 6
-    strokeOpacity: 0.5
-    strokeWidth:5
-  directionsStyle = $.extend({}, style,
-    fillColor: "lightblue"
-    strokeColor: "blue"
-  )
-  incomingWaysStyle = $.extend({}, style,
-    fillColor: "lightgreen"
-    strokeColor: "green"
-  )
-  nodesStyle = $.extend({}, style,
-    fillColor: "lightblue"
-    strokeColor: "blue"
-  )
-  outgoingWaysStyle = $.extend({}, style,
-    fillColor: "lightcoral"
-    strokeColor: "red"
-  )
-  waysStyle = $.extend({}, style,
-    fillColor: "lightblue"
-    strokeColor: "blue"
-  )
+require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles) ->
 
   directionsLayer = new OpenLayers.Layer.Vector(
     "Directions"
     {
       renderers: ["Canvas", "SVG", "VML"]
-      style: directionsStyle
+      style: styles.directionsStyle
     }
   )
   EPSG4326Projection = new OpenLayers.Projection("EPSG:4326")
   incomingWaysLayer = new OpenLayers.Layer.Vector(
     "Incoming ways"
     {
-      style: incomingWaysStyle
+      style: styles.incomingWaysStyle
       visibility: false
     }
   )
@@ -47,7 +21,7 @@ require(["jquery", "openlayers/OpenLayers", "underscore"], ($) ->
     "Nodes"
     {
       opacity: 0.5
-      style: nodesStyle
+      style: styles.nodesStyle
       visibility: false
     }
   )
@@ -66,7 +40,7 @@ require(["jquery", "openlayers/OpenLayers", "underscore"], ($) ->
   outgoingWaysLayer = new OpenLayers.Layer.Vector(
     "Outgoing ways"
     {
-      style: outgoingWaysStyle
+      style: styles.outgoingWaysStyle
       visibility: false
     }
   )
@@ -74,7 +48,7 @@ require(["jquery", "openlayers/OpenLayers", "underscore"], ($) ->
   waysLayer = new OpenLayers.Layer.Vector(
     "Ways"
     {
-      style: waysStyle
+      style: styles.waysStyle
       visibility: false
     }
   )
