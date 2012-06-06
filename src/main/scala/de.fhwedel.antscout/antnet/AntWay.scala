@@ -18,7 +18,13 @@ class AntWay(id: String, override val nodes: Seq[OsmNode], val startNode: AntNod
 
   private val _maxSpeed = Agent(originalMaxSpeed)(AntScout.system)
 
-  def cross(startNode: AntNode) = if (startNode == this.startNode) (endNode, tripTime) else (startNode, tripTime)
+  /**
+   * Methode, mit der eine Ameise den Weg kreuzen kann.
+   *
+   * @param startNode Knoten, an dem der Weg betreten wird.
+   * @return Tuple, der aus dem Endknoten des Weges und der benötigten Reisezeit besteht.
+   */
+  def cross(startNode: AntNode) = (endNode(startNode), tripTime)
 
   /**
    * Berechnet den Endknoten des Weges. Dieser ist davon abhängig, welcher Knoten als Startknoten definiert wird.
