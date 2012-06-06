@@ -44,7 +44,7 @@ class TrafficModelSupervisor extends Actor with ActorLogging {
     case m: TrafficModel.GetReinforcement =>
       context.actorFor(m.node.id) forward m
     case m: Any =>
-      log.warning("Unknown message: {}" format m)
+      log.warning("Unknown message: {}", m)
   }
 }
 
