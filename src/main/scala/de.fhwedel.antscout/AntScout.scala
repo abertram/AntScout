@@ -32,6 +32,7 @@ class AntScout extends Actor with FSM[AntScoutMessage, Unit] with Logger {
       assert(map isDefined)
       OsmMap(map get)
       AntMap()
+      assert(AntMap.nodes.size > 0, AntMap.nodes.size)
       pheromonMatrixSupervisor ! PheromonMatrixSupervisor.Initialize(AntMap.sources, AntMap.destinations)
       goto(InitializingPheromonMatrixSupervisor)
   }
@@ -68,6 +69,10 @@ object AntScout {
   case object TrafficModelSupervisorInitialized extends AntScoutMessage
   case object InitializingRoutingService extends AntScoutMessage
   case object RoutingServiceInitialized extends AntScoutMessage
+
+  // IDs eines Quell- und eines Ziel-Knoten für Debug-Zwecke
+  val traceSourceId = ""
+  val traceDestinationId = ""
 
   val config = ConfigFactory.load
   val system = ActorSystem("AntScout", config)
