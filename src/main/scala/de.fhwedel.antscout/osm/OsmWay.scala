@@ -76,7 +76,8 @@ object OsmWay extends Logger {
       tags.getOrElse("maxspeed", "") match {
         case value if value != "" => {
           try {
-            Some(value.toDouble)
+            // bei einfachen Werten davon ausgehen, dass die Angabe in km/h ist und in m/s umrechnen
+            Some(value.toDouble).map(_ / 3.6)
           } catch {
             case numberFormatException: NumberFormatException => {
               val maxSpeed = Props.get("speed.%s".format(value)).map(_.toDouble)
