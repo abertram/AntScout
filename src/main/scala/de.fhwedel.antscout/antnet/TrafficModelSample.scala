@@ -34,16 +34,34 @@ class TrafficModelSample(val varsigma: Double, val windowSize: Int) {
     val iSup = mean + z * (math.sqrt(variance) / math.sqrt(windowSize))
     val stabilityTerm = (iSup - iInf) + (tripTime - iInf)
     val r = c1 * (bestTripTime / tripTime) + (if (stabilityTerm ~> 0.0) c2 * ((iSup - iInf) / stabilityTerm) else 0)
-    squash(r, neighbourCount) / squash (1, neighbourCount)
-  }
-
-  def squash(x: Double, neighbourCount: Double) = {
-    val a = 10
-    1 / (1 + math.exp(a / (x * neighbourCount)))
+    TrafficModelSample.transformBySquash(r, neighbourCount)
   }
 }
 
 object TrafficModelSample {
 
   def apply(varsigma: Double, windowSize: Int) = new TrafficModelSample(varsigma, windowSize)
+
+  /**
+   * Laut Literatur eigentlich (1 + ...)^(-1). Wenn aber die Transformation nicht mit s(r) / s(1) sondern mit s(1) / s(r) aufgerufen wird, kann (...)^(-1) weggelassen werden.
+   *
+   * @param x
+   * @param neighbourCount
+   * @param a
+   * @return
+   */
+  def squash(x: Double, neighbourCount: Double, a: Double = 10) = {
+    require((x ~> 0) && (x ~<= 1), "x: %f".format(x))
+    1 + math.exp(a / (x * neighbourCount))
+  }
+
+  /**
+   * Laut Literatur eigentlich s(r) / s(1). Wenn aber in s(x) das (...)^(-1) weggelassen wird, wird aus s(r) / s(1) (s1) / s(r).
+   *
+   * @param x
+   * @param N
+   * @param a
+   * @return
+   */
+  def transformBySquash(x: Double, N: Double, a: Double = 100) = squash(1, N, a) / squash(x, N, a)
 }
