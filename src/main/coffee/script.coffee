@@ -4,7 +4,7 @@ require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles)
     "Directions"
     {
       renderers: ["Canvas", "SVG", "VML"]
-      style: styles.directionsStyle
+      style: styles.directionsDefaultStyle
     }
   )
   EPSG4326Projection = new OpenLayers.Projection("EPSG:4326")
@@ -20,8 +20,10 @@ require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles)
   nodesLayer = new OpenLayers.Layer.Vector(
     "Nodes"
     {
-      opacity: 0.5
-      style: styles.nodesStyle
+      styleMap: new OpenLayers.StyleMap(
+        default: styles.nodesDefaultStyle
+        select: styles.nodesSelectStyle
+      )
       visibility: false
     }
   )
@@ -48,7 +50,10 @@ require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles)
   waysLayer = new OpenLayers.Layer.Vector(
     "Ways"
     {
-      style: styles.waysStyle
+      styleMap: new OpenLayers.StyleMap(
+        default: styles.waysDefaultStyle
+        select: styles.waysSelectStyle
+      )
       visibility: false
     }
   )
@@ -57,8 +62,9 @@ require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles)
       way = e.feature.attributes.way
       id = way.id
       $("#wayId").html(id)
-      $("#wayLength").html(way.length)
+      $("#wayLength").val(way.length)
       $("#wayMaxSpeed").val(way.maxSpeed)
+      $("#wayTripTime").val(way.tripTime)
       nodes = for node in way.nodes
         "<a href=\"http://www.openstreetmap.org/browse/node/#{ node.id }\">#{ node.id }</a>"
       $("#wayNodes").html("<ul><li>" + nodes.join("</li><li>") + "</li></ul>")
@@ -71,7 +77,7 @@ require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles)
   $(() ->
     map = new OpenLayers.Map "map"
     map.addControls([new OpenLayers.Control.LayerSwitcher(), selectFeatureControl]);
-    map.addLayers([directionsLayer, incomingWaysLayer, nodesLayer, osmLayer, outgoingWaysLayer, waysLayer]);
+    map.addLayers([incomingWaysLayer, osmLayer, outgoingWaysLayer, waysLayer, directionsLayer, nodesLayer]);
     selectFeatureControl.activate();
     map.zoomToMaxExtent()
     $("#retrieveDirections").click -> retrieveDirections()
@@ -167,6 +173,7 @@ require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles)
               }
             )
         nodesLayer.addFeatures(features)
+        map.zoomToExtent(nodesLayer.getDataExtent())
 
   retrieveDirections = () ->
     destination = $("#destination").val()
@@ -183,6 +190,7 @@ require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles)
     $.get "ways",
       (ways) ->
         addWaysToLayer(ways, waysLayer)
+        map.zoomToExtent(waysLayer.getDataExtent())
 
   setNode = (input) ->
     id = nodesLayer.selectedFeatures.length > 0 and nodesLayer.selectedFeatures[0].attributes.node.id

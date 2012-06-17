@@ -46,7 +46,8 @@ class AntWay(id: String, override val nodes: Seq[OsmNode], val startNode: AntNod
   override def toJson = {
     super.toJson ~
     ("length" -> length.round) ~
-    ("maxSpeed" -> maxSpeed)
+    ("maxSpeed" -> maxSpeed) ~
+    ("tripTime" -> tripTime)
   }
 
   override def toString = "#%s #%s - #%s".format(id, startNode.id, endNode.id)
