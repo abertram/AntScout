@@ -1,10 +1,9 @@
 package de.fhwedel.antscout
 package antnet
 
-import akka.actor.Actor
 import collection.mutable
-import net.liftweb.common.Logger
 import routing.RoutingService
+import akka.actor.{ActorLogging, Actor}
 
 /**
  * Created by IntelliJ IDEA.
@@ -19,34 +18,34 @@ import routing.RoutingService
  * @param destinations Ziel-Knoten
  * @param outgoingWays Ausgehende Wege
  */
-class PheromoneMatrix(destinations: Set[AntNode], outgoingWays: Set[AntWay]) extends Actor with Logger {
+class PheromoneMatrix(destinations: Set[AntNode], outgoingWays: Set[AntWay]) extends Actor with ActorLogging {
 
   assert((destinations & AntMap.destinations) == destinations && (AntMap.destinations &~ destinations).size <= 1)
 
   import PheromoneMatrix._
 
   val alpha = 0.3
-  val propabilities = mutable.Map[AntNode, mutable.Map[AntWay, Double]]()
+  val probabilities = mutable.Map[AntNode, mutable.Map[AntWay, Double]]()
   val heuristicValues = mutable.Map[AntWay, Double]()
   val pheromones = mutable.Map[AntNode, mutable.Map[AntWay, Double]]()
     
-  def calculatePropabilities() {
-    destinations.foreach(calculatePropabilities _)
+  def calculateProbabilities() {
+    destinations.foreach(calculateProbabilities _)
   }
 
-  def calculatePropabilities(destination: AntNode) = {
+  def calculateProbabilities(destination: AntNode) = {
     outgoingWays.foreach(ow => {
-      propabilities(destination) +=
+      probabilities(destination) +=
         ow -> (pheromones(destination)(ow) + alpha * heuristicValues(ow) / (1 + alpha * (outgoingWays.size - 1)))
     })
   }
 
   def init(tripTimes: Map[AntWay, Double]) {
-    trace("Initializing")
-    propabilities ++= destinations.map((_ -> mutable.Map[AntWay, Double]()))
+//    trace("Initializing")
+    probabilities ++= destinations.map((_ -> mutable.Map[AntWay, Double]()))
     initHeuristicValues(tripTimes)
     initPheromones()
-    calculatePropabilities()
+    calculateProbabilities()
     sender ! Initialized
   }
 
@@ -71,7 +70,6 @@ class PheromoneMatrix(destinations: Set[AntNode], outgoingWays: Set[AntWay]) ext
   }
   
   def updatePheromones(destination: AntNode, way: AntWay, reinforcement: Double) {
-//    trace("updatePheromones")
     outgoingWays.foreach(ow => {
       val oldPheromone = pheromones(destination)(ow)
       if (ow == way) 
@@ -79,29 +77,42 @@ class PheromoneMatrix(destinations: Set[AntNode], outgoingWays: Set[AntWay]) ext
       else
         pheromones(destination) += ow -> (oldPheromone - reinforcement * oldPheromone)
     })
-    calculatePropabilities(destination)
+    calculateProbabilities(destination)
   }
 
   protected def receive = {
     case GetAllPropabilities(source) =>
-      val immutablePropabilities = propabilities.map {
+      val immutablePropabilities = probabilities.map {
         case (destination, propabilities) => (destination -> propabilities.toMap)
       }.toMap
       sender ! (source, immutablePropabilities)
     case GetPropabilities(_, destination) =>
-//      debug("GetPropabilities, sender: %s" format(sender))
-      sender ! AntNode.Propabilities(propabilities(destination).toMap)
+      sender ! AntNode.Propabilities(probabilities(destination).toMap)
     case Initialize(tripTimes) =>
       init(tripTimes)
     case UpdatePheromones(source: AntNode, destination: AntNode, way: AntWay, reinforcement: Double) =>
-      val propabilitiesBeforePheromoneUpdate = propabilities(destination)
+      if (source.id == AntScout.traceSourceId && destination.id == AntScout.traceDestinationId)
+        log.debug("Updating pheromones, source: {}, destination: {}, way: {}, reinforcement: {}", source, destination, way, reinforcement)
+      val propabilitiesBeforePheromoneUpdate = probabilities(destination).toMap
+      if (source.id == AntScout.traceSourceId && destination.id == AntScout.traceDestinationId)
+        log.debug("Pheromones before update: {}", pheromones(destination))
+      if (source.id == AntScout.traceSourceId && destination.id == AntScout.traceDestinationId)
+        log.debug("Propabilities before update: {}", propabilitiesBeforePheromoneUpdate)
       updatePheromones(destination, way, reinforcement)
-      val propabilitiesAfterPheromoneUpdate = propabilities(destination)
+//      if (probabilities(destination).find(_._2 < 0).isDefined)
+//        log.warning("Source: {}, destination: {}, probabilities: {}", source, destination, probabilities(destination))
+      val propabilitiesAfterPheromoneUpdate = probabilities(destination).toMap
+      if (source.id == AntScout.traceSourceId && destination.id == AntScout.traceDestinationId)
+        log.debug("Pheromones after update: {}", pheromones(destination))
+      if (source.id == AntScout.traceSourceId && destination.id == AntScout.traceDestinationId)
+        log.debug("Propabilities after update: {}", propabilitiesAfterPheromoneUpdate)
       if (propabilitiesAfterPheromoneUpdate != propabilitiesBeforePheromoneUpdate) {
         val waysSortedByPropabilityInDescendingOrder = propabilitiesAfterPheromoneUpdate.toList
           .sortBy { case (_, propability) => propability }
           .reverse
           .map { case (way, _) => way }
+        if (source.id == AntScout.traceSourceId && destination.id == AntScout.traceDestinationId)
+          log.debug("Sending ways to routing service: {}", waysSortedByPropabilityInDescendingOrder)
         AntScout.routingService ! RoutingService.UpdatePropabilities(source, destination, waysSortedByPropabilityInDescendingOrder)
       }
   }
