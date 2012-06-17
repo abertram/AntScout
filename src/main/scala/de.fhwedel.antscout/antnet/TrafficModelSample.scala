@@ -1,8 +1,8 @@
 package de.fhwedel.antscout
 package antnet
 
-import extensions.ExtendedDouble._
 import collection.mutable.Buffer
+import extensions.ExtendedDouble._
 
 /**
  * Created by IntelliJ IDEA.
@@ -19,7 +19,9 @@ class TrafficModelSample(val varsigma: Double, val windowSize: Int) {
 
   def +=(tripTime: Double) {
     tripTime +=: tripTimes
-    if (tripTimes.size > windowSize) tripTimes -= tripTimes.last
+    if (tripTimes.size > windowSize) {
+      tripTimes -= tripTimes.last
+    }
     mean += varsigma * (tripTime - mean)
     variance += varsigma * (math.pow(tripTime - mean, 2) - variance)
   }
@@ -33,8 +35,8 @@ class TrafficModelSample(val varsigma: Double, val windowSize: Int) {
     val z = 1.7
     val iSup = mean + z * (math.sqrt(variance) / math.sqrt(windowSize))
     val stabilityTerm = (iSup - iInf) + (tripTime - iInf)
-    val r = c1 * (bestTripTime / tripTime) + (if (stabilityTerm ~> 0.0) c2 * ((iSup - iInf) / stabilityTerm) else 0)
-    TrafficModelSample.transformBySquash(r, neighbourCount)
+    val r = c1 * (bestTripTime / tripTime) + c2 * (if (stabilityTerm ~> 0.0) ((iSup - iInf) / stabilityTerm) else 0)
+    TrafficModelSample.transformBySquash(math.max(DefaultEpsilon, math.min(r, 1)), neighbourCount)
   }
 }
 
