@@ -96,7 +96,7 @@ object AntMap extends Logger {
           val (startNodeIndex, endNodeIndex) = {
             // Der aktuelle Knoten ist der End-Knoten des Weges.
             if (!way.isEndNode(node)) {
-              // Strt-Index ist der Index des aktuellen Knoten. Der passende End-Index muss gesucht werden.
+              // Start-Index ist der Index des aktuellen Knoten. Der passende End-Index muss gesucht werden.
               val startNodeIndex = way.nodes.indexOf(node)
               (startNodeIndex, {
                 // passenden End-Knoten-Index (Verbindungs-Knoten zwischen mehreren Wegen) suchen
