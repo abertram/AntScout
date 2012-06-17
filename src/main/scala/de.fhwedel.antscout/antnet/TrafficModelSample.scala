@@ -11,10 +11,10 @@ import extensions.ExtendedDouble._
  * Time: 12:05
  */
 
-class TrafficModelSample(val varsigma: Double, val windowSize: Int) {
+class TrafficModelSample(varsigma: Double, windowSize: Int) {
 
   private var mean = 0.0
-  val tripTimes = Buffer[Double]()
+  private val tripTimes = Buffer[Double]()
   private var variance = 0.0
 
   def +=(tripTime: Double) {
