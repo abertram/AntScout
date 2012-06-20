@@ -14,19 +14,19 @@ import extensions.ExtendedDouble._
 class TrafficModelSample(varsigma: Double, windowSize: Int) {
 
   private var mean = 0.0
-  private val tripTimes = Buffer[Double]()
+  private val _tripTimes = Buffer[Double]()
   private var variance = 0.0
 
   def +=(tripTime: Double) {
-    tripTime +=: tripTimes
-    if (tripTimes.size > windowSize) {
-      tripTimes -= tripTimes.last
+    tripTime +=: _tripTimes
+    if (_tripTimes.size > windowSize) {
+      _tripTimes -= _tripTimes.last
     }
     mean += varsigma * (tripTime - mean)
     variance += varsigma * (math.pow(tripTime - mean, 2) - variance)
   }
 
-  def bestTripTime = tripTimes min
+  def bestTripTime = _tripTimes min
 
   def reinforcement(tripTime: Double, neighbourCount: Double) = {
     val c1 = 0.7
@@ -38,6 +38,8 @@ class TrafficModelSample(varsigma: Double, windowSize: Int) {
     val r = c1 * (bestTripTime / tripTime) + c2 * (if (stabilityTerm ~> 0.0) ((iSup - iInf) / stabilityTerm) else 0)
     TrafficModelSample.transformBySquash(math.max(DefaultEpsilon, math.min(r, 1)), neighbourCount)
   }
+
+  def tripTimes = _tripTimes
 }
 
 object TrafficModelSample {
