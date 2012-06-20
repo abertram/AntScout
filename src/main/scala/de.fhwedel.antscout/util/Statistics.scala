@@ -20,9 +20,9 @@ object Statistics {
   def selectByProbability[T](probabilities: Map[T, Double]) = {
     require(probabilities.nonEmpty)
     val probabilitiesSum = probabilities.map { case (t, probability) => probability } sum
-    val cumulatedProbabilities = probabilities.scanLeft((probabilities.head._1, 0.0)) {
+    val cumulatedProbabilities = probabilities.view.scanLeft((probabilities.head._1, 0.0)) {
       case ((_, probability1), (t2, probability2)) => (t2 -> (probability1 + probability2 / probabilitiesSum))
-    } view
+    }
     val r = random.nextDouble
     cumulatedProbabilities.find {
       case (t, cumulatedProbability) => r <= cumulatedProbability
