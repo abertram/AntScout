@@ -23,7 +23,7 @@
                 <input class="span2" id="destination" type="text" value="705531295">
                 <button class="btn" id="retrieveDirections" type="button">Retrieve directions</button>
             </form>
-            <div class="well">
+            <div class="well" style="display: none;">
                 <h3>Directions</h3>
                 <div id="directions"></div>
             </div>
@@ -55,7 +55,11 @@
                         <td>Id</td><td id="wayId"></td>
                     </tr>
                     <tr>
-                        <td>Length</td><td id="wayLength"></td>
+                        <td>Length</td><td>
+                            <div class="input-append">
+                                <input id="wayLength" class="input-mini" disabled><span class="add-on">m</span>
+                            </div>
+                        </td>
                     </tr>
                     <tr>
                         <td>Max speed</td>
@@ -68,6 +72,14 @@
                                 <button id="waySaveMaxSpeed" class="btn" disabled type="button"><i class="icon-ok"></i></button>
                                 <button id="wayCancelEditMaxSpeed" class="btn" disabled type="button"><i class="icon-remove"></i></button>
                             </form>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Trip time</td>
+                        <td>
+                            <div class="input-append">
+                                <input id="wayTripTime" class="input-mini" disabled><span class="add-on">s</span>
+                            </div>
                         </td>
                     </tr>
                     <tr>
