@@ -58,6 +58,7 @@ object OsmMap extends Logger {
   }
 
   def apply(fileName: String) {
+    info("Loading file %s" format fileName)
     apply(XML loadFile(fileName))
   }
 
