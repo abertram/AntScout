@@ -43,7 +43,7 @@ class TrafficModel extends Actor with Logger {
 
 object TrafficModel {
 
-  val DefaultVarsigma = 0.005
+  val DefaultVarsigma = 0.1
 
   case class AddSample(node: AntNode, destination: AntNode, tripTime: Double)
   case class GetReinforcement(node: AntNode, destination: AntNode, tripTime: Double, neighbourCount: Int)

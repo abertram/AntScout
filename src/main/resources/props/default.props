@@ -5,7 +5,7 @@ timeUnit = MILLISECONDS
 
 antLaunchDelay = 5000
 
-varsigma = 0.005
+varsigma = 0.1
 
 antLifetime = 10000
 
@@ -44,4 +44,4 @@ speed.walk = 2.7778
 # Schwellwert für den Vergleich von zwei Doubles
 epsilon = 0.00001
 
-antMap.relevantHighways = motorway,motorway_link,trunk,trunk_link,primary,primary_link
+antMap.relevantHighways = motorway,motorway_link,trunk,trunk_link,primary,primary_link,secondary
