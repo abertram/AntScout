@@ -3,10 +3,9 @@ package antnet
 
 import java.util.concurrent.TimeUnit
 import net.liftweb.util.Props
-import util.Random
-import extensions.ExtendedDouble._
 import akka.util.Duration
 import akka.actor.{ActorLogging, PoisonPill, Actor}
+import util.Statistics
 
 /**
  * Created by IntelliJ IDEA.
@@ -22,7 +21,6 @@ class ForwardAnt(val source: AntNode, val destination: AntNode) extends Actor wi
 
   var currentNode: AntNode = _
   val memory = AntMemory()
-  val random = Random
   var startTime: Long = _
 
   def launchBackwardAnt() {
@@ -42,60 +40,36 @@ class ForwardAnt(val source: AntNode, val destination: AntNode) extends Actor wi
   }
 
   protected def receive = {
-    case AntNode.Propabilities(propabilities) =>
-      val nextNode = selectNextNode(propabilities)
+    case AntNode.Propabilities(probabilities) =>
+      val nextNode = selectNextNode(probabilities)
       visitNode(nextNode)
     case m: Any =>
       log.warning("Unknown message: {}", m)
   }
 
-  def selectNextNode(propabilities: Map[AntWay, Double]) = {
-    val outgoingWay = if (memory.containsNode(currentNode)) {
+  def selectNextNode(probabilities: Map[AntWay, Double]) = {
+    if (memory.containsNode(currentNode)) {
       trace("Circle detected")
       trace("Memory before circle deleted: %s" format(memory))
       memory.removeCircle(currentNode)
       trace("Memory after circle deleted: %s" format(memory))
-      selectRandomWay(propabilities)
-    } else
-      selectWay(propabilities)
+    }
+    val outgoingWay = selectOutgoingWay(probabilities)
     val (nextNode, tripTime) = outgoingWay.cross(currentNode)
     memory.memorize(currentNode, outgoingWay, tripTime)
     nextNode
   }
 
-  def selectRandomWay(propabilities: Map[AntWay, Double]) = {
-    trace("Selecting random way")
-    propabilities.toSeq(random.nextInt(propabilities.size))._1
-  }
-
-  def selectWay(propabilities: Map[AntWay, Double]) = {
+  def selectOutgoingWay(probabilities: Map[AntWay, Double]) = {
     trace("Selecting way")
     trace("Memory: %s".format(memory.items))
-    val notVisitedWays = propabilities.filter { case (w, p) => !memory.containsWay(w) }
+    val notVisitedWays = probabilities.filter { case (w, p) => !memory.containsWay(w) }
     trace("Not visited ways: %s".format(notVisitedWays.mkString(", ")))
-    val way = if (notVisitedWays.nonEmpty) {
-      trace("Nicht besuchte Wege gefunden")
-      // Höchste Wahrscheinlichkeit bestimmen
-      val maxPropability = notVisitedWays.maxBy(_._2)._2
-      trace("Max propability: %f".format(maxPropability))
-      // Noch nicht besuchte Wege mit der höchsten Wahrscheinlichkeit bestimmen
-      val maxPropabilityNotVisitedWays = notVisitedWays.filter(_._2 ~= maxPropability)
-      trace("maxPropabilityNotVisitedWays: %s".format(maxPropabilityNotVisitedWays.mkString(", ")))
-      if (maxPropabilityNotVisitedWays.size == 1) {
-        trace("Nur ein Weg mit höchster Wahrscheinlichkeit")
-        // Wenn nur ein Weg gefunden wurde, diesen Weg verwenden
-        maxPropabilityNotVisitedWays.head._1
-      }
-      else {
-        trace("Mehrere Wege mit höchster Wahrscheinlichkeit, bestimme einen per Zufall")
-        // Wenn mehrere Wege gefunden werden, zufällig einen bestimmen
-        maxPropabilityNotVisitedWays.toSeq(random.nextInt(maxPropabilityNotVisitedWays.size))._1
-      }
-    } else {
-      trace("Alle Wege bereits besucht, bestimme einen per Zufall")
-      selectRandomWay(propabilities)
-    }
-    trace("Selected way: #%s".format(way id))
+    val way = if (notVisitedWays.nonEmpty)
+      Statistics.selectByProbability(probabilities)
+    else
+      Statistics.selectRandom(probabilities.keys.toSeq)
+    trace("Selected way: #%s".format(way.id))
     way
   }
 
