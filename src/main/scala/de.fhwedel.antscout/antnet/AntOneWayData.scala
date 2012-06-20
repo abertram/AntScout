@@ -14,6 +14,7 @@ class AntOneWayData(maxSpeed: Double, nodes: Seq[OsmNode]) extends AntWayData(ma
 
   override def containsSlice(nodes: Seq[OsmNode]) = this.nodes.containsSlice(nodes)
 
+  // TODO Geschwindigkeiten verrechnen
   override def extend(nodes: Seq[OsmNode]): AntWayData = {
     if (this.nodes.containsSlice(nodes))
       this

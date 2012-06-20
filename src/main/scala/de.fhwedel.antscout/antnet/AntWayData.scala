@@ -17,6 +17,7 @@ class AntWayData(val maxSpeed: Double, val nodes: Seq[OsmNode]) {
     this.nodes.containsSlice(nodes) || this.nodes.containsSlice(nodes.reverse)
   }
 
+  // TODO Geschwindigkeiten verrechnen
   def extend(nodes: Seq[OsmNode]): AntWayData = {
     if (this.nodes.containsSlice(nodes) || this.nodes.containsSlice(nodes.reverse))
       this
