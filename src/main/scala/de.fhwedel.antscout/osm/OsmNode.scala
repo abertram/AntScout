@@ -103,7 +103,6 @@ class OsmNode(id: String, val geographicCoordinate: GeographicCoordinate) extend
     }
   }
 
-
   override def toJson = {
     super.toJson ~
     ("longitude" -> geographicCoordinate.longitude) ~
