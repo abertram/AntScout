@@ -34,7 +34,7 @@ class PheromonMatrixSupervisor extends Actor with ActorLogging {
       case Right(_) => {
         assert(context.children.size == AntMap.sources.size, context.children.size)
         log.info("Initialized")
-        AntScout.instance ! AntScout.PheromonMatrixSupervisorInitialized
+        AntScout.instance ! AntScout.PheromoneMatrixSupervisorInitialized
       }
     }
   }
@@ -42,9 +42,9 @@ class PheromonMatrixSupervisor extends Actor with ActorLogging {
   protected def receive = {
     case Initialize(sources, destinations) =>
       init(sources, destinations)
-    case m: PheromoneMatrix.GetAllPropabilities =>
+    case m: PheromoneMatrix.GetAllProbabilities =>
       context.actorFor(m.node.id) forward m
-    case m: PheromoneMatrix.GetPropabilities =>
+    case m: PheromoneMatrix.GetProbabilities =>
       context.actorFor(m.node.id) forward m
     case m: PheromoneMatrix.UpdatePheromones =>
       context.actorFor(m.node.id) forward m

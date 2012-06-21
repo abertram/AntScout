@@ -33,12 +33,12 @@ class AntScout extends Actor with FSM[AntScoutMessage, Unit] with Logger {
       OsmMap(map get)
       AntMap()
       assert(AntMap.nodes.size > 0, AntMap.nodes.size)
-      pheromonMatrixSupervisor ! PheromonMatrixSupervisor.Initialize(AntMap.sources, AntMap.destinations)
-      goto(InitializingPheromonMatrixSupervisor)
+      pheromoneMatrixSupervisor ! PheromonMatrixSupervisor.Initialize(AntMap.sources, AntMap.destinations)
+      goto(InitializingPheromoneMatrixSupervisor)
   }
 
-  when(InitializingPheromonMatrixSupervisor) {
-    case Event(PheromonMatrixSupervisorInitialized, _) =>
+  when(InitializingPheromoneMatrixSupervisor) {
+    case Event(PheromoneMatrixSupervisorInitialized, _) =>
       val varsigma = Props.get("varsigma").map(_.toDouble) openOr TrafficModel.DefaultVarsigma
       AntScout.trafficModelSupervisor ! TrafficModelSupervisor.Initialize(AntMap.sources, AntMap.destinations, varsigma)
     goto(InitializingTrafficModelSupervisor)
@@ -63,8 +63,8 @@ object AntScout {
 
   case object Uninitialized extends AntScoutMessage
   case object Initialize extends AntScoutMessage
-  case object InitializingPheromonMatrixSupervisor extends AntScoutMessage
-  case object PheromonMatrixSupervisorInitialized extends AntScoutMessage
+  case object InitializingPheromoneMatrixSupervisor extends AntScoutMessage
+  case object PheromoneMatrixSupervisorInitialized extends AntScoutMessage
   case object InitializingTrafficModelSupervisor extends AntScoutMessage
   case object TrafficModelSupervisorInitialized extends AntScoutMessage
   case object InitializingRoutingService extends AntScoutMessage
@@ -77,7 +77,7 @@ object AntScout {
   val config = ConfigFactory.load
   val system = ActorSystem("AntScout", config)
   val instance = system.actorOf(actor.Props[AntScout], "antScout")
-  val pheromonMatrixSupervisor = system.actorOf(actor.Props[PheromonMatrixSupervisor], "pheromonMatrixSupervisor")
+  val pheromoneMatrixSupervisor = system.actorOf(actor.Props[PheromonMatrixSupervisor], "pheromonMatrixSupervisor")
   val routingService = system.actorOf(actor.Props[RoutingService], "routingService")
   val trafficModelSupervisor = system.actorOf(actor.Props[TrafficModelSupervisor], "trafficModelSupervisor")
 

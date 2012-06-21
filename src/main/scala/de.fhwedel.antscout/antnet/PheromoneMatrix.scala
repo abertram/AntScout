@@ -91,12 +91,12 @@ class PheromoneMatrix(destinations: Set[AntNode], outgoingWays: Set[AntWay]) ext
   }
 
   protected def receive = {
-    case GetAllPropabilities(source) =>
+    case GetAllProbabilities(source) =>
       val immutableProbabilities = probabilities.map {
         case (destination, probabilities) => (destination -> probabilities.toMap)
       }.toMap
       sender ! (source, immutableProbabilities)
-    case GetPropabilities(_, destination) =>
+    case GetProbabilities(_, destination) =>
       sender ! AntNode.Probabilities(probabilities(destination).toMap)
     case Initialize(source, tripTimes) =>
       init(source, tripTimes)
@@ -124,8 +124,8 @@ class PheromoneMatrix(destinations: Set[AntNode], outgoingWays: Set[AntWay]) ext
 
 object PheromoneMatrix {
 
-  case class GetAllPropabilities(node: AntNode)
-  case class GetPropabilities(node: AntNode, destination: AntNode)
+  case class GetAllProbabilities(node: AntNode)
+  case class GetProbabilities(node: AntNode, destination: AntNode)
   case class Initialize(source: AntNode, tripTimes: Map[AntWay, Double])
   case object Initialized
   case class UpdatePheromones(node: AntNode, destination: AntNode, way: AntWay, reinforcement: Double)

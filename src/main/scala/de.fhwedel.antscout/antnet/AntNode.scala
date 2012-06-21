@@ -20,12 +20,12 @@ class AntNode(id: String) extends Node(id) with Logger {
   implicit val timeout = Timeout(5 seconds)
 
   def enter(destination: AntNode, sender: ActorRef) = {
-    AntScout.pheromonMatrixSupervisor.tell(PheromoneMatrix.GetPropabilities(this, destination), sender = sender)
+    AntScout.pheromoneMatrixSupervisor.tell(PheromoneMatrix.GetProbabilities(this, destination), sender = sender)
   }
 
   def probabilities(implicit timeout: Timeout) = {
-    (AntScout.pheromonMatrixSupervisor
-      ? PheromoneMatrix.GetAllPropabilities(this))(timeout)
+    (AntScout.pheromoneMatrixSupervisor
+      ? PheromoneMatrix.GetAllProbabilities(this))(timeout)
       .mapTo[(AntNode, Map[AntNode, Map[AntWay, Double]])]
   }
 
@@ -39,7 +39,7 @@ class AntNode(id: String) extends Node(id) with Logger {
       case Left(e) =>
         error("GetReinforcement failed, source: %s, destination: %s, error: %s" format(this, destination, e))
       case Right(reinforcement) =>
-        AntScout.pheromonMatrixSupervisor ! PheromoneMatrix.UpdatePheromones(this, destination, way, reinforcement)
+        AntScout.pheromoneMatrixSupervisor ! PheromoneMatrix.UpdatePheromones(this, destination, way, reinforcement)
     }
   }
 }
