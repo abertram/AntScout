@@ -1,10 +1,11 @@
 package de.fhwedel.antscout
 package osm
 
-import scala.math._
+import annotation.tailrec
+import map.Node
 import net.liftweb.common.Logger
 import net.liftweb.json.JsonDSL._
-import map.Node
+import scala.math._
 
 /**
  * Created by IntelliJ IDEA.
@@ -36,6 +37,7 @@ class OsmNode(id: String, val geographicCoordinate: GeographicCoordinate) extend
     val sinU2 = sin(U2)
     val cosU2 = cos(U2)
 
+    @tailrec
     def iterate(lambda: Double, iterationLimit: Int): Option[(Double, Double, Double, Double, Double)] = {
       iterationLimit match {
         case 0 =>
