@@ -40,7 +40,7 @@ class ForwardAnt(val source: AntNode, val destination: AntNode) extends Actor wi
   }
 
   protected def receive = {
-    case AntNode.Propabilities(probabilities) =>
+    case AntNode.Probabilities(probabilities) =>
       val nextNode = selectNextNode(probabilities)
       visitNode(nextNode)
     case m: Any =>

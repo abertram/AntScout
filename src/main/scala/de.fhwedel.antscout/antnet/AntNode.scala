@@ -23,20 +23,21 @@ class AntNode(id: String) extends Node(id) with Logger {
     AntScout.pheromonMatrixSupervisor.tell(PheromoneMatrix.GetPropabilities(this, destination), sender = sender)
   }
 
-  def propabilities(implicit timeout: Timeout) = {
+  def probabilities(implicit timeout: Timeout) = {
     (AntScout.pheromonMatrixSupervisor
       ? PheromoneMatrix.GetAllPropabilities(this))(timeout)
       .mapTo[(AntNode, Map[AntNode, Map[AntWay, Double]])]
   }
 
   def updateDataStructures(destination: AntNode, way: AntWay, tripTime: Double) = {
-//    debug("UpdateDataStructures(%s, %s, %s)" format (destination.id, way.id, tripTime))
+    if (id == AntScout.traceSourceId && destination.id == AntScout.traceDestinationId)
+      debug("Updating data structures, source: %s, destination: %s, way: %s, trip time: %s".format(this, destination, way, tripTime))
     AntScout.trafficModelSupervisor ! TrafficModel.AddSample(this, destination, tripTime)
     (AntScout.trafficModelSupervisor
       ? TrafficModel.GetReinforcement(this, destination, tripTime, AntMap.outgoingWays(this).size))
       .mapTo[Double] onComplete {
       case Left(e) =>
-        error("%s" format(e))
+        error("GetReinforcement failed, source: %s, destination: %s, error: %s" format(this, destination, e))
       case Right(reinforcement) =>
         AntScout.pheromonMatrixSupervisor ! PheromoneMatrix.UpdatePheromones(this, destination, way, reinforcement)
     }
@@ -45,7 +46,7 @@ class AntNode(id: String) extends Node(id) with Logger {
 
 object AntNode {
 
-  case class Propabilities(propabilities: Map[AntWay, Double])
+  case class Probabilities(probabilities: Map[AntWay, Double])
 
   def apply(id: String) = new AntNode(id)
 }
