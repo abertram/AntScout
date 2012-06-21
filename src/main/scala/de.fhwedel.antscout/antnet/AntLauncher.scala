@@ -3,7 +3,7 @@ package antnet
 
 import java.util.concurrent.TimeUnit
 import net.liftweb.common.Logger
-import net.liftweb.util.{Props, TimeHelpers}
+import net.liftweb.util.Props
 import akka.util.Duration
 import akka.actor.Actor
 import akka.actor
@@ -23,13 +23,11 @@ class AntLauncher extends Actor with Logger {
   val DefaultAntLaunchDelay = 15
 
   def launchAnts() {
-    val (time, _) = TimeHelpers.calcTime {
-      AntMap.sources.foreach(s => {
-        AntMap.destinations.foreach(d => {
-          if (s != d) context.actorOf(actor.Props(new ForwardAnt(s, d)))
-        })
+    AntMap.sources.foreach(s => {
+      AntMap.destinations.foreach(d => {
+        if (s != d) context.actorOf(actor.Props(new ForwardAnt(s, d)))
       })
-    }
+    })
   }
 
   protected def receive = {
