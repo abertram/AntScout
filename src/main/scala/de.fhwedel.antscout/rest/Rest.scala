@@ -12,7 +12,7 @@ import antnet.{AntWay, AntMap}
 import akka.dispatch.Await
 import akka.util.Timeout
 import net.liftweb.json.JsonAST.JArray
-import net.liftweb.http.{OkResponse, S}
+import net.liftweb.http.S
 
 /**
  * Created by IntelliJ IDEA.
@@ -71,15 +71,23 @@ object Rest extends Logger with RestHelper {
         ("longitude" -> n.geographicCoordinate.longitude)
       }).toList)
     }
-    case Get(List("way", id), _) =>
-      AntMap.ways.find(_.id == id).map(_.toJson)
-    case JsonPut(List("way", id), json -> _) =>
-      val way = AntMap.ways.find(_.id == id)
-      val wayUpdate = json.extract[AntWay.Update]
-      way.map(_.update(wayUpdate))
-      OkResponse()
     case Get(List("ways"), _) => {
       JArray(AntMap.ways.map(_.toJson).toList)
     }
+    case Get(List("way", id), _) =>
+      AntMap.ways.find(_.id == id).map(_.toJson)
+    case JsonPut(List("way", id), json -> _) =>
+      // Weg suchen, der aktualisiert werden soll
+      val way = AntMap.ways.find(_.id == id)
+      // aktualisierte Daten extrahieren
+      val wayUpdate = json.extract[AntWay.Update]
+      way.map { way =>
+        // Aktualisierung durchführen
+        way.update(wayUpdate)
+        // warten, bis die Aktualisierung durchgeführt wurde
+        way.maxSpeed(true)
+        // aktualisierten Weg zurückgeben
+        way.toJson
+      }
   }
 }

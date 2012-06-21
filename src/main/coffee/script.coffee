@@ -59,15 +59,7 @@ require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles)
   )
   waysLayer.events.on({
     "featureselected": (e) ->
-      way = e.feature.attributes.way
-      id = way.id
-      $("#wayId").html(id)
-      $("#wayLength").val(way.length)
-      $("#wayMaxSpeed").val(way.maxSpeed)
-      $("#wayTripTime").val(way.tripTime)
-      nodes = for node in way.nodes
-        "<a href=\"http://www.openstreetmap.org/browse/node/#{ node.id }\">#{ node.id }</a>"
-      $("#wayNodes").html("<ul><li>" + nodes.join("</li><li>") + "</li></ul>")
+      displayWayData(e.feature.attributes.way)
     "visibilitychanged": (e) ->
       if waysLayer.getVisibility() and waysLayer.features.length is 0
         retrieveWays()
@@ -95,7 +87,10 @@ require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles)
         data: JSON.stringify(
           maxSpeed: maxSpeed
         )
-      }).done(updateWay(id))
+      }).done (way) ->
+        wayFeature = _.find(waysLayer.features, (feature) -> feature.attributes.way.id == id)
+        wayFeature.attributes.way = way
+        displayWayData(way)
   )
 
   addWaysToLayer = (ways, layer) ->
@@ -116,6 +111,16 @@ require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles)
 
   displayDirections = (directions) ->
     $("#directions").html("<ol><li>" + directions.join("</li><li>") + "</li></ol>")
+
+  displayWayData = (way) ->
+    id = way.id
+    $("#wayId").html(id)
+    $("#wayLength").val(way.length)
+    $("#wayMaxSpeed").val(way.maxSpeed)
+    $("#wayTripTime").val(way.tripTime)
+    nodes = for node in way.nodes
+      "<a href=\"http://www.openstreetmap.org/browse/node/#{ node.id }\">#{ node.id }</a>"
+    $("#wayNodes").html("<ul><li>" + nodes.join("</li><li>") + "</li></ul>")
 
   drawDirections = (directions) ->
     directionsLayer.removeAllFeatures()
@@ -213,12 +218,4 @@ require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles)
     toggleDisabledProperty("wayEditMaxSpeed")
     toggleDisabledProperty("waySaveMaxSpeed")
     toggleDisabledProperty("wayCancelEditMaxSpeed")
-
-  updateWay = (id) ->
-    $.get "way/#{ id }",
-      (way) ->
-        wayFeature = _.find(waysLayer.features, (feature) -> feature.attributes.way.id == id)
-        wayFeature.attributes.way = way
-        selectFeatureControl.unselect(wayFeature)
-        selectFeatureControl.select(wayFeature)
 )

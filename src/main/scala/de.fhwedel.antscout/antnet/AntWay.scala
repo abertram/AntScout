@@ -2,6 +2,8 @@ package de.fhwedel.antscout
 package antnet
 
 import akka.agent.Agent
+import akka.util.duration._
+import akka.util.Timeout
 import net.liftweb.common.Logger
 import net.liftweb.json.JsonDSL._
 import osm._
@@ -17,6 +19,7 @@ import map.Way
 class AntWay(id: String, override val nodes: Seq[OsmNode], val startNode: AntNode, val endNode: AntNode, val length: Double, originalMaxSpeed: Double) extends Way(id, nodes) with Logger {
 
   private val _maxSpeed = Agent(originalMaxSpeed)(AntScout.system)
+  implicit val timeout = Timeout(5 seconds)
 
   /**
    * Methode, mit der eine Ameise den Weg kreuzen kann.
@@ -39,9 +42,14 @@ class AntWay(id: String, override val nodes: Seq[OsmNode], val startNode: AntNod
       this.startNode
   }
 
-  def maxSpeed = _maxSpeed()
+  def maxSpeed(implicit await: Boolean = false) = {
+    if (await)
+      _maxSpeed.await
+    else
+      _maxSpeed.get
+  }
 
-  def maxSpeed_=(value: Double) = _maxSpeed send value
+  def maxSpeed_=(value: Double) = _maxSpeed.send(value)
 
   override def toJson = {
     super.toJson ~
