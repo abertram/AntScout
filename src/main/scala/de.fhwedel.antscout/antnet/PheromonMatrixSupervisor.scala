@@ -20,7 +20,7 @@ class PheromonMatrixSupervisor extends Actor with ActorLogging {
   import context.dispatcher // context == ActorContext and "dispatcher" in it is already implicit
   import PheromonMatrixSupervisor._
 
-  implicit val timeout = Timeout(5 seconds)
+  implicit val timeout = Timeout(10 seconds)
 
   def init(sources: Set[AntNode], destinations: Set[AntNode]) {
     log.info("Initializing")
@@ -28,7 +28,7 @@ class PheromonMatrixSupervisor extends Actor with ActorLogging {
       val outgoingWays = AntMap.outgoingWays(source)
       val tripTimes = outgoingWays.map(ow => (ow -> ow.tripTime)).toMap
       val actor = context.actorOf(Props(new PheromoneMatrix(AntMap.destinations - source, outgoingWays)), source.id)
-      actor ? PheromoneMatrix.Initialize(tripTimes)
+      actor ? PheromoneMatrix.Initialize(source, tripTimes)
     }) onComplete {
       case Left(e) => log.error(e.toString)
       case Right(_) => {

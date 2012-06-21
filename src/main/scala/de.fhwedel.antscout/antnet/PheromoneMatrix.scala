@@ -29,6 +29,13 @@ class PheromoneMatrix(destinations: Set[AntNode], outgoingWays: Set[AntWay]) ext
   val heuristicValues = mutable.Map[AntWay, Double]()
   val pheromones = mutable.Map[AntNode, mutable.Map[AntWay, Double]]()
     
+  def bestWay(destination: AntNode) = {
+    val (bestWay, _) = probabilities(destination).toSeq.sortBy {
+      case (way, probability) => probability
+    }.last
+    bestWay
+  }
+
   def calculateProbabilities() {
     destinations.foreach(calculateProbabilities _)
   }
@@ -40,12 +47,15 @@ class PheromoneMatrix(destinations: Set[AntNode], outgoingWays: Set[AntWay]) ext
     })
   }
 
-  def init(tripTimes: Map[AntWay, Double]) {
+  def init(source: AntNode, tripTimes: Map[AntWay, Double]) {
 //    trace("Initializing")
     probabilities ++= destinations.map((_ -> mutable.Map[AntWay, Double]()))
     initHeuristicValues(tripTimes)
     initPheromones()
     calculateProbabilities()
+    val bestWays = mutable.Map[AntNode, AntWay]()
+    destinations.foreach(d => bestWays += (d -> bestWay(d)))
+    AntScout.routingService ! RoutingService.InitializeBestWays(source, bestWays)
     sender ! Initialized
   }
 
@@ -82,38 +92,32 @@ class PheromoneMatrix(destinations: Set[AntNode], outgoingWays: Set[AntWay]) ext
 
   protected def receive = {
     case GetAllPropabilities(source) =>
-      val immutablePropabilities = probabilities.map {
-        case (destination, propabilities) => (destination -> propabilities.toMap)
+      val immutableProbabilities = probabilities.map {
+        case (destination, probabilities) => (destination -> probabilities.toMap)
       }.toMap
-      sender ! (source, immutablePropabilities)
+      sender ! (source, immutableProbabilities)
     case GetPropabilities(_, destination) =>
-      sender ! AntNode.Propabilities(probabilities(destination).toMap)
-    case Initialize(tripTimes) =>
-      init(tripTimes)
+      sender ! AntNode.Probabilities(probabilities(destination).toMap)
+    case Initialize(source, tripTimes) =>
+      init(source, tripTimes)
     case UpdatePheromones(source: AntNode, destination: AntNode, way: AntWay, reinforcement: Double) =>
       if (source.id == AntScout.traceSourceId && destination.id == AntScout.traceDestinationId)
         log.debug("Updating pheromones, source: {}, destination: {}, way: {}, reinforcement: {}", source, destination, way, reinforcement)
-      val propabilitiesBeforePheromoneUpdate = probabilities(destination).toMap
+      val bestWayBeforeUpdate = bestWay(destination)
       if (source.id == AntScout.traceSourceId && destination.id == AntScout.traceDestinationId)
         log.debug("Pheromones before update: {}", pheromones(destination))
       if (source.id == AntScout.traceSourceId && destination.id == AntScout.traceDestinationId)
-        log.debug("Propabilities before update: {}", propabilitiesBeforePheromoneUpdate)
+        log.debug("Best way before update: {}", bestWayBeforeUpdate)
       updatePheromones(destination, way, reinforcement)
-//      if (probabilities(destination).find(_._2 < 0).isDefined)
-//        log.warning("Source: {}, destination: {}, probabilities: {}", source, destination, probabilities(destination))
-      val propabilitiesAfterPheromoneUpdate = probabilities(destination).toMap
+      val bestWayAfterUpdate = bestWay(destination)
       if (source.id == AntScout.traceSourceId && destination.id == AntScout.traceDestinationId)
         log.debug("Pheromones after update: {}", pheromones(destination))
       if (source.id == AntScout.traceSourceId && destination.id == AntScout.traceDestinationId)
-        log.debug("Propabilities after update: {}", propabilitiesAfterPheromoneUpdate)
-      if (propabilitiesAfterPheromoneUpdate != propabilitiesBeforePheromoneUpdate) {
-        val waysSortedByPropabilityInDescendingOrder = propabilitiesAfterPheromoneUpdate.toList
-          .sortBy { case (_, propability) => propability }
-          .reverse
-          .map { case (way, _) => way }
+        log.debug("Best way after update: {}", bestWayAfterUpdate)
+      if (bestWayAfterUpdate != bestWayBeforeUpdate) {
         if (source.id == AntScout.traceSourceId && destination.id == AntScout.traceDestinationId)
-          log.debug("Sending ways to routing service: {}", waysSortedByPropabilityInDescendingOrder)
-        AntScout.routingService ! RoutingService.UpdatePropabilities(source, destination, waysSortedByPropabilityInDescendingOrder)
+          log.debug("Sending best way to routing service: {}", bestWayAfterUpdate)
+        AntScout.routingService ! RoutingService.UpdateBestWay(source, destination, bestWayAfterUpdate)
       }
   }
 }
@@ -122,7 +126,7 @@ object PheromoneMatrix {
 
   case class GetAllPropabilities(node: AntNode)
   case class GetPropabilities(node: AntNode, destination: AntNode)
-  case class Initialize(tripTimes: Map[AntWay, Double])
+  case class Initialize(source: AntNode, tripTimes: Map[AntWay, Double])
   case object Initialized
   case class UpdatePheromones(node: AntNode, destination: AntNode, way: AntWay, reinforcement: Double)
 }
