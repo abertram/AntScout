@@ -39,14 +39,13 @@ object Rest extends Logger with RestHelper {
       } getOrElse Set[AntWay]()
       ("incomingWays" -> incomingWays.map(_.toJson)) ~
       ("outgoingWays" -> outgoingWays.map(_.toJson))
-    case Get(List("nodes"), _) => {
-      JArray(AntMap.nodes.map(n => {
+    case Get(List("nodes"), _) =>
+      AntMap.nodes.map { n =>
         val osmNode = OsmMap.nodes(n.id)
         ("id" -> n.id) ~
-        ("latitude" -> osmNode.geographicCoordinate.latitude) ~
-        ("longitude" -> osmNode.geographicCoordinate.longitude)
-      }).toList)
-    }
+          ("latitude" -> osmNode.geographicCoordinate.latitude) ~
+          ("longitude" -> osmNode.geographicCoordinate.longitude)
+      }: JArray
     case Get(List("directions"), _) =>
       for {
         sourceId <- S.param("source") ?~ "Source is missing" ~> 400
@@ -56,23 +55,13 @@ object Rest extends Logger with RestHelper {
         val destination = AntMap.nodes.find(_.id == destinationId).get
         val pathFuture = (AntScout.routingService ? RoutingService.FindPath(source, destination))
         val path = Await.result(pathFuture, 5 seconds).asInstanceOf[Seq[AntWay]]
-        JArray(path.map { antWay =>
-          ("id" -> antWay.id) ~
-          ("nodes" -> antWay.nodes.map { node =>
-            ("latitude" -> node.geographicCoordinate.latitude) ~
-            ("longitude" -> node.geographicCoordinate.longitude)
-          })
-        }.toList)
+        path.map(_.toJson): JArray
       }
     case Get(List("osmnodes"), _) => {
-      JArray(OsmMap.nodes.values.map(n => {
-        ("id" -> n.id) ~
-        ("latitude" -> n.geographicCoordinate.latitude) ~
-        ("longitude" -> n.geographicCoordinate.longitude)
-      }).toList)
+      OsmMap.nodes.values.map(_.toJson): JArray
     }
     case Get(List("ways"), _) => {
-      JArray(AntMap.ways.map(_.toJson).toList)
+      AntMap.ways.map(_.toJson): JArray
     }
     case Get(List("way", id), _) =>
       AntMap.ways.find(_.id == id).map(_.toJson)
