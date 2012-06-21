@@ -92,6 +92,7 @@ object AntMap extends Logger {
         else {
           // der aktuell zu verarbeitende Weg
           val way = ways.head
+          assert(way.nodes.head != way.nodes.last, "Way %s is a circle way, circle ways are not (yet) supported" format way.id)
           // Start- und End-Indices ausgehend von dem aktuellen Knoten berechnen. Diese werden benutzt, um einen Knoten-Segment aus dem aktuellen Weg auszuschneiden und daraus einen Ant-Weg zu erstellen.
           val (startNodeIndex, endNodeIndex) = {
             // Der aktuelle Knoten ist der End-Knoten des Weges.
