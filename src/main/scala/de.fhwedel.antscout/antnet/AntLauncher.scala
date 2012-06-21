@@ -23,17 +23,13 @@ class AntLauncher extends Actor with Logger {
   val DefaultAntLaunchDelay = 15
 
   def launchAnts() {
-    debug("Launching ants")
     val (time, _) = TimeHelpers.calcTime {
-      AntMap.sources.par.foreach(s => {
-        AntMap.destinations.par.foreach(d => {
-          // debug("Launching forward ant from %s to %s".format(source id, destination id))
+      AntMap.sources.foreach(s => {
+        AntMap.destinations.foreach(d => {
           if (s != d) context.actorOf(actor.Props(new ForwardAnt(s, d)))
         })
       })
-      // Actor.actorOf(ForwardAnt(sourceNode, destination)).start()
     }
-    // debug("Forward ants created in %d ms".format(time))
   }
 
   protected def receive = {
