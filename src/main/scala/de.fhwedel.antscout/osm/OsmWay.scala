@@ -42,14 +42,35 @@ class OsmWay(val highway: String, id: String, val name: String, override val nod
       nodes head
   }
 
+  /**
+   * Berechnet, ob ein Weg ein Kreis-Weg ist. Das ist der Fall, wenn der Weg mit demselben Knoten anfängt und endet.
+   *
+   * @return True, wenn der Weg ein Kreis-Weg ist.
+   */
+  def isCircle = nodes.head == nodes.last
+
+  /**
+   * Berechnet, ob der übergebene Knoten der End-Knoten ist.
+   *
+   * @param node Knoten, der überprüft werden soll.
+   * @return True, wenn der übergebene Knoten der End-Knoten ist.
+   */
   def isEndNode(node: Node) = node == nodes.last
+
+  /**
+   * Berechnet, ob der übergebene Knoten der Start-Knoten ist.
+   *
+   * @param node Knoten, der überprüft werden soll.
+   * @return True, wenn der übergebene Knoten der Start-Knoten ist.
+   */
+  def isStartNode(node: Node) = node == nodes.head
 
   override def toString = "#%s #%s - #%s".format(id, nodes.head.id, nodes.last.id)
 }
 
 object OsmWay extends Logger {
   
-  val DefaultSpeed = 50.0
+  val DefaultSpeed = 13.8889
 
   def apply(highway: String, id: Int, name: String, nodes: List[OsmNode], maxSpeed: Double) =
     new OsmWay(highway, id.toString, name, nodes, maxSpeed)

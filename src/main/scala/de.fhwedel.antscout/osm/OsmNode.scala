@@ -82,11 +82,13 @@ class OsmNode(id: String, val geographicCoordinate: GeographicCoordinate) extend
   }
 
   /**
-   * Berechnet, ob ein Knoten eine Verbindung zwischen zwei Strassen-Segmenten ist, die zur selben Strasse gehören.
+   * Berechnet, ob ein Knoten eine Verbindung zwischen mehreren Strassen-Segmenten ist, die zur selben Strasse gehören.
    *
    * Das ist der Fall, wenn folgende Bedingungen erfüllt sind:
    *
-   * - Der Knoten hat genau zwei adjazente Strassen
+   * - Der Knoten hat genau zwei adjazente Strassen (Diese Bedingung gilt nur für Knoten, die keine Start-Knoten von
+   *    Kreis-Wegen sind. Start-Knoten von Kreis-Wegen müssen drei adjazente Strassen haben, da zwei davon die selbe
+   *    Strasse ist. Sonst würde der Knoten fälschlicherweise als Verbindung erkannt werden.)
    * - Der Knoten ist ein äußerer Knoten in beiden Strassen.
    * - Die Namen der adjazenten Strassen sind gleich.
    * - Die adjazenten Wege sind entweder beide Einbahnstrassen oder beide keine Einbahnstrassen.
@@ -96,7 +98,13 @@ class OsmNode(id: String, val geographicCoordinate: GeographicCoordinate) extend
    */
   def isConnection(implicit nodeWaysMapping: Map[OsmNode, Iterable[OsmWay]] = OsmMap nodeWaysMapping) = {
     val adjacentWays = nodeWaysMapping (this)
-    adjacentWays.size == 2 && {
+    adjacentWays.size == {
+      // Prüfung, ob der Weg ein Kreis-Weg ist
+      if (adjacentWays.find(way => way.isCircle && way.isStartNode(this)).isDefined)
+        3
+      else
+        2
+    } && {
       val way1 = adjacentWays.head
       val way2 = adjacentWays.last
       (this == way1.nodes.head || this == way1.nodes.last) && (this == way2.nodes.head || this == way2.nodes.last) &&

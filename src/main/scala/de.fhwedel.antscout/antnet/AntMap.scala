@@ -92,33 +92,30 @@ object AntMap extends Logger {
         else {
           // der aktuell zu verarbeitende Weg
           val way = ways.head
-          assert(way.nodes.head != way.nodes.last, "Way %s is a circle way, circle ways are not (yet) supported" format way.id)
           // Start- und End-Indices ausgehend von dem aktuellen Knoten berechnen. Diese werden benutzt, um einen Knoten-Segment aus dem aktuellen Weg auszuschneiden und daraus einen Ant-Weg zu erstellen.
           val (startNodeIndex, endNodeIndex) = {
-            // Der aktuelle Knoten ist der End-Knoten des Weges.
-            if (!way.isEndNode(node)) {
-              // Start-Index ist der Index des aktuellen Knoten. Der passende End-Index muss gesucht werden.
-              val startNodeIndex = way.nodes.indexOf(node)
-              (startNodeIndex, {
-                // passenden End-Knoten-Index (Verbindungs-Knoten zwischen mehreren Wegen) suchen
-                val index = way.nodes.indexWhere(nodeWaysMapping.contains(_), startNodeIndex + 1)
-                // Wenn kein passender Knoten gefunden wird, den Index des End-Knotens des Weges verwenden.
-                if (index != -1) index else way.nodes.size - 1
-              })
-            }
             // Der aktuelle Knoten ist nicht der End-Knoten des Weges.
+            if (!way.isEndNode(node)) {
+              startAndEndNodeIndexForward(way, node, nodeWaysMapping)
+            }
+            // Der aktuelle Knoten ist der End-Knoten des Weges.
             else {
-              // End-Index ist der Index des aktuellen Knoten. Der passende Start-Index muss gesucht werden.
-              ({
-                // Index des letzten Verbindungsknotens vom End-Knoten des Weges aus suchen.
-                val index = way.nodes.lastIndexWhere(nodeWaysMapping.contains(_), way.nodes.size - 2)
-                // Wenn kein passender Knoten gefunden wird, des Index des Start-Knotens des Weges verwenden.
-                if (index != -1) index else 0
-              }, way.nodes.indexOf(node))
+              val (startNodeIndex, endNodeIndex) = startAndEndNodeIndexBackward(way, node, nodeWaysMapping)
+              // Wenn der aktuelle Weg ein Kreis-Weg ist und der aktuelle Knoten der Anfangsknoten des Weges ist,
+              // dann ist eine Sonderprüfung nötig. Es wird geprüft, ob das letzte Segment des Weges schon
+              // verarbeitet wurde. Falls das der Fall sein sollte, wird mit dem aktuellen Knoten "manuell" auf das
+              // erste Segment umgeschaltet und dessen Start- und End-Knoten-Index berechnet.
+              val nodes = way.nodes.slice(startNodeIndex, endNodeIndex + 1)
+              if (!(way.isCircle && way.isStartNode(node) && ((osmNodeAntWaysMapping.contains(nodes.head) && osmNodeAntWaysMapping(nodes.head).find(_.nodes.containsSlice(nodes)).isDefined) || (osmNodeAntWaysMapping.contains(nodes.last) && osmNodeAntWaysMapping(nodes.last).find(_.nodes.containsSlice(nodes)).isDefined) || (osmNodeAntWaysMapping.contains(nodes.head) && osmNodeAntWaysMapping.contains(nodes.last) && osmNodeAntWaysMapping(nodes.head) == osmNodeAntWaysMapping(nodes.last)))))
+                (startNodeIndex, endNodeIndex)
+              else
+                startAndEndNodeIndexForward(way, node, nodeWaysMapping)
             }
           }
           // Die aktuell zu verarbeitende Knoten-Sequenz besteht aus Knoten zwischen dem berechneten Start- und End-Index.
           val nodes = way.nodes.slice(startNodeIndex, endNodeIndex + 1)
+//          assert(nodes.nonEmpty, way.id)
+          // TODO Prüfen, was zu tun ist, wenn nodes nur ein Element enthält
           // Verarbeitung der berechneten Knoten-Sequenz. Es werden fünf mögliche Fälle unterschieden.
           // Fall 1: Die Knoten-Sequenz ist bereits in einem anderen Ant-Weg enthalten.
           val (newWays, newAntWays, oldWays) = if ((osmNodeAntWaysMapping.contains(nodes.head) && osmNodeAntWaysMapping(nodes.head).find(_.nodes.containsSlice(nodes)).isDefined) || (osmNodeAntWaysMapping.contains(nodes.last) && osmNodeAntWaysMapping(nodes.last).find(_.nodes.containsSlice(nodes)).isDefined) || (osmNodeAntWaysMapping.contains(nodes.head) && osmNodeAntWaysMapping.contains(nodes.last) && osmNodeAntWaysMapping(nodes.head) == osmNodeAntWaysMapping(nodes.last)))
@@ -165,7 +162,9 @@ object AntMap extends Logger {
           } ++ newWays.map { nw =>
             val endNode = nw.nodes.last
             endNode -> (updatedAntNodeAntWaysMapping.getOrElse(endNode, Set.empty[AntWayData]) + nw)
-          }).filterNot(_._2.isEmpty) // leere Einträge entfernen
+          })
+            // leere Einträge entfernen
+            .filterNot(_._2.isEmpty)
           computeAntWaysRec(id + 1, innerNodeWaysMapping + (node -> (ways - way)), newAntNodeAntWaysMapping, newAntWays)
         }
       }
@@ -269,6 +268,27 @@ object AntMap extends Logger {
   }
 
   def sources = _sources
+
+  def startAndEndNodeIndexBackward(way: OsmWay, node: OsmNode, nodeWaysMapping: Map[OsmNode, Set[OsmWay]]) = {
+    // End-Index ist der Index des aktuellen Knoten. Der passende Start-Index muss gesucht werden.
+    // Index des letzten Verbindungsknotens vom End-Knoten des Weges aus suchen.
+    val index = way.nodes.lastIndexWhere(nodeWaysMapping.contains(_), way.nodes.size - 2)
+    // Wenn kein passender Knoten gefunden wird, des Index des Start-Knotens verwenden.
+    val startNodeIndex = if (index != -1) index else 0
+    val endNodeIndex = way.nodes.lastIndexOf(node)
+    (startNodeIndex, endNodeIndex)
+  }
+
+  def startAndEndNodeIndexForward(way: OsmWay, node: OsmNode, nodeWaysMapping: Map[OsmNode, Set[OsmWay]]) = {
+    // Start-Index ist der Index des aktuellen Knoten. Der passende End-Index muss gesucht werden.
+    val startNodeIndex = way.nodes.indexOf(node)
+    assert(startNodeIndex > -1)
+    // passenden End-Knoten-Index (Verbindungs-Knoten zwischen mehreren Wegen) suchen
+    val index = way.nodes.indexWhere(nodeWaysMapping.contains(_), startNodeIndex + 1)
+    // Wenn kein passender Knoten gefunden wird, den Index des End-Knotens verwenden.
+    val endNodeIndex = if (index != -1) index else way.nodes.size - 1
+    (startNodeIndex, endNodeIndex)
+  }
 
   def ways = _ways
 }
