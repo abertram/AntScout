@@ -6,38 +6,33 @@ scalacOptions += "-deprecation"
 
 scalacOptions += "-unchecked"
 
-resolvers += "Java.net Maven2 Repository" at "http://download.java.net/maven/2/"
+resolvers ++= Seq(
+  "Java.net Maven2 Repository" at "http://download.java.net/maven/2/",
+  "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
+)
 
-// Akka
-resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
+libraryDependencies ++= {
+  val akkaVersion = "2.0.2"
+  val jettyVersion = "8.0.1.v20110908"
+  val liftVersion = "2.4"
+  Seq(
+    "ch.qos.logback" % "logback-classic" % "1.0.2" % "compile->default",
+    "com.typesafe.akka" % "akka-actor" % akkaVersion,
+    "com.typesafe.akka" % "akka-agent" % akkaVersion,
+    "com.typesafe.akka" % "akka-slf4j" % akkaVersion,
+    "com.typesafe.akka" % "akka-testkit" % akkaVersion,
+    "junit" % "junit" % "4.10" % "test",
+    "net.liftweb" %% "lift-mapper" % liftVersion % "compile->default",
+    "net.liftweb" %% "lift-webkit" % liftVersion % "compile->default",
+    "net.liftweb" %% "lift-wizard" % liftVersion % "compile->default",
+    "org.eclipse.jetty" % "jetty-webapp" % jettyVersion % "container",
+    "org.eclipse.jetty" % "jetty-webapp" % jettyVersion % "test->default",
+    "org.scalatest" %% "scalatest" % "1.7.1" % "test",
+    "org.scala-tools.testing" %% "specs" % "1.6.9" % "test"
+  )
+}
 
-libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.0.2" % "compile->default"
-
-libraryDependencies += "junit" % "junit" % "4.10" % "test"
-
-libraryDependencies += "net.liftweb" %% "lift-mapper" % "2.4" % "compile->default"
- 
-libraryDependencies += "net.liftweb" %% "lift-webkit" % "2.4" % "compile->default"
-
-libraryDependencies += "net.liftweb" %% "lift-wizard" % "2.4" % "compile->default"
-
-libraryDependencies += "org.mortbay.jetty" % "jetty" % "6.1.26" % "container"
-
-libraryDependencies += "org.mortbay.jetty" % "jetty" % "6.1.26" % "test->default"
-
-libraryDependencies += "org.scalatest" %% "scalatest" % "1.7.1" % "test"
-
-libraryDependencies += "org.scala-tools.testing" %% "specs" % "1.6.9" % "test"
-
-libraryDependencies += "com.typesafe.akka" % "akka-actor" % "2.0.2"
-
-libraryDependencies += "com.typesafe.akka" % "akka-agent" % "2.0.2"
-
-libraryDependencies += "com.typesafe.akka" % "akka-slf4j" % "2.0.2"
-
-libraryDependencies += "com.typesafe.akka" % "akka-testkit" % "2.0.2"
-
-// coffeescrpted-sbt
+// coffeescripted-sbt
 seq(coffeeSettings: _*)
 
 seq(webSettings :_*)
