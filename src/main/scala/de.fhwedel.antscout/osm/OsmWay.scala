@@ -102,9 +102,11 @@ object OsmWay extends Logger {
     val maxSpeed: Double = maxSpeedFromMaxSpeedTag orElse maxSpeedFromHighwayTag getOrElse defaultSpeed
     val oneWay = tags.getOrElse("oneway", "")
     oneWay match {
+      // TODO überlegen, wie oneway-Wert "-1" behandelt werden soll
+      // oneway-Wert "-1" bedeutet eigentlich dass die Strasse nur entgegen der gezeichneten Richtung befahren werden
+      // kann. Einfaches Umkehren der Knoten verursacht später Probleme beim Erzeugen des Graphen für AntNet.
       case "yes" | "true" | "1" => OsmOneWay(highway, id, name, wayNodes, maxSpeed)
-      case "-1" => OsmOneWay(highway, id, name, wayNodes.reverse, maxSpeed)
-      case "no" | "false" | "0" => OsmWay(highway, id, name, wayNodes, maxSpeed)
+      case "no" | "false" | "0" | "-1" => OsmWay(highway, id, name, wayNodes, maxSpeed)
       case value: String => {
         if (!value.isEmpty)
           warn("Way %s, unknown oneway value \"%s\"".format(id, oneWay))
