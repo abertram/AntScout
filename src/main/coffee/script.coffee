@@ -1,5 +1,8 @@
 require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles) ->
 
+  # globales AntScout-Object erstellen
+  @AntScout = {}
+  destination = null
   directionsLayer = new OpenLayers.Layer.Vector(
     "Directions"
     {
@@ -65,6 +68,7 @@ require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles)
         retrieveWays()
   })
   selectFeatureControl = new OpenLayers.Control.SelectFeature([nodesLayer, waysLayer]);
+  source = null
 
   $(() ->
     map = new OpenLayers.Map "map"
@@ -152,8 +156,15 @@ require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles)
     )
     directionsLayer.addFeatures([sourceFeature, targetFeature])
 
+  AntScout.updatePath = (path) ->
+    console.debug("Updating path")
+    drawDirections
+
   enable = (elementId) ->
     $("##{ elementId }").prop("disabled", false)
+
+  selectedNodeId = () ->
+    nodesLayer.selectedFeatures.length > 0 and nodesLayer.selectedFeatures[0].attributes.node.id
 
   retrieveNode = (id) ->
     $.get "node/#{ id }",
@@ -180,12 +191,10 @@ require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles)
         nodesLayer.addFeatures(features)
         map.zoomToExtent(nodesLayer.getDataExtent())
 
-  retrieveDirections = () ->
-    destination = $("#destination").val()
-    source = $("#source").val()
+  retrieveDirections = (source, destination) ->
     $.get "/directions", {
-      destination
       source
+      destination
       },
       (directions) ->
         displayDirections(directions)
@@ -197,15 +206,13 @@ require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles)
         addWaysToLayer(ways, waysLayer)
         map.zoomToExtent(waysLayer.getDataExtent())
 
-  setNode = (input) ->
-    id = nodesLayer.selectedFeatures.length > 0 and nodesLayer.selectedFeatures[0].attributes.node.id
-    input.val(id) if id?
+  setNodeAsDestination = () ->
+    destination = selectedNodeId()
+    retrieveDirections(source, destination) if source? and destination?
 
   setNodeAsSource = () ->
-    setNode($("#source"))
-
-  setNodeAsDestination = () ->
-    setNode($("#destination"))
+    source = selectedNodeId()
+    retrieveDirections(source, destination) if source? and destination?
 
   toggleDisabledProperty = (elementId) ->
     if $("##{ elementId }").prop("disabled") is true
