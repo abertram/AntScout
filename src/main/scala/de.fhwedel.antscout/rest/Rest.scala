@@ -4,22 +4,15 @@ package rest
 import akka.pattern.ask
 import akka.util.duration._
 import net.liftweb.http.rest.RestHelper
-import osm.OsmMap
 import net.liftweb.json.JsonDSL._
+import osm.OsmMap
 import routing.RoutingService
-import net.liftweb.common.Logger
+import net.liftweb.common.{Box, Logger}
 import antnet.{AntWay, AntMap}
 import akka.dispatch.Await
 import akka.util.Timeout
 import net.liftweb.json.JsonAST.JArray
 import net.liftweb.http.S
-
-/**
- * Created by IntelliJ IDEA.
- * User: alex
- * Date: 12.01.12
- * Time: 18:32
- */
 
 object Rest extends Logger with RestHelper {
 
@@ -50,11 +43,11 @@ object Rest extends Logger with RestHelper {
       for {
         sourceId <- S.param("source") ?~ "Source is missing" ~> 400
         destinationId <- S.param("destination") ?~ "Destination is missing" ~> 400
-      } yield {
         val source = AntMap.nodes.find(_.id == sourceId).get
         val destination = AntMap.nodes.find(_.id == destinationId).get
         val pathFuture = (AntScout.routingService ? RoutingService.FindPath(source, destination))
-        val path = Await.result(pathFuture, 5 seconds).asInstanceOf[Seq[AntWay]]
+        path <- Await.result(pathFuture, 5 seconds).asInstanceOf[Box[Seq[AntWay]]] ?~ "No path found" ~> 404
+      } yield {
         path.map(_.toJson): JArray
       }
     case Get(List("osmnodes"), _) => {

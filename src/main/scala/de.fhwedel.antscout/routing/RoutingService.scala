@@ -7,34 +7,31 @@ import akka.util.duration._
 import akka.util.Timeout
 import antnet.{AntNode, AntWay}
 import akka.actor.{ActorLogging, Actor}
-
-/**
- * Created by IntelliJ IDEA.
- * User: alex
- * Date: 14.01.12
- * Time: 15:15
- */
+import net.liftweb.common.{Empty, Full, Box}
 
 class RoutingService extends Actor with ActorLogging {
 
   import RoutingService._
 
   val _routingTable = mutable.Map[AntNode, mutable.Map[AntNode, AntWay]]()
+  var path: Box[Seq[AntWay]] = _
   implicit val timeout = Timeout(5 seconds)
 
   /**
    * Sucht einen Pfad von einem Quell- zu einem Ziel-Knoten.
    */
-  def findPath(source: AntNode, destination: AntNode): Seq[AntWay] = {
+  def findPath(source: AntNode, destination: AntNode): Box[Seq[AntWay]] = {
     @tailrec
-    def findPathRecursive(source: AntNode, path: Seq[AntWay]): Seq[AntWay] = {
-      if (source == destination || path.size == 100)
-        return path
+    def findPathRecursive(source: AntNode, path: Seq[AntWay]): Box[Seq[AntWay]] = {
+      if (source == destination)
+        return Full(path)
+      else if (path.size == 100 || !_routingTable(source).isDefinedAt(destination))
+        return Empty
       val bestWay = _routingTable(source)(destination)
       val newSource = bestWay.endNode(source)
       findPathRecursive(newSource, bestWay +: path)
     }
-    findPathRecursive(source, Seq()).reverse
+    findPathRecursive(source, Seq()).map(_.reverse)
   }
 
   def init() {
@@ -48,7 +45,8 @@ class RoutingService extends Actor with ActorLogging {
 
   protected def receive = {
     case FindPath(source, destination) =>
-      sender ! findPath(source, destination)
+      path = findPath(source, destination)
+      sender ! path
     case Initialize =>
       init()
     case InitializeBestWays(source, ways) =>
