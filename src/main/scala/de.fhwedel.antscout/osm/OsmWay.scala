@@ -27,7 +27,7 @@ class OsmWay(val highway: String, id: String, val name: String, override val nod
   /**
    * Weg-Länge in Metern
    */
-  val length = nodes.zip(nodes.tail).map(n => n._1.distanceTo(n._2)).sum
+  val length = OsmWay.length(nodes)
 
   /**
    * Berechnet den Endknoten des Weges. Dieser ist davon abhängig, welcher Knoten als Startknoten definiert wird.
@@ -79,6 +79,18 @@ object OsmWay extends Logger {
 
   def apply(highway: String, id: String, name: String, nodes: List[OsmNode], maxSpeed: Double) =
     new OsmWay(highway, id, name, nodes, maxSpeed)
+
+  /**
+   * Berechnet die Weg-Länge in Metern.
+   *
+   * @param nodes Knoten, aus denen der Weg besteht
+   * @return Weg-Länge
+   */
+  def length(nodes: Seq[OsmNode]) = {
+    nodes.zip(nodes.tail).map { case (node1, node2) =>
+      node1.distanceTo(node2)
+    }.sum
+  }
 
   def parseWay(way: xml.Node, nodes: Map[String, OsmNode]): OsmWay = {
     def parseNodes(wayId: String, wayNodes: NodeSeq) = {

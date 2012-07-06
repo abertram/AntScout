@@ -126,7 +126,7 @@ object AntMap extends Logger {
             val oldWay1 = osmNodeAntWaysMapping(nodes.head).head
             val oldWay2 = osmNodeAntWaysMapping(nodes.last).head
             // Weg erweitern
-            val newWays = Set(oldWay1.extend(nodes).extend(oldWay2.nodes))
+            val newWays = Set(oldWay1.extend(nodes, way.maxSpeed).extend(oldWay2.nodes, way.maxSpeed))
             // oldWays musste explizit erstellt werden.
             // Bei (newWays, antWays -- oldWays ++ newWays, Set(oldWay1, oldWay2)) hat der Compiler gemeckert (recursive value ... needs type)
             val oldWays = Set(oldWay1, oldWay2)
@@ -135,12 +135,12 @@ object AntMap extends Logger {
           // Fall 3: Ein oder mehrere bereits vorhandene Wege können am Kopf um die Knoten-Sequens erweitert werden.
           else if (osmNodeAntWaysMapping.contains(nodes.head) && osmNodeAntWaysMapping(nodes.head).find(_.isExtendable(nodes.head)(nodeWaysMapping)).isDefined) {
             val oldWays = osmNodeAntWaysMapping(nodes.head).filter(_.isExtendable(nodes.head)(nodeWaysMapping))
-            val newWays = oldWays.map(_.extend(nodes))
+            val newWays = oldWays.map(_.extend(nodes, way.maxSpeed))
             (newWays, antWays -- oldWays ++ newWays, oldWays)
           // Fall 4: Ein oder mehrere bereits vorhandene Wege können am Ende um die Knoten-Sequens erweitert werden.
           } else if (osmNodeAntWaysMapping.contains(nodes.last) && osmNodeAntWaysMapping(nodes.last).find(_.isExtendable(nodes.last)(nodeWaysMapping)).isDefined) {
             val oldWays = osmNodeAntWaysMapping(nodes.last).filter(_.isExtendable(nodes.last)(nodeWaysMapping))
-            val newWays = oldWays.map(_.extend(nodes))
+            val newWays = oldWays.map(_.extend(nodes, way.maxSpeed))
             (newWays, antWays -- oldWays ++ newWays, oldWays)
           // Fall 5: Keiner der oberen Fälle trifft zu. Es muss ein neuer Weg erstellt werden.
           } else {
