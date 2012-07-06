@@ -8,13 +8,17 @@ import akka.util.Timeout
 import antnet.{AntNode, AntWay}
 import akka.actor.{ActorLogging, Actor}
 import net.liftweb.common.{Empty, Full, Box}
+import net.liftweb.http.NamedCometListener
+import comet.OpenLayers
 
 class RoutingService extends Actor with ActorLogging {
 
   import RoutingService._
 
+  var destination: AntNode = _
   val _routingTable = mutable.Map[AntNode, mutable.Map[AntNode, AntWay]]()
-  var path: Box[Seq[AntWay]] = _
+  var path: Box[Seq[AntWay]] = Empty
+  var source: AntNode = _
   implicit val timeout = Timeout(5 seconds)
 
   /**
@@ -45,6 +49,8 @@ class RoutingService extends Actor with ActorLogging {
 
   protected def receive = {
     case FindPath(source, destination) =>
+      this.source = source
+      this.destination = destination
       path = findPath(source, destination)
       sender ! path
     case Initialize =>
@@ -53,6 +59,15 @@ class RoutingService extends Actor with ActorLogging {
       _routingTable += (source -> ways)
     case UpdateBestWay(source, destination, way) =>
       _routingTable(source) += (destination -> way)
+      if ((path.isEmpty && source == this.source && destination == this.destination) || (path.isDefined &&
+          path.get.size > 1 && path.get.last.startAndEndNodes.contains(destination) && path.get.find(antWay => antWay
+          .startAndEndNodes.contains(source)).isDefined)) {
+        log.debug("Updatig best way from {} to {} - way: {}, sender: {}", source, destination, way, sender)
+        path = findPath(this.source, this.destination)
+        NamedCometListener.getDispatchersFor(Full("OpenLayers")) foreach { actor =>
+          actor.map(_ ! OpenLayers.DrawPath(path))
+        }
+      }
     case m: Any =>
       log.warning("Unknown message: %s" format m.toString)
   }

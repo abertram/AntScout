@@ -51,6 +51,8 @@ class AntWay(id: String, override val nodes: Seq[OsmNode], val startNode: AntNod
 
   def maxSpeed_=(value: Double) = _maxSpeed.send(value)
 
+  def startAndEndNodes = Set(startNode, endNode)
+
   override def toJson = {
     super.toJson ~
     ("length" -> length.round) ~

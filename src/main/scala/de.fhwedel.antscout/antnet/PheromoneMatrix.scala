@@ -2,6 +2,7 @@ package de.fhwedel.antscout
 package antnet
 
 import collection.mutable
+import extensions.ExtendedDouble._
 import routing.RoutingService
 import akka.actor.{ActorLogging, Actor}
 
@@ -41,14 +42,22 @@ class PheromoneMatrix(destinations: Set[AntNode], outgoingWays: Set[AntWay]) ext
   }
 
   def calculateProbabilities(destination: AntNode) = {
-    outgoingWays.foreach(ow => {
-      probabilities(destination) +=
-        ow -> (pheromones(destination)(ow) + alpha * heuristicValues(ow) / (1 + alpha * (outgoingWays.size - 1)))
-    })
+    outgoingWays.foreach { ow =>
+      probabilities(destination) += ow -> calculateProbability(destination, ow)
+    }
+  }
+
+  def calculateProbability(destination: AntNode, outgoingWay: AntWay) = {
+    val probability = pheromones(destination)(outgoingWay) + alpha * heuristicValues(outgoingWay) / (1 + alpha * (outgoingWays
+      .size - 1))
+    // Zusicherung, dass die Wahrscheinlichkeiten für den ausgehenden Weg 0 wird. Das würde bedeuten,
+    // dass sich keine Ameise mehr für diesen Weg entscheiden würde.
+    assert(probability ~> 0, "%s-%s: Probability = 0, pheromone: %s, alpha: %s, heuristic value: %s" format (self
+      .path.elements.last, destination.id, pheromones(destination)(outgoingWay), alpha, heuristicValues(outgoingWay)))
+    probability
   }
 
   def init(source: AntNode, tripTimes: Map[AntWay, Double]) {
-//    trace("Initializing")
     probabilities ++= destinations.map((_ -> mutable.Map[AntWay, Double]()))
     initHeuristicValues(tripTimes)
     initPheromones()
@@ -82,7 +91,7 @@ class PheromoneMatrix(destinations: Set[AntNode], outgoingWays: Set[AntWay]) ext
   def updatePheromones(destination: AntNode, way: AntWay, reinforcement: Double) {
     outgoingWays.foreach(ow => {
       val oldPheromone = pheromones(destination)(ow)
-      if (ow == way) 
+      if (ow == way)
         pheromones(destination) += ow -> (oldPheromone + reinforcement * (1 - oldPheromone))
       else
         pheromones(destination) += ow -> (oldPheromone - reinforcement * oldPheromone)
@@ -101,24 +110,24 @@ class PheromoneMatrix(destinations: Set[AntNode], outgoingWays: Set[AntWay]) ext
     case Initialize(source, tripTimes) =>
       init(source, tripTimes)
     case UpdatePheromones(source: AntNode, destination: AntNode, way: AntWay, reinforcement: Double) =>
-      if (source.id == AntScout.traceSourceId && destination.id == AntScout.traceDestinationId)
-        log.debug("Updating pheromones, source: {}, destination: {}, way: {}, reinforcement: {}", source, destination, way, reinforcement)
+      trace(destination, "Updating pheromones: way: %s, reinforcement: %s" format (way, reinforcement))
       val bestWayBeforeUpdate = bestWay(destination)
-      if (source.id == AntScout.traceSourceId && destination.id == AntScout.traceDestinationId)
-        log.debug("Pheromones before update: {}", pheromones(destination))
-      if (source.id == AntScout.traceSourceId && destination.id == AntScout.traceDestinationId)
-        log.debug("Best way before update: {}", bestWayBeforeUpdate)
+      trace(destination, "Before update: pheromones: %s, best way: %s" format (pheromones(destination),
+        bestWayBeforeUpdate))
       updatePheromones(destination, way, reinforcement)
       val bestWayAfterUpdate = bestWay(destination)
-      if (source.id == AntScout.traceSourceId && destination.id == AntScout.traceDestinationId)
-        log.debug("Pheromones after update: {}", pheromones(destination))
-      if (source.id == AntScout.traceSourceId && destination.id == AntScout.traceDestinationId)
-        log.debug("Best way after update: {}", bestWayAfterUpdate)
+      trace(destination, "After update: pheromones: %s, best way: %s" format (pheromones(destination),
+        bestWayAfterUpdate))
       if (bestWayAfterUpdate != bestWayBeforeUpdate) {
-        if (source.id == AntScout.traceSourceId && destination.id == AntScout.traceDestinationId)
-          log.debug("Sending best way to routing service: {}", bestWayAfterUpdate)
+        trace(destination, "Sending best way to routing service: %s" format bestWayAfterUpdate)
         AntScout.routingService ! RoutingService.UpdateBestWay(source, destination, bestWayAfterUpdate)
       }
+  }
+
+  def trace(destination: AntNode, message: String) {
+    val sourceId = self.path.elements.last
+    if (sourceId == AntScout.traceSourceId && destination.id == AntScout.traceDestinationId)
+      log.debug("{}-{}: {}", sourceId, destination.id, message)
   }
 }
 

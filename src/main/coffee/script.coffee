@@ -128,37 +128,38 @@ require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles)
 
   drawDirections = (directions) ->
     directionsLayer.removeAllFeatures()
-    sourceNode = directions[0].nodes[0]
-    sourcePoint = new OpenLayers.Geometry.Point(sourceNode.longitude, sourceNode.latitude)
-      .transform(EPSG4326Projection, map.getProjectionObject())
-    sourceFeature = new OpenLayers.Feature.Vector(
-      sourcePoint
-      null
-      {
-        fillColor: "green"
-        pointRadius: 10
-        strokeColor: "green"
-      }
-    )
+    if directions? and directions.length > 0
+      sourceNode = directions[0].nodes[0]
+      sourcePoint = new OpenLayers.Geometry.Point(sourceNode.longitude, sourceNode.latitude)
+        .transform(EPSG4326Projection, map.getProjectionObject())
+      sourceFeature = new OpenLayers.Feature.Vector(
+        sourcePoint
+        null
+        {
+          fillColor: "green"
+          pointRadius: 10
+          strokeColor: "green"
+        }
+      )
+      lastDirection = directions[directions.length - 1]
+      targetNode = lastDirection.nodes[lastDirection.nodes.length - 1]
+      targetPoint = new OpenLayers.Geometry.Point(targetNode.longitude, targetNode.latitude)
+        .transform(EPSG4326Projection, map.getProjectionObject())
+      targetFeature = new OpenLayers.Feature.Vector(
+        targetPoint
+        null
+        {
+          fillColor: "red"
+          pointRadius: 10
+          strokeColor: "red"
+        }
+      )
+      directionsLayer.addFeatures([sourceFeature, targetFeature])
     addWaysToLayer(directions, directionsLayer)
-    lastDirection = directions[directions.length - 1]
-    targetNode = lastDirection.nodes[lastDirection.nodes.length - 1]
-    targetPoint = new OpenLayers.Geometry.Point(targetNode.longitude, targetNode.latitude)
-      .transform(EPSG4326Projection, map.getProjectionObject())
-    targetFeature = new OpenLayers.Feature.Vector(
-      targetPoint
-      null
-      {
-        fillColor: "red"
-        pointRadius: 10
-        strokeColor: "red"
-      }
-    )
-    directionsLayer.addFeatures([sourceFeature, targetFeature])
 
-  AntScout.updatePath = (path) ->
-    console.debug("Updating path")
-    drawDirections
+  AntScout.drawPath = (path) ->
+    console.debug("Drawing path - path: " + path)
+    drawDirections(path)
 
   enable = (elementId) ->
     $("##{ elementId }").prop("disabled", false)
