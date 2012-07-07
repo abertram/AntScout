@@ -40,8 +40,8 @@ class AntWayData(val maxSpeed: Double, val nodes: Seq[OsmNode]) {
   }
 
   /**
-   * Verrechnet die maximale Geschwindigkeit dises Weges mit einer anderen maximalen Geschwindigkeit. Dabei
-   * wird nach der Weg-Länge gewichtet.
+   * Verrechnet die maximale Geschwindigkeit dises Weges mit einer anderen maximalen Geschwindigkeit. Dabei wird nach
+   * der Weg-Länge gewichtet.
    *
    * @param nodes Knoten des anderen Weges (notwendig für die Längen-Berechnung)
    * @param maxSpeed Maximale Geschwidigkeit des anderen Weges
