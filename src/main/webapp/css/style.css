@@ -1,0 +1,7 @@
+#map {
+    height: 800px;
+}
+/* nötig, da das Bootstrap-CSS sonst das OpenLayers-Layout zerstört */
+#map img {
+    max-width: none;
+}
