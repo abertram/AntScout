@@ -16,7 +16,7 @@
 <div class="container-fluid">
     <div class="row-fluid">
         <div class="span10">
-            <div id="map" style="height: 600px;"></div>
+            <div id="map"></div>
         </div>
         <div class="span2">
             <div class="well">
@@ -44,7 +44,7 @@
                     <tr>
                         <td>Length</td><td>
                             <div class="input-append">
-                                <input id="wayLength" class="input-mini" disabled><span class="add-on">m</span>
+                                <input id="wayLength" class="span8" disabled><span class="add-on">m</span>
                             </div>
                         </td>
                     </tr>
@@ -53,7 +53,7 @@
                         <td>
                             <form>
                                 <div class="input-append">
-                                    <input id="wayMaxSpeed" class="input-mini" disabled><span class="add-on">m/s</span>
+                                    <input id="wayMaxSpeed" class="span8" disabled><span class="add-on">m/s</span>
                                 </div>
                                 <button id="wayEditMaxSpeed" class="btn" type="button"><i class="icon-edit"></i></button>
                                 <button id="waySaveMaxSpeed" class="btn" disabled type="button"><i class="icon-ok"></i></button>
@@ -65,7 +65,7 @@
                         <td>Trip time</td>
                         <td>
                             <div class="input-append">
-                                <input id="wayTripTime" class="input-mini" disabled><span class="add-on">s</span>
+                                <input id="wayTripTime" class="span8" disabled><span class="add-on">s</span>
                             </div>
                         </td>
                     </tr>
@@ -76,8 +76,8 @@
             </div>
         </div>
     </div>
-    <div data-lift="AddCometActor"></div>
 </div>
+<div data-lift="AddCometActor"></div>
 <script data-main="scripts/script" src="scripts/require-jquery.js"></script>
 </body>
 </html>
