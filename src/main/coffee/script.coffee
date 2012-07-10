@@ -95,6 +95,9 @@ require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles)
         wayFeature = _.find(waysLayer.features, (feature) -> feature.attributes.way.id == id)
         wayFeature.attributes.way = way
         displayWayData(way)
+    $(document).ajaxError((event, jqXHR, ajaxSettings, thrownError) ->
+      showErrorMessage(jqXHR.responseText)
+    )
   )
 
   addWaysToLayer = (ways, layer) ->
@@ -214,6 +217,11 @@ require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles)
   setNodeAsSource = () ->
     source = selectedNodeId()
     retrieveDirections(source, destination) if source? and destination?
+
+  showErrorMessage = (message) ->
+    $("#error > p").html(message)
+    $("#error").show().delay(5000).fadeOut("slow")
+    $("#error > p").html()
 
   toggleDisabledProperty = (elementId) ->
     if $("##{ elementId }").prop("disabled") is true
