@@ -41,7 +41,7 @@ class TrafficModelSample(varsigma: Double, windowSize: Int) {
     val c2 = 0.3
     val iInf = bestTripTime
     val z = 1.7
-    val iSup = mean + z * (math.sqrt(variance) / math.sqrt(windowSize))
+    val iSup = mean + z * math.sqrt(variance / windowSize)
     val stabilityTerm = (iSup - iInf) + (tripTime - iInf)
     val r = c1 * (bestTripTime / tripTime) + c2 * (if (stabilityTerm ~> 0.0) ((iSup - iInf) / stabilityTerm) else 0)
     // TODO Prüfen, ob die Werte <= 0 und > 1 durch Rechenfehler zustande kommen
