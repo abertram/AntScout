@@ -36,8 +36,8 @@ class Boot extends Logger {
     // each page, just comment this line out.
     LiftRules.setSiteMap(SiteMap(entries: _*))
 
-    // Use jQuery 1.4
-    LiftRules.jsArtifacts = net.liftweb.http.js.jquery.JQuery14Artifacts
+    // Use jQuery
+    LiftRules.jsArtifacts = net.liftweb.http.js.jquery.JQueryArtifacts
 
     //Show the spinny image when an Ajax call starts
     LiftRules.ajaxStart =
@@ -52,7 +52,7 @@ class Boot extends Logger {
 
     LiftRules.htmlProperties.default.set((r: Req) => new Html5Properties(r.userAgent))
 
-    LiftRules.statelessDispatchTable.append(Rest)
+    LiftRules.statelessDispatch.append(Rest)
 
     LiftRules.unloadHooks.append(() => {
       // System runterfahren
