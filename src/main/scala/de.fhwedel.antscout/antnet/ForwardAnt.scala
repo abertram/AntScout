@@ -2,17 +2,13 @@ package de.fhwedel.antscout
 package antnet
 
 import java.util.concurrent.TimeUnit
-import net.liftweb.util.Props
+import net.liftweb.util.{TimeHelpers, Props}
 import akka.util.Duration
 import akka.actor.{ActorLogging, PoisonPill, Actor}
 import util.Statistics
-
-/**
- * Created by IntelliJ IDEA.
- * User: alex
- * Date: 25.12.11
- * Time: 15:21
- */
+import collection.mutable
+import java.text.SimpleDateFormat
+import java.util.Date
 
 class ForwardAnt(val source: AntNode, val destination: AntNode) extends Actor with ActorLogging {
   
@@ -20,27 +16,49 @@ class ForwardAnt(val source: AntNode, val destination: AntNode) extends Actor wi
   val DefaultTimeUnit = "SECONDS"
 
   var currentNode: AntNode = _
+  val logEntries = mutable.Buffer[String]()
   val memory = AntMemory()
-  var startTime: Long = _
+  var visitedNodesCount = 0
+
+  /**
+   * Fügt einen Log-Eintrag hinzu.
+   *
+   * @param message Nachricht
+   * @param time Uhrzeit
+   */
+  def addLogEntry(message: String, time: Date = TimeHelpers.now) {
+    if (source.id == AntScout.traceSourceId && destination.id == AntScout.traceDestinationId) {
+      val sdf = new SimpleDateFormat("HH:mm:ss.SSS")
+      "%s %s".format(sdf.format(time), message) +=: logEntries
+    }
+  }
 
   def launchBackwardAnt() {
     BackwardAnt(source, destination, memory)
-    context.stop(self)
+  }
+
+  override def postStop() {
+    if (source.id == AntScout.traceSourceId && destination.id == AntScout.traceDestinationId) {
+      addLogEntry("Stopped, %s nodes visited".format(visitedNodesCount))
+      log.debug(logEntries.reverse.mkString("\n", "\n\t", ""))
+    }
   }
 
   override def preStart() {
     val antLifetime = Props.getInt("antLifetime", DefaultAntLifetime)
     val timeUnit = TimeUnit.valueOf(Props.get("timeUnit", DefaultTimeUnit))
     context.system.scheduler.scheduleOnce(Duration(antLifetime, timeUnit)) {
-      trace("Committing suicide!")
+      addLogEntry("Committing suicide!")
       self ! PoisonPill
     }
-    startTime = System.currentTimeMillis
     visitNode(source)
   }
 
   protected def receive = {
+    case ForwardAnt.AddLogEntry(message, time) =>
+      addLogEntry(message, time)
     case AntNode.Probabilities(probabilities) =>
+      addLogEntry("Probabilites received")
       val nextNode = selectNextNode(probabilities)
       visitNode(nextNode)
     case m: Any =>
@@ -48,11 +66,12 @@ class ForwardAnt(val source: AntNode, val destination: AntNode) extends Actor wi
   }
 
   def selectNextNode(probabilities: Map[AntWay, Double]) = {
+    addLogEntry("Selecting next node")
     if (memory.containsNode(currentNode)) {
-      trace("Circle detected")
-      trace("Memory before circle deleted: %s" format(memory))
+      addLogEntry("Circle detected")
+      addLogEntry("Memory before circle deleted: %s" format(memory))
       memory.removeCircle(currentNode)
-      trace("Memory after circle deleted: %s" format(memory))
+      addLogEntry("Memory after circle deleted: %s" format(memory))
     }
     val outgoingWay = selectOutgoingWay(probabilities)
     val (nextNode, tripTime) = outgoingWay.cross(currentNode)
@@ -61,15 +80,15 @@ class ForwardAnt(val source: AntNode, val destination: AntNode) extends Actor wi
   }
 
   def selectOutgoingWay(probabilities: Map[AntWay, Double]) = {
-    trace("Selecting way")
-    trace("Memory: %s".format(memory.items))
+    addLogEntry("Selecting way")
+    addLogEntry("Memory: %s".format(memory.items))
     val notVisitedWays = probabilities.filter { case (w, p) => !memory.containsWay(w) }
-    trace("Not visited ways: %s".format(notVisitedWays.mkString(", ")))
+    addLogEntry("Not visited ways: %s".format(notVisitedWays.mkString(", ")))
     val way = if (notVisitedWays.nonEmpty)
       Statistics.selectByProbability(probabilities)
     else
       Statistics.selectRandom(probabilities.keys.toSeq)
-    trace("Selected way: #%s".format(way.id))
+    addLogEntry("Selected way: #%s".format(way.id))
     way
   }
 
@@ -83,19 +102,25 @@ class ForwardAnt(val source: AntNode, val destination: AntNode) extends Actor wi
   }
 
   def visitNode(node: AntNode) {
-    trace("Visiting node #%s".format(node id))
+    addLogEntry("Visiting node #%s".format(node id))
     currentNode = node
     // Der Knoten hat keine ausgehenden Wege, wir sind in einer Sackgasse angekommen.
     if (!AntMap.outgoingWays.contains(node)) {
-      trace("Dead-end street")
-      self ! PoisonPill
+      addLogEntry("Dead-end street")
+      context.stop(self)
     } else if (node == destination) {
-      trace("Destinatination reached")
+      addLogEntry("Destinatination reached")
 //      debug("Destination reached, needed %s ms" format(System.currentTimeMillis - startTime))
       launchBackwardAnt()
-      self ! PoisonPill
+      context.stop(self)
     } else {
       node.enter(destination, self)
     }
+    visitedNodesCount += 1
   }
+}
+
+object ForwardAnt {
+
+  case class AddLogEntry(message: String, time: Date = TimeHelpers.now)
 }

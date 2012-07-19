@@ -5,6 +5,7 @@ import collection.mutable
 import extensions.ExtendedDouble._
 import routing.RoutingService
 import akka.actor.{ActorLogging, Actor}
+import net.liftweb.util.TimeHelpers
 
 /**
  * Created by IntelliJ IDEA.
@@ -106,15 +107,20 @@ class PheromoneMatrix(destinations: Set[AntNode], outgoingWays: Set[AntWay]) ext
       }.toMap
       sender ! (source, immutableProbabilities)
     case GetProbabilities(_, destination) =>
+      sender ! ForwardAnt.AddLogEntry("Sending Probabilities", TimeHelpers.now)
       sender ! AntNode.Probabilities(probabilities(destination).toMap)
     case Initialize(source, tripTimes) =>
       init(source, tripTimes)
     case UpdatePheromones(source: AntNode, destination: AntNode, way: AntWay, reinforcement: Double) =>
       trace(destination, "Updating pheromones: way: %s, reinforcement: %s" format (way, reinforcement))
+      val (pheromonesBeforeUpdate, probabilitiesBeforeUpdate) = (pheromones(destination).view.toMap,
+          probabilities(destination).toMap)
       val bestWayBeforeUpdate = bestWay(destination)
       trace(destination, "Before update: pheromones: %s, best way: %s" format (pheromones(destination),
         bestWayBeforeUpdate))
       updatePheromones(destination, way, reinforcement)
+      val (pheromonesAfterUpdate, probabilitiesAfterUpdate) = (pheromones(destination).toMap,
+          probabilities(destination).toMap)
       val bestWayAfterUpdate = bestWay(destination)
       trace(destination, "After update: pheromones: %s, best way: %s" format (pheromones(destination),
         bestWayAfterUpdate))
