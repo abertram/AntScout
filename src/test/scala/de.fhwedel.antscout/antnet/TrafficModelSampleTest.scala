@@ -24,6 +24,14 @@ class TrafficModelSampleTest extends FunSuite with ShouldMatchers {
     tmi.tripTimes should be (Seq(3, 2))
   }
 
+  test("transformBySquash") {
+    val parameters = for (x <- (0.05 to 0.95 by 0.1); n <- (1 to 5))
+      yield (x, n)
+    parameters foreach {
+      case (x, n) => println("squash(%s, %s) = %s" format (x, n, TrafficModelSample.transformBySquash(x, n)))
+    }
+  }
+
   test("transformBySquash(0, 5)") {
     evaluating(TrafficModelSample.transformBySquash(0, 5)) should produce [IllegalArgumentException]
   }

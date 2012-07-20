@@ -3,8 +3,6 @@ package antnet
 
 import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers
-import akka.actor.Actor
-import collection.mutable.MutableList
 
 /**
  * Created by IntelliJ IDEA.
@@ -14,6 +12,7 @@ import collection.mutable.MutableList
  */
 
 class AntMemoryTest extends FunSuite with ShouldMatchers {
+/*
   test("containsNode") {
     val am = AntMemory()
     val node = AntNode(0)
@@ -59,4 +58,5 @@ class AntMemoryTest extends FunSuite with ShouldMatchers {
     am.removeCircle(node1)
     am.items should be ('empty)
   }
+*/
 }

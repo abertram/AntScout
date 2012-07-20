@@ -22,7 +22,7 @@ class AntScout extends Actor with FSM[AntScoutMessage, Unit] with Logger {
 
   import AntScout._
 
-  val antLauncher = context.actorOf(actor.Props[AntLauncher], "antLauncher")
+  val antSupervisor = context.actorOf(actor.Props[AntSupervisor], "ant")
 
   startWith(Uninitialized, Unit)
 
@@ -52,7 +52,7 @@ class AntScout extends Actor with FSM[AntScoutMessage, Unit] with Logger {
 
   when(InitializingRoutingService) {
     case Event(RoutingServiceInitialized, _) =>
-      antLauncher ! AntLauncher.Start
+      antSupervisor ! AntSupervisor.Init
     stay()
   }
 

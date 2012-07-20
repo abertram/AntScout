@@ -12,6 +12,7 @@ import org.scalatest.matchers.ShouldMatchers
  */
 
 class PheromoneMatrixTest extends FunSuite with ShouldMatchers {
+/*
   test("apply") {
     val n = AntNode(0)
     val ds = (1 to 2).map(AntNode(_)).toList
@@ -41,4 +42,5 @@ class PheromoneMatrixTest extends FunSuite with ShouldMatchers {
     pm(ds(0))(ows(0)) should be > (oldPropabilities(ows(0)))
     pm(ds(0))(ows(1)) should be < (oldPropabilities(ows(1)))
   }
+*/
 }

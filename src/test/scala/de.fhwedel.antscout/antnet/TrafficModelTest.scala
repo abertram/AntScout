@@ -12,6 +12,7 @@ import org.scalatest.matchers.ShouldMatchers
  */
 
 class TrafficModelTest extends FunSuite with ShouldMatchers {
+/*
   test("") {
     val ds = (1 to 2).map(AntNode(_))
     val tm = TrafficModel(ds.view, 0, 0)
@@ -30,4 +31,5 @@ class TrafficModelTest extends FunSuite with ShouldMatchers {
     tm += (ds(0), 3)
     tm.items(ds(0)).tripTimes should be (Seq(3, 2))
   }
+*/
 }

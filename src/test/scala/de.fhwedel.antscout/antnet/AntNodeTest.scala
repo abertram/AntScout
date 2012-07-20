@@ -3,9 +3,6 @@ package antnet
 
 import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers
-import akka.actor.Actor
-import xml.XML
-import osm.OsmMap
 
 /**
  * Created by IntelliJ IDEA.
@@ -16,13 +13,14 @@ import osm.OsmMap
 
 class AntNodeTest extends FunSuite with ShouldMatchers {
 
+/*
   test("apply") {
     // alle Aktoren,die von anderen Tests gestartet wurden, stoppen, um das Testergebnis nicht zu verfälschen
     Actor.registry.shutdownAll()
     val node = AntNode(0)
     Actor.registry.actorsFor("0").size should be (1)
   }
-  
+
   test("tripTimes") {
     val startNode = AntNode(1)
     val endNode1 = AntNode(2)
@@ -32,11 +30,12 @@ class AntNodeTest extends FunSuite with ShouldMatchers {
     val antWays = List(antWay1, antWay2)
     startNode ! OutgoingWays(antWays)
   }
-  
+
   test("") {
     val osmData = XML loadFile("./maps/Ellerau-Zoomstufe-18-preprocessed.osm")
     val osmMap = OsmMap(osmData)
     AntMap()
 //    Thread.sleep(10000)
   }
+*/
 }

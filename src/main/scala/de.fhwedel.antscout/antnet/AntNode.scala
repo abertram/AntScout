@@ -7,15 +7,13 @@ import map.Node
 import akka.util.duration._
 import akka.util.Timeout
 import akka.actor.ActorRef
-import net.liftweb.util.TimeHelpers
 
 class AntNode(id: String) extends Node(id) with Logger {
 
   implicit val timeout = Timeout(5 seconds)
 
-  def enter(destination: AntNode, sender: ActorRef) = {
-    sender ! ForwardAnt.AddLogEntry("Sending GetProbabilities request", TimeHelpers.now)
-    AntScout.pheromoneMatrixSupervisor.tell(PheromoneMatrix.GetProbabilities(this, destination), sender = sender)
+  def enter(destination: AntNode, sender: ActorRef) {
+    AntScout.pheromoneMatrixSupervisor.tell(PheromoneMatrix.GetProbabilities(this, destination),sender)
   }
 
   def probabilities(implicit timeout: Timeout) = {

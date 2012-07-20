@@ -15,6 +15,10 @@ class AntMemory extends Logger {
 
   val items = ListBuffer.empty[AntMemoryItem]
 
+  def clear() {
+    items.clear()
+  }
+
   def containsNode(node: AntNode) = items.find(_.node == node).isDefined
 
   def containsWay(way: AntWay) = items.find(_.way == way).isDefined
