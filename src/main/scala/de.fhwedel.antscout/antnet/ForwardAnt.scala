@@ -145,7 +145,7 @@ class ForwardAnt(val source: AntNode, val destination: AntNode) extends Actor wi
   }
 
   /**
-   * Bescuht einen Knoten.
+   * Besucht einen Knoten.
    *
    * @param node Knoten, der bescuht werden soll.
    */
