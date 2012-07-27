@@ -10,7 +10,7 @@ import collection.mutable
 import java.text.SimpleDateFormat
 import java.util.Date
 
-class ForwardAnt(val source: AntNode, val destination: AntNode) extends Actor with ActorLogging {
+class ForwardAnt(val source: AntNode) extends Actor with ActorLogging {
   
   import ForwardAnt._
 
@@ -20,6 +20,7 @@ class ForwardAnt(val source: AntNode, val destination: AntNode) extends Actor wi
   val antLifetime = Props.getInt("antLifetime", DefaultAntLifetime)
   var cancellable: Cancellable = _
   var currentNode: AntNode = _
+  var destination: AntNode = _
   val logEntries = mutable.Buffer[String]()
   val memory = AntMemory()
   val timeUnit = TimeUnit.valueOf(Props.get("timeUnit", DefaultTimeUnit))
@@ -36,16 +37,19 @@ class ForwardAnt(val source: AntNode, val destination: AntNode) extends Actor wi
     "%s %s".format(sdf.format(time), message) +=: logEntries
   }
 
-  def launchBackwardAnt() {
-    BackwardAnt(source, destination, memory)
+  def completeTask(logEntry: String = "", parentMessage: ScalaObject) {
+    cancellable.cancel()
+    addLogEntry(logEntry)
+    dumpLogEntries()
+    currentNode = null
+    logEntries.clear()
+    memory.clear()
+    visitedNodesCount = 0
+    context.parent ! parentMessage
   }
 
-  override def preStart() {
-    cancellable = context.system.scheduler.scheduleOnce(Duration(antLifetime, timeUnit)) {
-      addLogEntry("Lifetime expired, restarting")
-      self ! Restart
-    }
-    visitNode(source)
+  def launchBackwardAnt() {
+    BackwardAnt(source, destination, memory)
   }
 
   /**
@@ -53,12 +57,16 @@ class ForwardAnt(val source: AntNode, val destination: AntNode) extends Actor wi
    */
   def dumpLogEntries() {
     addLogEntry("Stopped, %s nodes visited".format(visitedNodesCount))
-    if (source.id == AntScout.traceSourceId && destination.id == AntScout.traceDestinationId)
+    if (source.id == AntScout.traceSourceId && destination.id.matches(AntScout.traceDestinationId))
       log.debug(logEntries.reverse.mkString("\n\t", "\n\t", ""))
   }
 
+  override def preStart() {
+    addLogEntry("Started, waiting for task")
+  }
+
   protected def receive = {
-    case ForwardAnt.AddLogEntry(message, time) =>
+    case AddLogEntry(message, time) =>
       addLogEntry("%s".format(message), time)
     case AntNode.Probabilities(probabilities) =>
       addLogEntry("Probabilities received")
@@ -78,26 +86,16 @@ class ForwardAnt(val source: AntNode, val destination: AntNode) extends Actor wi
         val nextNode = selectNextNode(probabilities)
         visitNode(nextNode)
       }
-    case Restart =>
-      restart()
+    case LifetimeExpired =>
+      completeTask("Lifetime expired, restarting", LifetimeExpired)
+    case Task(destination) =>
+      addLogEntry("Task received")
+      this.destination = destination
+      trace("Task received")
+      cancellable = context.system.scheduler.scheduleOnce(Duration(antLifetime, timeUnit), self, LifetimeExpired)
+      visitNode(source)
     case m: Any =>
       log.warning("Unknown message: {}", m)
-  }
-
-  /**
-   * Resettet die Ameise.
-   */
-  def restart() {
-    cancellable.cancel()
-    dumpLogEntries()
-    logEntries.clear()
-    memory.clear()
-    visitedNodesCount = 0
-    cancellable = context.system.scheduler.scheduleOnce(Duration(antLifetime, timeUnit)) {
-      addLogEntry("Lifetime expired, restarting")
-      self ! Restart
-    }
-    visitNode(source)
   }
 
   /**
@@ -111,7 +109,13 @@ class ForwardAnt(val source: AntNode, val destination: AntNode) extends Actor wi
     if (memory.containsNode(currentNode)) {
       addLogEntry("Circle detected")
       addLogEntry("Memory before circle deleted: %s" format(memory))
-      memory.removeCircle(currentNode)
+      try {
+        memory.removeCircle(currentNode)
+      } catch {
+        case _ =>
+          log.error("Source: {}, current node: {}, destination: {}, log entries: {}", source, destination, currentNode,
+            logEntries.reverse.mkString("\n\t", "\n\t", ""))
+      }
       addLogEntry("Memory after circle deleted: %s" format(memory))
     }
     val outgoingWay = selectOutgoingWay(probabilities)
@@ -140,7 +144,7 @@ class ForwardAnt(val source: AntNode, val destination: AntNode) extends Actor wi
   }
 
   def trace(message: String) {
-    if (source.id == AntScout.traceSourceId && destination.id == AntScout.traceDestinationId)
+    if (source.id == AntScout.traceSourceId && destination != null && destination.id == AntScout.traceDestinationId)
       log.debug("{} {}", self.path.elements.last, message)
   }
 
@@ -154,12 +158,10 @@ class ForwardAnt(val source: AntNode, val destination: AntNode) extends Actor wi
     currentNode = node
     // Der Knoten hat keine ausgehenden Wege, wir sind in einer Sackgasse angekommen.
     if (!AntMap.outgoingWays.contains(node)) {
-      addLogEntry("Dead-end street, restarting")
-      self ! Restart
+      completeTask("Dead-end street, restarting", DeadEndStreet)
     } else if (node == destination) {
-      addLogEntry("Destinatination reached, launching backward ant and restarting")
       launchBackwardAnt()
-      self ! Restart
+      completeTask("Destinatination reached, launching backward ant and restarting", DestinationReached)
     } else {
       addLogEntry("%s - Entering %s, destination: %s)".format(self, node, destination))
       node.enter(destination, self)
@@ -171,5 +173,9 @@ class ForwardAnt(val source: AntNode, val destination: AntNode) extends Actor wi
 object ForwardAnt {
 
   case class AddLogEntry(message: String, time: Date = TimeHelpers.now)
-  case object Restart
+  case object DeadEndStreet
+  case object DestinationReached
+  case object LifetimeExpired
+  case class Task(destination: AntNode)
+  case object TaskFinished
 }

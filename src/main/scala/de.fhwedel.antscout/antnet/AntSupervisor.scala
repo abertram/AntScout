@@ -1,7 +1,7 @@
 package de.fhwedel.antscout
 package antnet
 
-import akka.actor.{ActorLogging, Props, Actor}
+import akka.actor.{ActorLogging, Actor}
 
 class AntSupervisor extends Actor with ActorLogging {
 
@@ -15,7 +15,7 @@ class AntSupervisor extends Actor with ActorLogging {
       destination <- AntMap.destinations
       if source != destination
     } yield {
-      context.actorOf(Props(new ForwardAnt(source, destination)), "%s-%s".format(source.id, destination.id))
+//      context.actorOf(Props(new ForwardAnt(source, destination)), "%s-%s".format(source.id, destination.id))
     }
     log.info("Initialized")
   }

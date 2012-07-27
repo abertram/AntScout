@@ -9,13 +9,6 @@ import akka.actor.{ActorSystem, FSM, Actor}
 import akka.actor
 import com.typesafe.config.ConfigFactory
 
-/**
- * Created by IntelliJ IDEA.
- * User: alex
- * Date: 18.11.11
- * Time: 09:20
- */
-
 sealed trait AntScoutMessage
 
 class AntScout extends Actor with FSM[AntScoutMessage, Unit] with Logger {
@@ -23,6 +16,7 @@ class AntScout extends Actor with FSM[AntScoutMessage, Unit] with Logger {
   import AntScout._
 
   val antSupervisor = context.actorOf(actor.Props[AntSupervisor], "ant")
+  val antTaskGeneratorSupervisor = context.actorOf(actor.Props[AntTaskGeneratorSupervisor], "antTaskGenerator")
 
   startWith(Uninitialized, Unit)
 
@@ -52,7 +46,7 @@ class AntScout extends Actor with FSM[AntScoutMessage, Unit] with Logger {
 
   when(InitializingRoutingService) {
     case Event(RoutingServiceInitialized, _) =>
-      antSupervisor ! AntSupervisor.Init
+      antTaskGeneratorSupervisor ! AntTaskGeneratorSupervisor.Init
     stay()
   }
 
