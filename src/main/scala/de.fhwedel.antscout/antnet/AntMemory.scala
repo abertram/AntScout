@@ -3,6 +3,7 @@ package antnet
 
 import net.liftweb.common.Logger
 import collection.mutable.ListBuffer
+import akka.actor.ActorRef
 
 /**
  * Created by IntelliJ IDEA.
@@ -19,15 +20,15 @@ class AntMemory extends Logger {
     items.clear()
   }
 
-  def containsNode(node: AntNode) = items.find(_.node == node).isDefined
+  def containsNode(node: ActorRef) = items.find(_.node == node).isDefined
 
   def containsWay(way: AntWay) = items.find(_.way == way).isDefined
 
-  def memorize(node: AntNode, way: AntWay, tripTime: Double) {
+  def memorize(node: ActorRef, way: AntWay, tripTime: Double) {
     AntMemoryItem(node, way, tripTime) +=: items
   }
 
-  def removeCircle(node: AntNode) {
+  def removeCircle(node: ActorRef) {
 //    debug("Removing circle of #%s".format(node id))
     do {
       items -= items.head

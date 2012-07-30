@@ -2,6 +2,7 @@ package de.fhwedel.antscout
 package antnet
 
 import osm.OsmNode
+import akka.actor.ActorRef
 
 
 /**
@@ -11,7 +12,7 @@ import osm.OsmNode
  * Time: 14:27
  */
 
-class AntOneWay(id: String, override val nodes: Seq[OsmNode], startNode: AntNode, endNode: AntNode, length: Double, maxSpeed: Double) extends AntWay(id, nodes, startNode, endNode, length, maxSpeed) {
+class AntOneWay(id: String, override val nodes: Seq[OsmNode], startNode: ActorRef, endNode: ActorRef, length: Double, maxSpeed: Double) extends AntWay(id, nodes, startNode, endNode, length, maxSpeed) {
 
-  override def toString = "#%s #%s -> #%s".format(id, startNode.id, endNode.id)
+  override def toString = "#%s #%s -> #%s".format(id, startNode, endNode)
 }

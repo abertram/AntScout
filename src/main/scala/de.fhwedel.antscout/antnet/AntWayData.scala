@@ -26,21 +26,22 @@ class AntWayData(val maxSpeed: Double, val nodes: Seq[OsmNode]) {
     if (this.nodes.containsSlice(nodes) || this.nodes.containsSlice(nodes.reverse))
       this
     else {
-      assert(Set(this.nodes.head, this.nodes.last, nodes.head, nodes.last).size == 3)
+      assert(Set(this.nodes.head, this.nodes.last, nodes.head, nodes.last).size == 3, "this.nodes: %s, " +
+          "nodes: %s" format (this.nodes, nodes))
       val newNodes = if (this.nodes.last == nodes.head)
         this.nodes ++ nodes.tail
       else if (this.nodes.last == nodes.last)
         this.nodes ++ nodes.reverse.tail
       else if (this.nodes.head == nodes.head)
         this.nodes.reverse ++ nodes.tail
-      else // startNode == nodes.last
+      else // this.nodes.head == nodes.last
         nodes ++ this.nodes.tail
       AntWayData(calculateWeightedMaxSpeed(nodes, maxSpeed), newNodes)
     }
   }
 
   /**
-   * Verrechnet die maximale Geschwindigkeit dises Weges mit einer anderen maximalen Geschwindigkeit. Dabei wird nach
+   * Verrechnet die maximale Geschwindigkeit dieses Weges mit einer anderen maximalen Geschwindigkeit. Dabei wird nach
    * der Weg-Länge gewichtet.
    *
    * @param nodes Knoten des anderen Weges (notwendig für die Längen-Berechnung)

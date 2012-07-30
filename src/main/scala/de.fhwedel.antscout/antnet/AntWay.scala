@@ -7,7 +7,8 @@ import akka.util.Timeout
 import net.liftweb.common.Logger
 import net.liftweb.json.JsonDSL._
 import osm._
-import map.Way
+import map.{Node, Way}
+import akka.actor.ActorRef
 
 /**
  * Created by IntelliJ IDEA.
@@ -16,10 +17,13 @@ import map.Way
  * Time: 12:07
  */
 
-class AntWay(id: String, override val nodes: Seq[OsmNode], val startNode: AntNode, val endNode: AntNode, val length: Double, originalMaxSpeed: Double) extends Way(id, nodes) with Logger {
+class AntWay(id: String, override val nodes: Seq[Node], val startNode: ActorRef, val endNode: ActorRef,
+  val length: Double, originalMaxSpeed: Double) extends Way(id, nodes) with Logger {
 
-  private val _maxSpeed = Agent(originalMaxSpeed)(AntScout.system)
+  implicit val system = AntScout.system
   implicit val timeout = Timeout(5 seconds)
+
+  private val _maxSpeed = Agent(originalMaxSpeed)
 
   /**
    * Methode, mit der eine Ameise den Weg kreuzen kann.
@@ -27,7 +31,7 @@ class AntWay(id: String, override val nodes: Seq[OsmNode], val startNode: AntNod
    * @param startNode Knoten, an dem der Weg betreten wird.
    * @return Tuple, der aus dem Endknoten des Weges und der benötigten Reisezeit besteht.
    */
-  def cross(startNode: AntNode) = (endNode(startNode), tripTime)
+  def cross(startNode: ActorRef) = (endNode(startNode), tripTime)
 
   /**
    * Berechnet den Endknoten des Weges. Dieser ist davon abhängig, welcher Knoten als Startknoten definiert wird.
@@ -35,7 +39,7 @@ class AntWay(id: String, override val nodes: Seq[OsmNode], val startNode: AntNod
    * @param startNode Der als Startknoten definierte Knoten.
    * @return Endknoten
    */
-  def endNode(startNode: AntNode): AntNode = {
+  def endNode(startNode: ActorRef): ActorRef = {
     if (startNode == this.startNode)
       endNode
     else
@@ -60,7 +64,7 @@ class AntWay(id: String, override val nodes: Seq[OsmNode], val startNode: AntNod
     ("tripTime" -> tripTime)
   }
 
-  override def toString = "#%s #%s - #%s".format(id, startNode.id, endNode.id)
+  override def toString = "#%s #%s - #%s".format(id, startNode, endNode)
 
   def tripTime = length / maxSpeed
 
@@ -73,15 +77,16 @@ object AntWay extends Logger {
 
   case class Update(maxSpeed: Double)
 
-  def apply(id: String, startNode: AntNode, endNode: AntNode, length: Double, maxSpeed: Double) = {
+  def apply(id: String, startNode: ActorRef, endNode: ActorRef, length: Double, maxSpeed: Double) = {
     new AntWay(id, Seq(), startNode, endNode, length, maxSpeed)
   }
 
   def apply(id: String, nodes: Seq[OsmNode], maxSpeed: Double, oneWay: Boolean = false) = {
     val startNodeId = nodes.head.id
     val endNodeId = nodes.last.id
-    val startNode = AntMap.nodes.find (_.id == startNodeId) getOrElse AntNode(startNodeId)
-    val endNode = AntMap.nodes.find (_.id == endNodeId) getOrElse AntNode(endNodeId)
+    val startNode = AntScout.system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName,
+      startNodeId))
+    val endNode = AntScout.system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName, endNodeId))
     val length = nodes.zip(nodes.tail).map(n => n._1.distanceTo(n._2)).sum
     if (oneWay)
       new AntOneWay(id, nodes, startNode, endNode, length, maxSpeed)

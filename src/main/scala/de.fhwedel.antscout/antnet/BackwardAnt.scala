@@ -1,6 +1,7 @@
 package de.fhwedel.antscout
 package antnet
 
+import akka.actor.ActorRef
 
 /**
  * Created by IntelliJ IDEA.
@@ -9,14 +10,14 @@ package antnet
  * Time: 18:55
  */
 
-class BackwardAnt(source: AntNode, destination: AntNode, memory: AntMemory) {
+class BackwardAnt(source: ActorRef, destination: ActorRef, memory: AntMemory) {
 
   memory.items.foreach {
-    case AntMemoryItem(node, way, tripTime) => node.updateDataStructures(destination, way, tripTime)
+    case AntMemoryItem(node, way, tripTime) => node ! AntNode.UpdateDataStructures(destination, way, tripTime)
   }
 }
 
 object BackwardAnt {
 
-  def apply(source: AntNode, destination: AntNode, memory: AntMemory) = new BackwardAnt(source, destination, memory)
+  def apply(source: ActorRef, destination: ActorRef, memory: AntMemory) = new BackwardAnt(source, destination, memory)
 }

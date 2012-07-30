@@ -5,8 +5,8 @@ import annotation.tailrec
 import collection.mutable
 import akka.util.duration._
 import akka.util.Timeout
-import antnet.{AntNode, AntWay}
-import akka.actor.{ActorLogging, Actor}
+import antnet.AntWay
+import akka.actor.{ActorRef, ActorLogging, Actor}
 import net.liftweb.common.{Empty, Full, Box}
 import net.liftweb.http.NamedCometListener
 import comet.OpenLayers
@@ -15,18 +15,18 @@ class RoutingService extends Actor with ActorLogging {
 
   import RoutingService._
 
-  var destination: AntNode = _
-  val _routingTable = mutable.Map[AntNode, mutable.Map[AntNode, AntWay]]()
+  var destination: ActorRef = _
+  val _routingTable = mutable.Map[ActorRef, mutable.Map[ActorRef, AntWay]]()
   var path: Box[Seq[AntWay]] = Empty
-  var source: AntNode = _
+  var source: ActorRef = _
   implicit val timeout = Timeout(5 seconds)
 
   /**
    * Sucht einen Pfad von einem Quell- zu einem Ziel-Knoten.
    */
-  def findPath(source: AntNode, destination: AntNode): Box[Seq[AntWay]] = {
+  def findPath(source: ActorRef, destination: ActorRef): Box[Seq[AntWay]] = {
     @tailrec
-    def findPathRecursive(source: AntNode, path: Seq[AntWay]): Box[Seq[AntWay]] = {
+    def findPathRecursive(source: ActorRef, path: Seq[AntWay]): Box[Seq[AntWay]] = {
       if (source == destination)
         return Full(path)
       else if (path.size == 100 || !_routingTable(source).isDefinedAt(destination))
@@ -40,7 +40,7 @@ class RoutingService extends Actor with ActorLogging {
 
   def init() {
     log.info("Initialized")
-    AntScout.instance ! AntScout.RoutingServiceInitialized
+    context.parent ! AntScout.RoutingServiceInitialized
   }
 
   override def preStart() {
@@ -75,9 +75,11 @@ class RoutingService extends Actor with ActorLogging {
 
 object RoutingService {
 
-  case class FindPath(source: AntNode, destination: AntNode)
+  val ActorName = "routingService"
+
+  case class FindPath(source: ActorRef, destination: ActorRef)
   case object Initialize
-  case class InitializeBestWays(source: AntNode, ways: mutable.Map[AntNode, AntWay])
+  case class InitializeBestWays(source: ActorRef, ways: mutable.Map[ActorRef, AntWay])
   case object Initialized
-  case class UpdateBestWay(source: AntNode, destination: AntNode, way: AntWay)
+  case class UpdateBestWay(source: ActorRef, destination: ActorRef, way: AntWay)
 }

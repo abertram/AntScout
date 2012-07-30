@@ -4,13 +4,13 @@ package antnet
 import java.util.concurrent.TimeUnit
 import net.liftweb.util.{TimeHelpers, Props}
 import akka.util.Duration
-import akka.actor.{Cancellable, ActorLogging, Actor}
+import akka.actor.{ActorRef, Cancellable, ActorLogging, Actor}
 import util.Statistics
 import collection.mutable
 import java.text.SimpleDateFormat
 import java.util.Date
 
-class ForwardAnt(val source: AntNode) extends Actor with ActorLogging {
+class ForwardAnt(val source: ActorRef) extends Actor with ActorLogging {
   
   import ForwardAnt._
 
@@ -19,8 +19,8 @@ class ForwardAnt(val source: AntNode) extends Actor with ActorLogging {
 
   val antLifetime = Props.getInt("antLifetime", DefaultAntLifetime)
   var cancellable: Cancellable = _
-  var currentNode: AntNode = _
-  var destination: AntNode = _
+  var currentNode: ActorRef = _
+  var destination: ActorRef = _
   val logEntries = mutable.Buffer[String]()
   val memory = AntMemory()
   val timeUnit = TimeUnit.valueOf(Props.get("timeUnit", DefaultTimeUnit))
@@ -57,7 +57,8 @@ class ForwardAnt(val source: AntNode) extends Actor with ActorLogging {
    */
   def dumpLogEntries() {
     addLogEntry("Stopped, %s nodes visited".format(visitedNodesCount))
-    if (source.id == AntScout.traceSourceId && destination.id.matches(AntScout.traceDestinationId))
+    if (source.path.elements.last.matches(AntScout.traceSourceId) && destination.path.elements.last.matches(AntScout
+        .traceDestinationId))
       log.debug(logEntries.reverse.mkString("\n\t", "\n\t", ""))
   }
 
@@ -68,6 +69,9 @@ class ForwardAnt(val source: AntNode) extends Actor with ActorLogging {
   protected def receive = {
     case AddLogEntry(message, time) =>
       addLogEntry("%s".format(message), time)
+    case AntNode.DeadEndStreet =>
+      // Der Knoten hat keine ausgehenden Wege, wir sind in einer Sackgasse angekommen.
+      completeTask("Dead-end street, restarting", DeadEndStreet)
     case AntNode.Probabilities(probabilities) =>
       addLogEntry("Probabilities received")
       // Prüfen, ob die empfangengen Wahrscheinlichkeiten zu dem aktuell besuchten Knoten passen.
@@ -144,27 +148,25 @@ class ForwardAnt(val source: AntNode) extends Actor with ActorLogging {
   }
 
   def trace(message: String) {
-    if (source.id == AntScout.traceSourceId && destination != null && destination.id == AntScout.traceDestinationId)
+    if (source.path.elements.last.matches(AntScout.traceSourceId) && destination.path.elements.last.matches(AntScout
+        .traceDestinationId))
       log.debug("{} {}", self.path.elements.last, message)
   }
 
   /**
    * Besucht einen Knoten.
    *
-   * @param node Knoten, der bescuht werden soll.
+   * @param node Knoten, der besucht werden soll.
    */
-  def visitNode(node: AntNode) {
-    addLogEntry("Visiting node #%s".format(node id))
+  def visitNode(node: ActorRef) {
+    addLogEntry("Visiting node #%s".format(node))
     currentNode = node
-    // Der Knoten hat keine ausgehenden Wege, wir sind in einer Sackgasse angekommen.
-    if (!AntMap.outgoingWays.contains(node)) {
-      completeTask("Dead-end street, restarting", DeadEndStreet)
-    } else if (node == destination) {
+    if (node == destination) {
       launchBackwardAnt()
       completeTask("Destinatination reached, launching backward ant and restarting", DestinationReached)
     } else {
       addLogEntry("%s - Entering %s, destination: %s)".format(self, node, destination))
-      node.enter(destination, self)
+      node ! AntNode.Enter(destination)
     }
     visitedNodesCount += 1
   }
@@ -176,6 +178,6 @@ object ForwardAnt {
   case object DeadEndStreet
   case object DestinationReached
   case object LifetimeExpired
-  case class Task(destination: AntNode)
+  case class Task(destination: ActorRef)
   case object TaskFinished
 }

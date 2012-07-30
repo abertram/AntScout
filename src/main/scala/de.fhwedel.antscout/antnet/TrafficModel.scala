@@ -3,7 +3,7 @@ package antnet
 
 import net.liftweb.common.Logger
 import collection.mutable
-import akka.actor.Actor
+import akka.actor.ActorRef
 
 /**
  * Created by IntelliJ IDEA.
@@ -12,41 +12,23 @@ import akka.actor.Actor
  * Time: 20:56
  */
 
-class TrafficModel extends Actor with Logger {
+class TrafficModel(destinations: Set[ActorRef], varsigma: Double, wMax: Int) extends Logger {
 
-  import antnet.TrafficModel._
+  val samples = mutable.Map[ActorRef, TrafficModelSample]()
 
-  val samples = mutable.HashMap[AntNode, TrafficModelSample]()
+  destinations.foreach(samples += _ -> TrafficModelSample(varsigma, wMax))
 
-  def init(destinations: Set[AntNode], varsigma: Double, wMax: Int) {
-    assert((destinations & AntMap.destinations) == destinations && (AntMap.destinations &~ destinations).size <= 1)
-    destinations.foreach(samples += _ -> TrafficModelSample(varsigma, wMax))
-    sender ! Initialized
-  }
-
-  def addSample(destination: AntNode, tripTime: Double) {
+  def addSample(destination: ActorRef, tripTime: Double) {
     samples(destination) += tripTime
   }
 
-  def reinforcement(destination: AntNode, tripTime: Double, neighbourCount: Int) =
+  def reinforcement(destination: ActorRef, tripTime: Double, neighbourCount: Int) =
     samples(destination).reinforcement(tripTime, neighbourCount)
-
-  protected def receive = {
-    case AddSample(_, destination, tripTime) =>
-      addSample(destination, tripTime)
-    case GetReinforcement(_, destination, tripTime, neighbourCount) =>
-      sender ! reinforcement(destination, tripTime, neighbourCount)
-    case Initialize(destinations, varsigma, wMax) =>
-      init(destinations, varsigma, wMax)
-  }
 }
 
 object TrafficModel {
 
   val DefaultVarsigma = 0.1
 
-  case class AddSample(node: AntNode, destination: AntNode, tripTime: Double)
-  case class GetReinforcement(node: AntNode, destination: AntNode, tripTime: Double, neighbourCount: Int)
-  case class Initialize(destinations: Set[AntNode], varsigma: Double, wMax: Int)
-  case object Initialized
+  def apply(destinations: Set[ActorRef], varsigma: Double, wMax: Int) = new TrafficModel(destinations, varsigma, wMax)
 }
