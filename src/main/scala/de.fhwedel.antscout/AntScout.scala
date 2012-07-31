@@ -64,14 +64,14 @@ object AntScout {
   case object RoutingServiceInitialized extends AntScoutMessage
 
   // IDs eines Quell- und eines Ziel-Knoten für Debug-Zwecke
-  val traceSourceId = "652894"
-  val traceDestinationId = "17479078"
+  val traceSourceId = ""
+  val traceDestinationId = ""
 
   val system = ActorSystem("AntScout")
   system.actorOf(actor.Props[AntScout], AntScout.ActorName)
 
   def init() {
-    system.actorFor(ActorName) ! Initialize
+    system.actorFor(Iterable("user", ActorName)) ! Initialize
   }
 
   def shutDown() {
