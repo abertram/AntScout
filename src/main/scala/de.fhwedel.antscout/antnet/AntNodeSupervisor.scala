@@ -2,6 +2,7 @@ package de.fhwedel.antscout
 package antnet
 
 import akka.actor.{Props, ActorLogging, Actor}
+import pheromoneMatrix.UniformDistributionPheromoneMatrixInitializer
 
 /**
  * Created by IntelliJ IDEA.
@@ -30,7 +31,10 @@ class AntNodeSupervisor extends Actor with ActorLogging {
     val destinations = AntMap.destinations map { destination =>
       context.actorFor(destination.id)
     }
-    sources foreach (_ ! AntNode.Initialize(destinations))
+    val pheromoneMatrixInitializer = UniformDistributionPheromoneMatrixInitializer(sources, destinations)
+    sources.foreach { source =>
+      source ! AntNode.Initialize(destinations, pheromoneMatrixInitializer.pheromones(source))
+    }
     log.info("Nodes initialized")
   }
 

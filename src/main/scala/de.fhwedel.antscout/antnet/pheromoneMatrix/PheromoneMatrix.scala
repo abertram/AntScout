@@ -1,9 +1,10 @@
 package de.fhwedel.antscout
-package antnet
+package antnet.pheromoneMatrix
 
 import collection.mutable
 import akka.actor.ActorRef
 import net.liftweb.common.Logger
+import antnet.AntWay
 
 /**
  * Created by IntelliJ IDEA.
@@ -20,7 +21,7 @@ import net.liftweb.common.Logger
  */
 class PheromoneMatrix(destinations: Set[ActorRef], outgoingWays: Set[AntWay]) extends Logger {
 
-//  assert((destinations & AntMap.destinations) == destinations && (AntMap.destinations &~ destinations).size <= 1)
+  //  assert((destinations & AntMap.destinations) == destinations && (AntMap.destinations &~ destinations).size <= 1)
 
 
   val alpha = 0.3
@@ -28,20 +29,20 @@ class PheromoneMatrix(destinations: Set[ActorRef], outgoingWays: Set[AntWay]) ex
   val heuristicValues = mutable.Map[AntWay, Double]()
   val pheromones = mutable.Map[ActorRef, mutable.Map[AntWay, Double]]()
   var processedMessages = 0
-    
+
   def calculateProbabilities() {
     destinations.foreach(calculateProbabilities _)
   }
 
   def calculateProbabilities(destination: ActorRef) = {
-    outgoingWays.foreach { ow =>
-      probabilities(destination) += ow -> calculateProbability(destination, ow)
+    outgoingWays.foreach { outgoingWay =>
+        probabilities(destination) += outgoingWay -> calculateProbability(destination, outgoingWay)
     }
   }
 
   def calculateProbability(destination: ActorRef, outgoingWay: AntWay) = {
     val probability = pheromones(destination)(outgoingWay) + alpha * heuristicValues(outgoingWay) / (1 + alpha * (outgoingWays
-      .size - 1))
+        .size - 1))
     // Zusicherung, dass die Wahrscheinlichkeiten für den ausgehenden Weg 0 wird. Das würde bedeuten,
     // dass sich keine Ameise mehr für diesen Weg entscheiden würde.
 //    assert(probability ~> 0, "%s-%s: Probability = 0, pheromone: %s, alpha: %s, heuristic value: %s" format (self
@@ -49,10 +50,10 @@ class PheromoneMatrix(destinations: Set[ActorRef], outgoingWays: Set[AntWay]) ex
     probability
   }
 
-  def initialize(source: ActorRef, tripTimes: Map[AntWay, Double]) {
+  def initialize(source: ActorRef, pheromones: Map[ActorRef, Map[AntWay, Double]], tripTimes: Map[AntWay, Double]) {
     probabilities ++= destinations.map((_ -> mutable.Map[AntWay, Double]()))
     initHeuristicValues(tripTimes)
-    initPheromones()
+    initPheromones(pheromones)
     calculateProbabilities()
   }
 
@@ -66,16 +67,17 @@ class PheromoneMatrix(destinations: Set[ActorRef], outgoingWays: Set[AntWay]) ex
     }
   }
 
-  def initPheromones() {
-    val pheromone = 1.0 / outgoingWays.size
-    destinations.foreach(d => {
-      pheromones += d -> mutable.Map[AntWay, Double]()
-      outgoingWays.foreach(ow => {
-        pheromones(d) += ow -> pheromone
-      })
-    })
+  def initPheromones(pheromones: Map[ActorRef, Map[AntWay, Double]]) {
+    pheromones.foreach {
+      case (destination, pheromones) =>
+        this.pheromones += destination -> mutable.Map[AntWay, Double]()
+        pheromones.foreach {
+          case (way, pheromone) =>
+            this.pheromones(destination) += way -> pheromone
+        }
+    }
   }
-  
+
   def updatePheromones(destination: ActorRef, way: AntWay, reinforcement: Double) {
     outgoingWays.foreach(ow => {
       val oldPheromone = pheromones(destination)(ow)
@@ -86,19 +88,9 @@ class PheromoneMatrix(destinations: Set[ActorRef], outgoingWays: Set[AntWay]) ex
     })
     calculateProbabilities(destination)
   }
-
-  def trace(destination: ActorRef, message: String) {
-//    val sourceId = self.path.elements.last
-//    if (sourceId == AntScout.traceSourceId && destination == AntScout.traceDestinationId)
-//      debug("{}-{}: {}", sourceId, destination, message)
-  }
 }
 
 object PheromoneMatrix {
-
-  case class GetAllProbabilities(node: ActorRef)
-  case class GetProbabilities(node: ActorRef, destination: ActorRef)
-  case class UpdatePheromones(node: ActorRef, destination: ActorRef, way: AntWay, reinforcement: Double)
 
   def apply(destinations: Set[ActorRef], outgoingWays: Set[AntWay]) = new PheromoneMatrix(destinations, outgoingWays)
 }

@@ -6,6 +6,7 @@ import akka.util.duration._
 import akka.util.Timeout
 import collection.mutable
 import net.liftweb
+import pheromoneMatrix.PheromoneMatrix
 import routing.RoutingService
 
 class AntNode extends Actor with ActorLogging {
@@ -25,14 +26,14 @@ class AntNode extends Actor with ActorLogging {
     bestWay
   }
 
-  def initialize(destinations: Set[ActorRef]) {
+  def initialize(destinations: Set[ActorRef], pheromones: Map[ActorRef, Map[AntWay, Double]]) {
 //    log.info("Initializing")
     val nodeId = self.path.elements.last
     val node = AntMap.nodes.find(_.id == nodeId).get
     val outgoingWays = AntMap.outgoingWays(node)
     pheromoneMatrix = PheromoneMatrix(destinations - self, outgoingWays)
     val tripTimes = outgoingWays.map(outgoingWay => (outgoingWay -> outgoingWay.tripTime)).toMap
-    pheromoneMatrix.initialize(self, tripTimes)
+    pheromoneMatrix.initialize(self, pheromones, tripTimes)
     val bestWays = mutable.Map[ActorRef, AntWay]()
     (destinations - self).foreach(destination => bestWays += (destination -> bestWay(destination)))
     AntScout.system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) !
@@ -75,8 +76,8 @@ class AntNode extends Actor with ActorLogging {
       sender ! (if (pheromoneMatrix != null)
         Probabilities(pheromoneMatrix.probabilities(destination).toMap)
       else DeadEndStreet)
-    case Initialize(destinations) =>
-      initialize(destinations)
+    case Initialize(destinations, pheromones) =>
+      initialize(destinations, pheromones)
     case UpdateDataStructures(destination, way, tripTime) =>
       updateDataStructures(destination, way, tripTime)
   }
@@ -86,7 +87,14 @@ object AntNode {
 
   case object DeadEndStreet
   case class Enter(destination: ActorRef)
-  case class Initialize(destinations: Set[ActorRef])
+  case class Initialize(destinations: Set[ActorRef], pheromones: Map[ActorRef, Map[AntWay, Double]])
   case class Probabilities(probabilities: Map[AntWay, Double])
   case class UpdateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double)
+
+  def nodeId(antNode: ActorRef) = antNode.path.elements.last
+
+  def toNode(antNode: ActorRef) = {
+    val nodeId = this.nodeId(antNode)
+    AntMap.nodes.find(_.id == nodeId)
+  }
 }
