@@ -257,6 +257,44 @@ object AntMap extends Logger {
 
   def destinations = _destinations
 
+  /**
+   * Berechnet die Weg-Länge von einem Quell- zu einem Ziel-Knoten.
+   *
+   * @param source Quell-Knoten
+   * @param destination Ziel-Knoten
+   * @return 0, wenn es sich bei den beiden Knoten um den selben Knoten handelt. Weg-Länge,
+   *         wenn die beiden Knoten durch einen Weg verbunden sind und der Weg vom Quell- zum Ziel-Knoten zeigt.
+   *         Unendlich, wenn die beiden Knoten nicht durch einen Weg verbunden sind.
+   */
+  def distance(source: Node, destination: Node) = {
+    if (source == destination)
+      0.0
+    else {
+      if (!_outgoingWays.isDefinedAt(source))
+        Double.PositiveInfinity
+      else {
+        _outgoingWays(source).find { way =>
+          Set(way.nodes.head, way.nodes.last) == Set(source, destination)
+        }.map { way =>
+          way.length
+        }.getOrElse(Double.PositiveInfinity)
+      }
+    }
+  }
+
+  /**
+   * Berechnet die Distanz-Matrix.
+   *
+   * @return
+   */
+  def distanceMatrix = {
+    nodes.map { source =>
+      source -> nodes.map { destination =>
+        destination -> distance(source, destination)
+      }.toMap
+    }.toMap
+  }
+
   def incomingWays = _incomingWays
 
   def nodes = _nodes
