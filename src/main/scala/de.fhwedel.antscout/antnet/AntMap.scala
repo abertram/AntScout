@@ -295,6 +295,25 @@ object AntMap extends Logger {
     }.toMap
   }
 
+  /**
+   * Wandelt eine Matrix in eine formatierte, gut lesbare Tabelle um.
+   *
+   * @param matrix
+   * @return
+   */
+  def distanceMatrixToString(matrix: Map[Node, Map[Node, Double]]) = {
+    val ids = matrix.map { case (source, _) => source.id }
+    val longestId = ids.maxBy(_.length)
+    ids.map(id => ("%" + longestId.length + "s").format(id)).mkString("\n" + " " * longestId.length + "|", "|", "") +
+        matrix.map {
+      case (source, distances) =>
+        ("%" + longestId.length + "s").format(source.id) + distances.map {
+          case (destination, distance) =>
+            ("%" + longestId.length + ".2f").format(distance)
+        }.mkString("|", "|", "")
+    }.mkString("\n", "\n", "")
+  }
+
   def incomingWays = _incomingWays
 
   def nodes = _nodes
