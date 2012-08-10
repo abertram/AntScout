@@ -312,14 +312,14 @@ object AntMap extends Logger {
      * @return
      */
     def filterSources(intermediates: Seq[Node], distanceMatrix: Map[Node, Map[Node, Double]]) = {
-      debug("Filtering sources")
+      trace("Filtering sources")
       val sources = intermediates match {
         case Seq() =>
           nodes
         case Seq(head, tail@_*) =>
           nodes.filter(node => (node != head) && (distanceMatrix(node)(head) < Double.PositiveInfinity))
       }
-      debug("sources: %s".format(sources.map(_.id)))
+      trace("sources: %s".format(sources.map(_.id)))
       sources
     }
     /**
@@ -330,14 +330,14 @@ object AntMap extends Logger {
      * @return
      */
     def filterDestinations(intermediates: Seq[Node], distanceMatrix: Map[Node, Map[Node, Double]]) = {
-      debug("Filtering destinations")
+      trace("Filtering destinations")
       val destinations = intermediates match {
         case Seq() =>
           nodes
         case Seq(head, tail@_*) =>
           nodes.filter(node => (node != head) && (distanceMatrix(head)(node) < Double.PositiveInfinity))
       }
-      debug("destinations: %s".format(destinations.map(_.id)))
+      trace("destinations: %s".format(destinations.map(_.id)))
       destinations
     }
     @tailrec
@@ -358,11 +358,11 @@ object AntMap extends Logger {
             predecessorMatrix)
         case (Seq(intermediateHead, intermediateTail@_*), Seq(sourceHead, sourceTail@_*), Seq(destinationHead,
             destination@_*)) =>
-          debug("intermediates: %s, sources: %s, destinations: %s".format(intermediates.head.id, sources.head.id,
+          trace("intermediates: %s, sources: %s, destinations: %s".format(intermediates.head.id, sources.head.id,
             destinations.head.id))
           val (newPaths, newPredecessors) = if (distanceMatrix(sources.head)(intermediates.head) +
               distanceMatrix(intermediates.head)(destinations.head) < distanceMatrix(sources.head)(destinations.head)) {
-            debug("\n\tpath(%s)(%s) + path(%s)(%s) = %1.2f < path(%s)(%s) = %1.2f, updating matrix"
+            trace("\n\tpath(%s)(%s) + path(%s)(%s) = %1.2f < path(%s)(%s) = %1.2f, updating matrix"
               .format(sources.head.id, intermediates.head.id, intermediates.head.id, destinations.head.id,
               distanceMatrix(sources.head)(intermediates.head) + distanceMatrix(intermediates.head)(destinations.head),
               sources.head.id, destinations.head.id, distanceMatrix(sources.head)(destinations.head)))
@@ -374,16 +374,16 @@ object AntMap extends Logger {
           } else {
             (distanceMatrix, predecessorMatrix)
           }
-          debug(AntMap.distanceMatrixToString(newPaths))
-          debug(AntMap.predecessorMatrixToString(newPredecessors))
+          trace(AntMap.distanceMatrixToString(newPaths))
+          trace(AntMap.predecessorMatrixToString(newPredecessors))
           calculateShortestPathsRec(intermediates, sources, destinations.tail, newPaths, newPredecessors)
         case _ =>
           error("This shouldn't happen!")
           calculateShortestPathsRec(intermediates, sources, destinations, distanceMatrix, predecessorMatrix)
       }
     }
-    debug(AntMap.distanceMatrixToString(adjacencyMatrix))
-    debug(AntMap.predecessorMatrixToString(predecessorMatrix))
+    trace(AntMap.distanceMatrixToString(adjacencyMatrix))
+    trace(AntMap.predecessorMatrixToString(predecessorMatrix))
     val sources = filterSources(nodes.toSeq, adjacencyMatrix)
     val destinations = filterDestinations(nodes.toSeq, adjacencyMatrix)
     calculateShortestPathsRec(nodes.toSeq, sources.toSeq, destinations.toSeq, adjacencyMatrix, predecessorMatrix)
@@ -430,6 +430,34 @@ object AntMap extends Logger {
   def nodes = _nodes
 
   def outgoingWays = _outgoingWays
+
+  /**
+   * Berechnet einen Pfad von einem Quell- zu einem Ziel-Knoten.
+   *
+   * @param source
+   * @param destination
+   * @param distanceMatrix
+   * @param predecessorMatrix
+   * @return
+   */
+  def path(source: Node, destination: Node, distanceMatrix: Map[Node, Map[Node, Double]],
+      predecessorMatrix: Map[Node, Map[Node, Option[Node]]]) = {
+    // TODO @tailrec
+    def pathRec(source: Node, destination: Node): Seq[Node] = {
+      assert(predecessorMatrix(source).isDefinedAt(destination))
+      if (predecessorMatrix(source)(destination).get == source)
+        Seq[Node]()
+      else {
+        val intermediate = predecessorMatrix(source)(destination).get
+        pathRec(source, intermediate) ++ Seq(intermediate) ++ pathRec(intermediate, destination)
+      }
+    }
+    if (distanceMatrix(source)(destination) == 0.0 || distanceMatrix(source)(destination) == Double.PositiveInfinity)
+      None
+    else {
+      pathRec(source, destination)
+    }
+  }
 
   /**
    * Berechnet die Vorgänger-Matrix. Die Elemente der Matrix werden wie folgt berechnet: predecessorMatrix(i)(j) = i.
