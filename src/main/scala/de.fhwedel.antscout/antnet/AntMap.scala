@@ -283,7 +283,7 @@ object AntMap extends Logger {
   }
 
   /**
-   * Berechnet die Distanz-Matrix.
+   * Berechnet die Distanz-Matrix. Die Elemente werden wie folgt berechnet: distanceMatrix(i)(j) = weight(i, j)
    *
    * @return
    */
@@ -296,29 +296,76 @@ object AntMap extends Logger {
   }
 
   /**
-   * Wandelt eine Matrix in eine formatierte, gut lesbare Tabelle um.
+   * Bereitet die Distanz-Matrix so auf, dass diese als eine gut lesbare Tabelle dargestellt werden kann.
    *
    * @param matrix
    * @return
    */
-  def distanceMatrixToString(matrix: Map[Node, Map[Node, Double]]) = {
+  def distanceMatrixToString(matrix: Map[Node, Map[Node, Double]]) = matrixToString[Double](matrix, ".2f", identity)
+
+  def incomingWays = _incomingWays
+
+  /**
+   * Bereitet eine Matrix so auf, dass diese als eine gut lesbare Tabelle dargestellt werden kann.
+   *
+   * @param matrix Matrix, die aufbereitet werden soll.
+   * @param elementFormatSuffix Format-Suffix, mit dem die Elemente der Matrix formatiert werden sollen. Der
+   *                            Präfix besteht aus % und der Länge der längsten Knoten-Id. Sollen die Matrix-Elemente
+   *                            z.B. als Gleitkommazahlen mit zwei Nachkommastellen formatiert werden, muss der
+   *                            Parameter ".2f" lauten. Der endgültige Format-String lautet dann "%[Länge der
+   *                            längsten Knoten-Id].2f". Darstellung als String wird mit "s" erreicht. In diesem Fall
+   *                            lautet der endgültige Format-String "%[Länge der längsten Knoten-Id]s".
+   * @param extract Extraktor-Funktion, die auf die Matrix-Elemente vor der Formatierung angewendet wird. So kann z.B.
+   *                der Inhalt aus einem Option-Objekt extrahiert werden.
+   * @tparam T Datentyp der Matrixelemente.
+   * @return Matrix aufbereitet als Tabelle.
+   */
+  def matrixToString[T](matrix: Map[Node, Map[Node, T]], elementFormatSuffix: String, extract: (T) => Any) = {
     val ids = matrix.map { case (source, _) => source.id }
     val longestId = ids.maxBy(_.length)
     ids.map(id => ("%" + longestId.length + "s").format(id)).mkString("\n" + " " * longestId.length + "|", "|", "") +
         matrix.map {
-      case (source, distances) =>
-        ("%" + longestId.length + "s").format(source.id) + distances.map {
-          case (destination, distance) =>
-            ("%" + longestId.length + ".2f").format(distance)
+      case (source, elements) =>
+        ("%" + longestId.length + "s").format(source.id) + elements.map {
+          case (destination, element) =>
+            ("%" + longestId.length + elementFormatSuffix).format(extract(element))
         }.mkString("|", "|", "")
     }.mkString("\n", "\n", "")
   }
 
-  def incomingWays = _incomingWays
-
   def nodes = _nodes
 
   def outgoingWays = _outgoingWays
+
+  /**
+   * Berechnet die Vorgänger-Matrix. Die Elemente der Matrix werden wie folgt berechnet: predecessorMatrix(i)(j) = i.
+   *
+   * @return Vorgänger-Matrix
+   */
+  def predecessorMatrix = {
+    val distanceMatrix = this.distanceMatrix
+    nodes.map { source =>
+      source -> nodes.map { destination =>
+        destination -> { if (destination != source && distanceMatrix(source)(destination) < Double.PositiveInfinity)
+          Some(source)
+        else
+          None
+        }
+      }.toMap
+    }.toMap
+  }
+
+  /**
+   * Bereitet die Vorgänger-Matrix so auf, dass diese als eine gut lesbare Tabelle dargestellt werden kann.
+   *
+   * @param matrix
+   * @return
+   */
+  def predecessorMatrixToString(matrix: Map[Node, Map[Node, Option[Node]]]) = matrixToString[Option[Node]](matrix,
+    "s", (element) => element match {
+      case Some(node) => node.id
+      case None => ""
+    })
 
   def prepare = {
     info("Preparing")
