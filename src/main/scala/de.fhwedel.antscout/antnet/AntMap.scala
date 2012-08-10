@@ -283,7 +283,7 @@ object AntMap extends Logger {
   }
 
   /**
-   * Berechnet die Distanz-Matrix. Die Elemente werden wie folgt berechnet: adjacencyMatrix(i)(j) = weight(i, j)
+   * Berechnet die Adjazenz-Matrix. Die Elemente werden wie folgt berechnet: adjacencyMatrix(i)(j) = weight(i, j)
    *
    * @return
    */
@@ -293,6 +293,100 @@ object AntMap extends Logger {
         destination -> distance(source, destination)
       }.toMap
     }.toMap
+  }
+
+  /**
+   * Berechnet die kürzesten Pfade für alle Knoten-Paare und deren Längen mit Hilfe des Floyd-Warshall-Algorithmus.
+   *
+   * @param adjacencyMatrix
+   * @param predecessorMatrix
+   * @return
+   */
+  def calculateShortestPaths(adjacencyMatrix: Map[Node, Map[Node, Double]], predecessorMatrix: Map[Node, Map[Node,
+      Option[Node]]]) = {
+    /**
+     * Filtert alle Quell-Knoten heraus, deren Berücksichtigung für den Algorithmus nicht sinnvoll ist.
+     *
+     * @param intermediates
+     * @param distanceMatrix
+     * @return
+     */
+    def filterSources(intermediates: Seq[Node], distanceMatrix: Map[Node, Map[Node, Double]]) = {
+      debug("Filtering sources")
+      val sources = intermediates match {
+        case Seq() =>
+          nodes
+        case Seq(head, tail@_*) =>
+          nodes.filter(node => (node != head) && (distanceMatrix(node)(head) < Double.PositiveInfinity))
+      }
+      debug("sources: %s".format(sources.map(_.id)))
+      sources
+    }
+    /**
+     * Filtert alle Ziel-Knoten heraus, deren Berücksichtigung für den Algorithmus nicht sinnvoll ist.
+     *
+     * @param intermediates
+     * @param distanceMatrix
+     * @return
+     */
+    def filterDestinations(intermediates: Seq[Node], distanceMatrix: Map[Node, Map[Node, Double]]) = {
+      debug("Filtering destinations")
+      val destinations = intermediates match {
+        case Seq() =>
+          nodes
+        case Seq(head, tail@_*) =>
+          nodes.filter(node => (node != head) && (distanceMatrix(head)(node) < Double.PositiveInfinity))
+      }
+      debug("destinations: %s".format(destinations.map(_.id)))
+      destinations
+    }
+    @tailrec
+    def calculateShortestPathsRec(intermediates: Seq[Node], sources: Seq[Node], destinations: Seq[Node],
+        distanceMatrix: Map[Node, Map[Node, Double]], predecessorMatrix: Map[Node, Map[Node, Option[Node]]]): (Map[Node,
+        Map[Node, Double]], Map[Node, Map[Node, Option[Node]]]) = {
+      (intermediates, sources, destinations) match {
+        case (Seq(), _, _) =>
+          (distanceMatrix, predecessorMatrix)
+        case (_, Seq(), _) =>
+          val newSources = filterSources(intermediates.tail, distanceMatrix)
+          val newDestinations = filterDestinations(intermediates.tail, distanceMatrix)
+          calculateShortestPathsRec(intermediates.tail, newSources.toSeq, newDestinations.toSeq, distanceMatrix,
+            predecessorMatrix)
+        case (_, _, Seq()) =>
+          val newDestinations = filterDestinations(intermediates, distanceMatrix)
+          calculateShortestPathsRec(intermediates, sources.tail, newDestinations.toSeq, distanceMatrix,
+            predecessorMatrix)
+        case (Seq(intermediateHead, intermediateTail@_*), Seq(sourceHead, sourceTail@_*), Seq(destinationHead,
+            destination@_*)) =>
+          debug("intermediates: %s, sources: %s, destinations: %s".format(intermediates.head.id, sources.head.id,
+            destinations.head.id))
+          val (newPaths, newPredecessors) = if (distanceMatrix(sources.head)(intermediates.head) +
+              distanceMatrix(intermediates.head)(destinations.head) < distanceMatrix(sources.head)(destinations.head)) {
+            debug("\n\tpath(%s)(%s) + path(%s)(%s) = %1.2f < path(%s)(%s) = %1.2f, updating matrix"
+              .format(sources.head.id, intermediates.head.id, intermediates.head.id, destinations.head.id,
+              distanceMatrix(sources.head)(intermediates.head) + distanceMatrix(intermediates.head)(destinations.head),
+              sources.head.id, destinations.head.id, distanceMatrix(sources.head)(destinations.head)))
+            val path = distanceMatrix(sources.head) + (destinations.head ->
+              (distanceMatrix(sources.head)(intermediates.head) + distanceMatrix(intermediates.head)(destinations
+              .head)))
+            val predecessor = predecessorMatrix(sources.head) + (destinations.head -> Some(intermediates.head))
+            (distanceMatrix + (sources.head -> path), predecessorMatrix + (sources.head -> predecessor))
+          } else {
+            (distanceMatrix, predecessorMatrix)
+          }
+          debug(AntMap.distanceMatrixToString(newPaths))
+          debug(AntMap.predecessorMatrixToString(newPredecessors))
+          calculateShortestPathsRec(intermediates, sources, destinations.tail, newPaths, newPredecessors)
+        case _ =>
+          error("This shouldn't happen!")
+          calculateShortestPathsRec(intermediates, sources, destinations, distanceMatrix, predecessorMatrix)
+      }
+    }
+    debug(AntMap.distanceMatrixToString(adjacencyMatrix))
+    debug(AntMap.predecessorMatrixToString(predecessorMatrix))
+    val sources = filterSources(nodes.toSeq, adjacencyMatrix)
+    val destinations = filterDestinations(nodes.toSeq, adjacencyMatrix)
+    calculateShortestPathsRec(nodes.toSeq, sources.toSeq, destinations.toSeq, adjacencyMatrix, predecessorMatrix)
   }
 
   /**
