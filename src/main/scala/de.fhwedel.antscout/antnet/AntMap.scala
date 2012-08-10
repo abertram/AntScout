@@ -283,11 +283,11 @@ object AntMap extends Logger {
   }
 
   /**
-   * Berechnet die Distanz-Matrix. Die Elemente werden wie folgt berechnet: distanceMatrix(i)(j) = weight(i, j)
+   * Berechnet die Distanz-Matrix. Die Elemente werden wie folgt berechnet: adjacencyMatrix(i)(j) = weight(i, j)
    *
    * @return
    */
-  def distanceMatrix = {
+  def adjacencyMatrix = {
     nodes.map { source =>
       source -> nodes.map { destination =>
         destination -> distance(source, destination)
@@ -343,7 +343,7 @@ object AntMap extends Logger {
    * @return Vorgänger-Matrix
    */
   def predecessorMatrix = {
-    val distanceMatrix = this.distanceMatrix
+    val distanceMatrix = this.adjacencyMatrix
     nodes.map { source =>
       source -> nodes.map { destination =>
         destination -> { if (destination != source && distanceMatrix(source)(destination) < Double.PositiveInfinity)
