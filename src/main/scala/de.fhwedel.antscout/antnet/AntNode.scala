@@ -8,6 +8,7 @@ import collection.mutable
 import net.liftweb
 import pheromoneMatrix.PheromoneMatrix
 import routing.RoutingService
+import map.Node
 
 class AntNode extends Actor with ActorLogging {
 
@@ -91,8 +92,40 @@ object AntNode {
   case class Probabilities(probabilities: Map[AntWay, Double])
   case class UpdateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double)
 
+  /**
+   * Sucht zu einem Knoten den passenden Ant-Knoten.
+   *
+   * @param node
+   * @return
+   */
+  def apply(node: Node) = {
+    AntScout.system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName, node.id))
+  }
+
+  /**
+   * Sucht zu einer Knoten-Id den passenden Ant-Knoten.
+   *
+   * @param nodeId
+   * @return
+   */
+  def apply(nodeId: String) = {
+    AntScout.system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName, nodeId))
+  }
+
+  /**
+   * Extrahiert eine Knoten-Id aus einem Aktor-Pfad.
+   *
+   * @param antNode
+   * @return
+   */
   def nodeId(antNode: ActorRef) = antNode.path.elements.last
 
+  /**
+   * Sucht den passenden Knoten zu einem Ant-Knoten.
+   *
+   * @param antNode
+   * @return
+   */
   def toNode(antNode: ActorRef) = {
     val nodeId = this.nodeId(antNode)
     AntMap.nodes.find(_.id == nodeId)
