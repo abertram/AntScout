@@ -1,8 +1,8 @@
 package de.fhwedel.antscout
 package antnet.pheromoneMatrix
 
-import akka.actor.ActorRef
 import antnet.{AntMap, AntNode}
+import map.Node
 
 /**
  * Initialisiert die Pheromone an einem Knoten so, dass alle ausgehenden Wege die gleichen Wahrscheinlichkeiten haben.
@@ -10,17 +10,15 @@ import antnet.{AntMap, AntNode}
  * @param sources Quellen
  * @param destinations Ziele
  */
-class UniformDistributionPheromoneMatrixInitializer(sources: Set[ActorRef], destinations: Set[ActorRef])
-    extends PheromoneMatrixInitializer(sources, destinations) {
+class UniformDistributionPheromoneMatrixInitializer(nodes: Set[Node], sources: Set[Node], destinations: Set[Node])
+    extends PheromoneMatrixInitializer(nodes, sources, destinations) {
 
   def initPheromones = {
     sources.map { source =>
-      val nodeId = AntNode.nodeId(source)
-      val node = AntMap.nodes.find(_.id == nodeId).get
-      val outgoingWays = AntMap.outgoingWays(node)
+      val outgoingWays = AntMap.outgoingWays(source)
       val pheromone = 1.0 / outgoingWays.size
-      source -> destinations.filter(_ != source).map { destination =>
-        destination -> outgoingWays.map { outgoingWay =>
+      AntNode(source) -> destinations.filter(_ != source).map { destination =>
+        AntNode(destination) -> outgoingWays.map { outgoingWay =>
           outgoingWay -> pheromone
         }.toMap
       }.toMap
@@ -30,6 +28,6 @@ class UniformDistributionPheromoneMatrixInitializer(sources: Set[ActorRef], dest
 
 object UniformDistributionPheromoneMatrixInitializer {
 
-  def apply(sources: Set[ActorRef], destinations: Set[ActorRef]) =
-    new UniformDistributionPheromoneMatrixInitializer(sources, destinations)
+  def apply(nodes: Set[Node], sources: Set[Node], destinations: Set[Node]) =
+    new UniformDistributionPheromoneMatrixInitializer(nodes, sources, destinations)
 }

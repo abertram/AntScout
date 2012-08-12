@@ -2,30 +2,22 @@ package de.fhwedel.antscout
 package antnet.pheromoneMatrix
 
 import akka.actor.ActorRef
-import antnet.{AntWay, AntNodeSupervisor, AntNode, AntMap}
+import antnet.{AntWay, AntMap}
+import net.liftweb.common.Logger
+import map.Node
 
-class ShortestPathsPheromoneMatrixInitializer(sources: Set[ActorRef], destinations: Set[ActorRef])
-    extends PheromoneMatrixInitializer(sources, destinations) {
-
-  def weight(i: ActorRef, j: ActorRef) = {
-    AntNode.toNode(i).flatMap { iNode =>
-      AntMap.outgoingWays(iNode).find { way =>
-        way.endNode(i) == j
-      }
-    }.map { way =>
-      way.tripTime
-    }.getOrElse(Double.MaxValue)
-  }
+class ShortestPathsPheromoneMatrixInitializer(nodes: Set[Node], sources: Set[Node], destinations: Set[Node])
+    extends PheromoneMatrixInitializer(nodes, sources, destinations) with Logger {
 
   def initPheromones = {
-    val antNodes = AntMap.nodes.map { node =>
-      AntScout.system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName, node.id))
-    }
-    val weights = antNodes.map { iNode =>
-      antNodes.map { jNode =>
-        weight(iNode, jNode)
-      }
-    }
+    val (distanceMatrix, predecessorMatrix) = AntMap.calculateShortestPaths(AntMap.adjacencyMatrix, AntMap
+      .predecessorMatrix)
     Map[ActorRef, Map[ActorRef, Map[AntWay, Double]]]()
   }
+}
+
+object ShortestPathsPheromoneMatrixInitializer {
+
+  def apply(nodes: Set[Node], sources: Set[Node], destinations: Set[Node]) =
+    new ShortestPathsPheromoneMatrixInitializer(nodes, sources, destinations)
 }

@@ -3,6 +3,7 @@ package antnet.pheromoneMatrix
 
 import akka.actor.ActorRef
 import antnet.AntWay
+import map.Node
 
 /**
  * Basis für die Berechnung der initialen Werte der Pheromone.
@@ -10,7 +11,7 @@ import antnet.AntWay
  * @param sources Quellen
  * @param destinations Ziele
  */
-abstract class PheromoneMatrixInitializer(sources: Set[ActorRef], destinations: Set[ActorRef]) {
+abstract class PheromoneMatrixInitializer(nodes: Set[Node], sources: Set[Node], destinations: Set[Node]) {
 
   val pheromones: Map[ActorRef, Map[ActorRef, Map[AntWay, Double]]] = initPheromones
 
