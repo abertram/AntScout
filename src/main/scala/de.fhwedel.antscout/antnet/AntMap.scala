@@ -230,8 +230,6 @@ object AntMap extends Logger {
   /**
    * Berechnet die Quell- und die Zielknoten mit Hilfe der ein- und ausgehenden Wege.
    *
-   * @param incomingWays Map, in der die Knoten-Ids als Schlüssel und Ids der eingehenden Wege als Wert gespeichert sind.
-   * @param outgoingWays Map, in der die Knoten-Ids als Schlüssel und Ids der ausgehenden Wege als Wert gespeichert sind.
    */
   def computeSourcesAndDestinations() {
     assert(_nodes != null)
@@ -303,90 +301,68 @@ object AntMap extends Logger {
    * @return
    */
   def calculateShortestPaths(adjacencyMatrix: Map[Node, Map[Node, Double]], predecessorMatrix: Map[Node, Map[Node,
-      Option[Node]]]) = {
-    /**
-     * Filtert alle Quell-Knoten heraus, deren Berücksichtigung für den Algorithmus nicht sinnvoll ist.
-     *
-     * @param intermediates
-     * @param distanceMatrix
-     * @return
-     */
-    def filterSources(intermediates: Seq[Node], distanceMatrix: Map[Node, Map[Node, Double]]) = {
-      trace("Filtering sources")
-      val sources = intermediates match {
-        case Seq() =>
-          nodes
-        case Seq(head, tail@_*) =>
-          nodes.filter(node => (node != head) && (distanceMatrix(node)(head) < Double.PositiveInfinity))
-      }
-      trace("sources: %s".format(sources.map(_.id)))
-      sources
-    }
-    /**
-     * Filtert alle Ziel-Knoten heraus, deren Berücksichtigung für den Algorithmus nicht sinnvoll ist.
-     *
-     * @param intermediates
-     * @param distanceMatrix
-     * @return
-     */
-    def filterDestinations(intermediates: Seq[Node], distanceMatrix: Map[Node, Map[Node, Double]]) = {
-      trace("Filtering destinations")
-      val destinations = intermediates match {
-        case Seq() =>
-          nodes
-        case Seq(head, tail@_*) =>
-          nodes.filter(node => (node != head) && (distanceMatrix(head)(node) < Double.PositiveInfinity))
-      }
-      trace("destinations: %s".format(destinations.map(_.id)))
-      destinations
-    }
-    @tailrec
-    def calculateShortestPathsRec(intermediates: Seq[Node], sources: Seq[Node], destinations: Seq[Node],
-        distanceMatrix: Map[Node, Map[Node, Double]], predecessorMatrix: Map[Node, Map[Node, Option[Node]]]): (Map[Node,
-        Map[Node, Double]], Map[Node, Map[Node, Option[Node]]]) = {
-      (intermediates, sources, destinations) match {
-        case (Seq(), _, _) =>
-          (distanceMatrix, predecessorMatrix)
-        case (_, Seq(), _) =>
-          val newSources = filterSources(intermediates.tail, distanceMatrix)
-          val newDestinations = filterDestinations(intermediates.tail, distanceMatrix)
-          calculateShortestPathsRec(intermediates.tail, newSources.toSeq, newDestinations.toSeq, distanceMatrix,
-            predecessorMatrix)
-        case (_, _, Seq()) =>
-          val newDestinations = filterDestinations(intermediates, distanceMatrix)
-          calculateShortestPathsRec(intermediates, sources.tail, newDestinations.toSeq, distanceMatrix,
-            predecessorMatrix)
-        case (Seq(intermediateHead, intermediateTail@_*), Seq(sourceHead, sourceTail@_*), Seq(destinationHead,
-            destination@_*)) =>
-          trace("intermediates: %s, sources: %s, destinations: %s".format(intermediates.head.id, sources.head.id,
-            destinations.head.id))
-          val (newPaths, newPredecessors) = if (distanceMatrix(sources.head)(intermediates.head) +
-              distanceMatrix(intermediates.head)(destinations.head) < distanceMatrix(sources.head)(destinations.head)) {
-            trace("\n\tpath(%s)(%s) + path(%s)(%s) = %1.2f < path(%s)(%s) = %1.2f, updating matrix"
-              .format(sources.head.id, intermediates.head.id, intermediates.head.id, destinations.head.id,
-              distanceMatrix(sources.head)(intermediates.head) + distanceMatrix(intermediates.head)(destinations.head),
-              sources.head.id, destinations.head.id, distanceMatrix(sources.head)(destinations.head)))
-            val path = distanceMatrix(sources.head) + (destinations.head ->
-              (distanceMatrix(sources.head)(intermediates.head) + distanceMatrix(intermediates.head)(destinations
-              .head)))
-            val predecessor = predecessorMatrix(sources.head) + (destinations.head -> Some(intermediates.head))
-            (distanceMatrix + (sources.head -> path), predecessorMatrix + (sources.head -> predecessor))
-          } else {
-            (distanceMatrix, predecessorMatrix)
+      Option[Node]]]): (Map[Node, Map[Node, Double]], Map[Node, Map[Node, Option[Node]]]) = {
+    info("Calculating shortest paths")
+    debug(distanceMatrixToString(adjacencyMatrix))
+    debug(predecessorMatrixToString(predecessorMatrix))
+    val (time, (distanceMatrix, intermediateMatrix)) = TimeHelpers.calcTime {
+      val distanceMatrix = new mutable.HashMap[Node, mutable.Map[Node, Double] with mutable.SynchronizedMap[Node, Double]]
+        with mutable.SynchronizedMap[Node, mutable.Map[Node, Double] with mutable.SynchronizedMap[Node, Double]]
+      adjacencyMatrix.par.foreach {
+        case (source, distances) =>
+          distanceMatrix += source -> new mutable.HashMap[Node, Double] with mutable.SynchronizedMap[Node, Double]
+          source -> distances.par.map {
+            case (destination, distance) =>
+              distanceMatrix(source) += destination -> distance
           }
-          trace(AntMap.distanceMatrixToString(newPaths))
-          trace(AntMap.predecessorMatrixToString(newPredecessors))
-          calculateShortestPathsRec(intermediates, sources, destinations.tail, newPaths, newPredecessors)
-        case _ =>
-          error("This shouldn't happen!")
-          calculateShortestPathsRec(intermediates, sources, destinations, distanceMatrix, predecessorMatrix)
       }
+      val intermediateMatrix = new mutable.HashMap[Node, mutable.Map[Node, Option[Node]] with mutable
+        .SynchronizedMap[Node, Option[Node]]] with mutable.SynchronizedMap[Node, mutable.Map[Node, Option[Node]] with
+        mutable.SynchronizedMap[Node, Option[Node]]]
+      predecessorMatrix.par.foreach {
+        case (source, predecessors) =>
+          intermediateMatrix += source -> new mutable.HashMap[Node, Option[Node]] with mutable.SynchronizedMap[Node,
+            Option[Node]]
+          source -> predecessors.par.map {
+            case (destination, predecessor) =>
+              intermediateMatrix(source) += destination -> predecessor
+          }
+      }
+      nodes.par.foreach { intermediate =>
+        nodes.par.filter { node =>
+          node != intermediate && distanceMatrix(node)(intermediate) < Double.PositiveInfinity
+        }.foreach { source =>
+          nodes.par.filter { node =>
+            node != intermediate && distanceMatrix(intermediate)(node) < Double.PositiveInfinity
+          }.foreach { destination =>
+              if (distanceMatrix(source)(intermediate) + distanceMatrix(intermediate)(destination) <
+                  distanceMatrix(source)(destination)) {
+                trace("\n\tpath(%s)(%s) + path(%s)(%s) = %1.2f < path(%s)(%s) = %1.2f, updating matrix"
+                    .format(source.id, intermediate.id, intermediate.id, destination.id, distanceMatrix(source)(intermediate) +
+                    distanceMatrix(intermediate)(destination), source.id, destination.id, distanceMatrix(source)(destination)))
+                distanceMatrix(source).update(destination, distanceMatrix(source)(intermediate) +
+                    distanceMatrix(intermediate)(destination))
+                intermediateMatrix(source).update(destination, Some(intermediate))
+                trace(AntMap.distanceMatrixToString(distanceMatrix.map {
+                  case (source, distances) => source -> distances.toMap
+                }.toMap))
+                trace(AntMap.predecessorMatrixToString(intermediateMatrix.map {
+                  case (source, intermediates) => source -> intermediates.toMap
+                }.toMap))
+              }
+          }
+        }
+      }
+      (distanceMatrix.map {
+        case (source, distances) => source -> distances.toMap
+      }.toMap, intermediateMatrix.map {
+        case (source, predecessors) => source -> predecessors.toMap
+      }.toMap)
     }
-    trace(AntMap.distanceMatrixToString(adjacencyMatrix))
-    trace(AntMap.predecessorMatrixToString(predecessorMatrix))
-    val sources = filterSources(nodes.toSeq, adjacencyMatrix)
-    val destinations = filterDestinations(nodes.toSeq, adjacencyMatrix)
-    calculateShortestPathsRec(nodes.toSeq, sources.toSeq, destinations.toSeq, adjacencyMatrix, predecessorMatrix)
+    info("Shortest paths calculated, took %d ms" format time)
+    debug(distanceMatrixToString(distanceMatrix))
+    debug(predecessorMatrixToString(intermediateMatrix))
+    (distanceMatrix, intermediateMatrix)
   }
 
   /**
@@ -395,7 +371,8 @@ object AntMap extends Logger {
    * @param matrix
    * @return
    */
-  def distanceMatrixToString(matrix: Map[Node, Map[Node, Double]]) = matrixToString[Double](matrix, ".2f", identity)
+  def distanceMatrixToString(matrix: collection.Map[Node, Map[Node, Double]]) = matrixToString[Double](matrix, ".2f",
+    identity)
 
   def incomingWays = _incomingWays
 
@@ -414,20 +391,29 @@ object AntMap extends Logger {
    * @tparam T Datentyp der Matrixelemente.
    * @return Matrix aufbereitet als Tabelle.
    */
-  def matrixToString[T](matrix: Map[Node, Map[Node, T]], elementFormatSuffix: String, extract: (T) => Any) = {
-    val ids = matrix.map { case (source, _) => source.id }
-    val longestId = ids.maxBy(_.length)
-    ids.map(id => ("%" + longestId.length + "s").format(id)).mkString("\n" + " " * longestId.length + "|", "|", "") +
-        matrix.map {
-      case (source, elements) =>
-        ("%" + longestId.length + "s").format(source.id) + elements.map {
-          case (destination, element) =>
-            ("%" + longestId.length + elementFormatSuffix).format(extract(element))
-        }.mkString("|", "|", "")
-    }.mkString("\n", "\n", "")
+  def matrixToString[T](matrix: collection.Map[Node, Map[Node, T]], elementFormatSuffix: String, extract: (T) => Any) = {
+    val sources = matrix.map {
+      case (source, elements) => source.id
+    }
+    val destinations = {
+      val (_, elements) = matrix.head
+      elements.map {
+        case (destination, element) =>
+          destination.id
+      }
+    }
+    val longestId = (sources.toSet ++ destinations.toSet).maxBy(_.length)
+    destinations.map(id => ("%" + longestId.length + "s").format(id)).mkString("\n" + " " * longestId.length + "|", "|",
+      "") + matrix.map {
+        case (source, elements) =>
+          ("%" + longestId.length + "s").format(source.id) + elements.map {
+            case (destination, element) =>
+              ("%" + longestId.length + elementFormatSuffix).format(extract(element))
+          }.mkString("|", "|", "")
+      }.mkString("\n", "\n", "")
   }
 
-  def nodes = _nodes
+  def nodes = _nodes.toSet
 
   def outgoingWays = _outgoingWays
 

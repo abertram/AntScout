@@ -31,7 +31,8 @@ class AntNodeSupervisor extends Actor with ActorLogging {
     val destinations = AntMap.destinations map { destination =>
       context.actorFor(destination.id)
     }
-    val pheromoneMatrixInitializer = UniformDistributionPheromoneMatrixInitializer(sources, destinations)
+    val pheromoneMatrixInitializer = UniformDistributionPheromoneMatrixInitializer(AntMap.nodes, AntMap.sources,
+      AntMap.destinations)
     sources.foreach { source =>
       source ! AntNode.Initialize(destinations, pheromoneMatrixInitializer.pheromones(source))
     }
