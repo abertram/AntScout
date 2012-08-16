@@ -43,6 +43,7 @@ class AntNode extends Actor with ActorLogging {
       RoutingService.InitializeBestWays(self, bestWays)
     val varsigma = liftweb.util.Props.get("varsigma").map(_.toDouble) openOr TrafficModel.DefaultVarsigma
     trafficModel = TrafficModel(destinations - self, varsigma, (5 * (0.3 / varsigma)).toInt)
+    context.actorFor(AntSupervisor.ActorName) ! AntSupervisor.Initialize(destinations - self)
     log.info("Initialized")
   }
 
