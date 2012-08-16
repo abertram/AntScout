@@ -76,9 +76,15 @@ class AntNode extends Actor with ActorLogging {
 
   protected def receive = {
     case Enter(destination) =>
-      sender ! (if (pheromoneMatrix != null)
+      // Wenn die Pheromon-Matrix undefiniert ist, dann ist der Knoten kein gültiger Quell-Knoten (enthält keine
+      // ausgehenden Wege.
+      // Wenn die Wahrscheinlichkeiten für einen Ziel-Knoten undefiniert sind, dann ist der Ziel-Knoten von diesem
+      // Knoten nicht erreichbar.
+      // In beiden Fällen wird der anfragenden Ameise Sackgasse als Antwort gesendet.
+      sender ! (if (pheromoneMatrix != null && pheromoneMatrix.probabilities.isDefinedAt(destination)) {
         Probabilities(pheromoneMatrix.probabilities(destination).toMap)
-      else DeadEndStreet)
+      } else
+        DeadEndStreet)
     case Initialize(destinations, pheromones) =>
       initialize(destinations, pheromones)
     case UpdateDataStructures(destination, way, tripTime) =>
