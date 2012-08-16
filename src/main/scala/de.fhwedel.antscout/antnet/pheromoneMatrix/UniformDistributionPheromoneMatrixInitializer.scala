@@ -10,17 +10,17 @@ import map.Node
  * @param sources Quellen
  * @param destinations Ziele
  */
-class UniformDistributionPheromoneMatrixInitializer(nodes: Set[Node], sources: Set[Node], destinations: Set[Node])
-    extends PheromoneMatrixInitializer(nodes, sources, destinations) {
+class UniformDistributionPheromoneMatrixInitializer(sources: Set[Node], destinations: Set[Node])
+    extends PheromoneMatrixInitializer(sources, destinations) {
 
   def initPheromones = {
     sources.map { source =>
       val outgoingWays = AntMap.outgoingWays(source)
       val pheromone = 1.0 / outgoingWays.size
       AntNode(source) -> destinations.filter(_ != source).map { destination =>
-        AntNode(destination) -> outgoingWays.map { outgoingWay =>
+        AntNode(destination) -> Some(outgoingWays.map { outgoingWay =>
           outgoingWay -> pheromone
-        }.toMap
+        }.toMap)
       }.toMap
     }.toMap
   }
@@ -29,5 +29,5 @@ class UniformDistributionPheromoneMatrixInitializer(nodes: Set[Node], sources: S
 object UniformDistributionPheromoneMatrixInitializer {
 
   def apply(nodes: Set[Node], sources: Set[Node], destinations: Set[Node]) =
-    new UniformDistributionPheromoneMatrixInitializer(nodes, sources, destinations)
+    new UniformDistributionPheromoneMatrixInitializer(sources, destinations)
 }

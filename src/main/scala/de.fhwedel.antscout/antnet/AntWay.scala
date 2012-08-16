@@ -46,6 +46,13 @@ class AntWay(id: String, override val nodes: Seq[Node], val startNode: ActorRef,
       this.startNode
   }
 
+  def endNode(startNode: Node) = {
+    if (startNode == nodes.head)
+      nodes.last
+    else
+      nodes.head
+  }
+
   def maxSpeed(implicit await: Boolean = false) = {
     if (await)
       _maxSpeed.await

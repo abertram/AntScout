@@ -2,7 +2,7 @@ package de.fhwedel.antscout
 package antnet
 
 import akka.actor.{Props, ActorLogging, Actor}
-import pheromoneMatrix.UniformDistributionPheromoneMatrixInitializer
+import pheromoneMatrix.ShortestPathsPheromoneMatrixInitializer
 
 /**
  * Created by IntelliJ IDEA.
@@ -31,10 +31,17 @@ class AntNodeSupervisor extends Actor with ActorLogging {
     val destinations = AntMap.destinations map { destination =>
       context.actorFor(destination.id)
     }
-    val pheromoneMatrixInitializer = UniformDistributionPheromoneMatrixInitializer(AntMap.nodes, AntMap.sources,
-      AntMap.destinations)
+    val pheromoneMatrixInitializer = ShortestPathsPheromoneMatrixInitializer(AntMap.nodes, AntMap.sources, AntMap
+      .destinations)
     sources.foreach { source =>
-      source ! AntNode.Initialize(destinations, pheromoneMatrixInitializer.pheromones(source))
+      // Pheromone rausfiltern, die unerreichbare Ziele enthalten
+      val pheromones = pheromoneMatrixInitializer.pheromones(source).flatMap {
+        case (destination, pheromones) =>
+          if (pheromones.isDefined) Some(destination, pheromones.get) else None
+      }
+      // unerreichbare Ziele rausfiltern
+      val reachableDestinations = destinations.filter(destination => pheromones.isDefinedAt(destination))
+      source ! AntNode.Initialize(reachableDestinations, pheromones)
     }
     log.info("Nodes initialized")
   }

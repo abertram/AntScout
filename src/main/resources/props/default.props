@@ -47,3 +47,7 @@ epsilon = 0.00001
 antMap.relevantHighways = motorway,motorway_link,trunk,trunk_link,primary,primary_link,secondary
 
 antCountPerSource = 10
+
+# Mit diesem Wert wird der beste Weg in der Pheromon-Matrix initialisiert, der als nächstes auf dem Weg zum Ziel
+# besucht werden sollte.
+bestWayPheromone = 0.8

@@ -11,9 +11,9 @@ import map.Node
  * @param sources Quellen
  * @param destinations Ziele
  */
-abstract class PheromoneMatrixInitializer(nodes: Set[Node], sources: Set[Node], destinations: Set[Node]) {
+abstract class PheromoneMatrixInitializer(sources: Set[Node], destinations: Set[Node]) {
 
-  val pheromones: Map[ActorRef, Map[ActorRef, Map[AntWay, Double]]] = initPheromones
+  val pheromones: Map[ActorRef, Map[ActorRef, Option[Map[AntWay, Double]]]] = initPheromones
 
-  def initPheromones: Map[ActorRef, Map[ActorRef, Map[AntWay, Double]]]
+  def initPheromones: Map[ActorRef, Map[ActorRef, Option[Map[AntWay, Double]]]]
 }

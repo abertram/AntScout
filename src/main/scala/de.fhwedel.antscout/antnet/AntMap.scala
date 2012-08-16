@@ -306,6 +306,7 @@ object AntMap extends Logger {
     debug(distanceMatrixToString(adjacencyMatrix))
     debug(predecessorMatrixToString(predecessorMatrix))
     val (time, (distanceMatrix, intermediateMatrix)) = TimeHelpers.calcTime {
+      // TODO Rausfinden, warum die Berechnung mit dem SynchronizedMap-Trait wesentlich schneller ist.
       val distanceMatrix = new mutable.HashMap[Node, mutable.Map[Node, Double] with mutable.SynchronizedMap[Node, Double]]
         with mutable.SynchronizedMap[Node, mutable.Map[Node, Double] with mutable.SynchronizedMap[Node, Double]]
       adjacencyMatrix.par.foreach {
@@ -328,28 +329,37 @@ object AntMap extends Logger {
               intermediateMatrix(source) += destination -> predecessor
           }
       }
-      nodes.par.foreach { intermediate =>
-        nodes.par.filter { node =>
+      nodes.foreach { intermediate =>
+        trace("Intermediate: %s" format intermediate)
+        trace("Filtering sources")
+        val sources = nodes.filter { node =>
           node != intermediate && distanceMatrix(node)(intermediate) < Double.PositiveInfinity
-        }.foreach { source =>
-          nodes.par.filter { node =>
+        }
+        trace("Sources filtered, result: %s" format sources)
+        sources.foreach { source =>
+          trace("Source: %s" format source)
+          trace("Filtering destinations")
+          val destinations = nodes.filter { node =>
             node != intermediate && distanceMatrix(intermediate)(node) < Double.PositiveInfinity
-          }.foreach { destination =>
-              if (distanceMatrix(source)(intermediate) + distanceMatrix(intermediate)(destination) <
-                  distanceMatrix(source)(destination)) {
-                trace("\n\tpath(%s)(%s) + path(%s)(%s) = %1.2f < path(%s)(%s) = %1.2f, updating matrix"
-                    .format(source.id, intermediate.id, intermediate.id, destination.id, distanceMatrix(source)(intermediate) +
-                    distanceMatrix(intermediate)(destination), source.id, destination.id, distanceMatrix(source)(destination)))
-                distanceMatrix(source).update(destination, distanceMatrix(source)(intermediate) +
-                    distanceMatrix(intermediate)(destination))
-                intermediateMatrix(source).update(destination, Some(intermediate))
-                trace(AntMap.distanceMatrixToString(distanceMatrix.map {
-                  case (source, distances) => source -> distances.toMap
-                }.toMap))
-                trace(AntMap.predecessorMatrixToString(intermediateMatrix.map {
-                  case (source, intermediates) => source -> intermediates.toMap
-                }.toMap))
-              }
+          }
+          trace("Destinations filtered, result: %s" format destinations)
+          destinations.foreach { destination =>
+            trace("Intermediate: %s, source: %s, destination: %s" format (intermediate, source, destination))
+            if (distanceMatrix(source)(intermediate) + distanceMatrix(intermediate)(destination) <
+                distanceMatrix(source)(destination)) {
+              trace("\n\tpath(%s)(%s) + path(%s)(%s) = %1.2f < path(%s)(%s) = %1.2f, updating matrix"
+                .format(source.id, intermediate.id, intermediate.id, destination.id, distanceMatrix(source)(intermediate) +
+                distanceMatrix(intermediate)(destination), source.id, destination.id, distanceMatrix(source)(destination)))
+              distanceMatrix(source).update(destination, distanceMatrix(source)(intermediate) +
+                distanceMatrix(intermediate)(destination))
+              intermediateMatrix(source).update(destination, Some(intermediate))
+//              trace(AntMap.distanceMatrixToString(distanceMatrix.map {
+//                case (source, distances) => source -> distances.toMap
+//              }.toMap))
+//              trace(AntMap.predecessorMatrixToString(intermediateMatrix.map {
+//                case (source, intermediates) => source -> intermediates.toMap
+//              }.toMap))
+            }
           }
         }
       }
@@ -418,7 +428,7 @@ object AntMap extends Logger {
   def outgoingWays = _outgoingWays
 
   /**
-   * Berechnet einen Pfad von einem Quell- zu einem Ziel-Knoten.
+   * Berechnet einen Pfad vom `source`- zum `destination`-Knoten anhand der Distanz- und Vorgänger-Matrizen.
    *
    * @param source
    * @param destination
@@ -427,7 +437,7 @@ object AntMap extends Logger {
    * @return
    */
   def path(source: Node, destination: Node, distanceMatrix: Map[Node, Map[Node, Double]],
-      predecessorMatrix: Map[Node, Map[Node, Option[Node]]]) = {
+      predecessorMatrix: Map[Node, Map[Node, Option[Node]]]): Option[Seq[Node]] = {
     // TODO @tailrec
     def pathRec(source: Node, destination: Node): Seq[Node] = {
       assert(predecessorMatrix(source).isDefinedAt(destination))
@@ -441,7 +451,7 @@ object AntMap extends Logger {
     if (distanceMatrix(source)(destination) == 0.0 || distanceMatrix(source)(destination) == Double.PositiveInfinity)
       None
     else {
-      pathRec(source, destination)
+      Some(Seq(source) ++ pathRec(source, destination) ++ Seq(destination))
     }
   }
 

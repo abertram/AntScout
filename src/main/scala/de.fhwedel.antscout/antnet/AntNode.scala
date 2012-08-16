@@ -28,7 +28,7 @@ class AntNode extends Actor with ActorLogging {
   }
 
   def initialize(destinations: Set[ActorRef], pheromones: Map[ActorRef, Map[AntWay, Double]]) {
-//    log.info("Initializing")
+    log.info("Initializing")
     val nodeId = self.path.elements.last
     val node = AntMap.nodes.find(_.id == nodeId).get
     val outgoingWays = AntMap.outgoingWays(node)
@@ -36,13 +36,14 @@ class AntNode extends Actor with ActorLogging {
     val tripTimes = outgoingWays.map(outgoingWay => (outgoingWay -> outgoingWay.tripTime)).toMap
     pheromoneMatrix.initialize(self, pheromones, tripTimes)
     val bestWays = mutable.Map[ActorRef, AntWay]()
+    log.debug("Calculating best ways")
     (destinations - self).foreach(destination => bestWays += (destination -> bestWay(destination)))
+    log.debug("Best ways calculated, result: {}, sending to the routing service", bestWays)
     AntScout.system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) !
       RoutingService.InitializeBestWays(self, bestWays)
     val varsigma = liftweb.util.Props.get("varsigma").map(_.toDouble) openOr TrafficModel.DefaultVarsigma
     trafficModel = TrafficModel(destinations - self, varsigma, (5 * (0.3 / varsigma)).toInt)
-    context.actorFor(AntSupervisor.ActorName) ! AntSupervisor.Initialize(destinations - self)
-//    log.info("Initialized")
+    log.info("Initialized")
   }
 
   def updateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double) = {
