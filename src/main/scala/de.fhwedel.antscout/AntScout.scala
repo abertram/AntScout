@@ -1,12 +1,13 @@
 package de.fhwedel.antscout
 
 import antnet._
-import net.liftweb.common.Logger
+import net.liftweb.common.{Box, Empty, Logger}
 import osm.OsmMap
 import routing.RoutingService
 import net.liftweb.util.Props
 import akka.actor.{ActorSystem, FSM, Actor}
 import akka.actor
+import net.liftweb.http.SessionVar
 
 sealed trait AntScoutMessage
 
@@ -64,8 +65,8 @@ object AntScout {
   case object RoutingServiceInitialized extends AntScoutMessage
 
   // IDs eines Quell- und eines Ziel-Knoten für Debug-Zwecke
-  val traceSourceId = ""
-  val traceDestinationId = ""
+  object traceSourceId extends SessionVar[Box[String]](Empty)
+  object traceDestinationId extends SessionVar[Box[String]](Empty)
 
   val system = ActorSystem("AntScout")
   system.actorOf(actor.Props[AntScout], AntScout.ActorName)

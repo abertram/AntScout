@@ -57,9 +57,7 @@ class ForwardAnt(val source: ActorRef) extends Actor with ActorLogging {
    */
   def dumpLogEntries() {
     addLogEntry("Stopped, %s nodes visited".format(visitedNodesCount))
-    if (source.path.elements.last.matches(AntScout.traceSourceId) && destination.path.elements.last.matches(AntScout
-        .traceDestinationId))
-      log.debug(logEntries.reverse.mkString("\n\t", "\n\t", ""))
+    trace(logEntries.reverse.mkString("\n\t", "\n\t", ""))
   }
 
   override def preStart() {
@@ -95,7 +93,6 @@ class ForwardAnt(val source: ActorRef) extends Actor with ActorLogging {
     case Task(destination) =>
       addLogEntry("Task received")
       this.destination = destination
-      trace("Task received")
       cancellable = context.system.scheduler.scheduleOnce(Duration(antLifetime, timeUnit), self, LifetimeExpired)
       visitNode(source)
     case m: Any =>
@@ -148,8 +145,12 @@ class ForwardAnt(val source: ActorRef) extends Actor with ActorLogging {
   }
 
   def trace(message: String) {
-    if (source.path.elements.last.matches(AntScout.traceSourceId) && destination.path.elements.last.matches(AntScout
-        .traceDestinationId))
+    for {
+      traceSourceId <- AntScout.traceSourceId
+      traceDestinationId <- AntScout.traceDestinationId
+      if (source.path.elements.last.matches(traceSourceId) && destination.path.elements.last.matches
+        (traceDestinationId))
+    } yield
       log.debug("{} {}", self.path.elements.last, message)
   }
 
