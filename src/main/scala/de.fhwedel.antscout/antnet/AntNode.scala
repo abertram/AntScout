@@ -28,7 +28,7 @@ class AntNode extends Actor with ActorLogging {
   }
 
   def initialize(destinations: Set[ActorRef], pheromones: Map[ActorRef, Map[AntWay, Double]]) {
-    log.info("Initializing")
+    log.debug("Initializing")
     val nodeId = self.path.elements.last
     val node = AntMap.nodes.find(_.id == nodeId).get
     val outgoingWays = AntMap.outgoingWays(node)
@@ -44,31 +44,28 @@ class AntNode extends Actor with ActorLogging {
     val varsigma = liftweb.util.Props.get("varsigma").map(_.toDouble) openOr TrafficModel.DefaultVarsigma
     trafficModel = TrafficModel(destinations - self, varsigma, (5 * (0.3 / varsigma)).toInt)
     context.actorFor(AntSupervisor.ActorName) ! AntSupervisor.Initialize(destinations - self)
-    log.info("Initialized")
+    log.debug("Initialized")
   }
 
   def updateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double) = {
-//    if (id == AntScout.traceSourceId && destination.id == AntScout.traceDestinationId)
-//      debug("Updating data structures, source: %s, destination: %s, way: %s, trip time: %s".format(this, destination, way, tripTime))
+    trace(destination, "Updating data structures, source: %s, destination: %s, way: %s, trip time: %s".format(this,
+      destination,
+      way, tripTime))
     trafficModel.addSample(destination, tripTime)
     val nodeId = self.path.elements.last
     val node = AntMap.nodes.find(_.id == nodeId).get
     val outgoingWays = AntMap.outgoingWays(node)
     val reinforcement = trafficModel.reinforcement(destination, tripTime, outgoingWays.size)
-//    trace(destination, "Updating pheromones: way: %s, reinforcement: %s" format (way, reinforcement))
-    val (pheromonesBeforeUpdate, probabilitiesBeforeUpdate) = (pheromoneMatrix.pheromones(destination).toMap,
-      pheromoneMatrix.probabilities(destination).toMap)
+    trace(destination, "Updating pheromones: way: %s, reinforcement: %s" format (way, reinforcement))
     val bestWayBeforeUpdate = bestWay(destination)
-//    trace(destination, "Before update: pheromones: %s, best way: %s" format (pheromones(destination),
-//      bestWayBeforeUpdate))
+    trace(destination, "Before update: pheromones: %s, best way: %s" format (pheromoneMatrix.pheromones(destination),
+      bestWayBeforeUpdate))
     pheromoneMatrix.updatePheromones(destination, way, reinforcement)
-    val (pheromonesAfterUpdate, probabilitiesAfterUpdate) = (pheromoneMatrix.pheromones(destination).toMap,
-      pheromoneMatrix.probabilities(destination).toMap)
     val bestWayAfterUpdate = bestWay(destination)
-//    trace(destination, "After update: pheromones: %s, best way: %s" format (pheromones(destination),
-//      bestWayAfterUpdate))
+    trace(destination, "After update: pheromones: %s, best way: %s" format (pheromoneMatrix.pheromones(destination),
+      bestWayAfterUpdate))
     if (bestWayAfterUpdate != bestWayBeforeUpdate) {
-//      trace(destination, "Sending best way to routing service: %s" format bestWayAfterUpdate)
+      trace(destination, "Sending best way to routing service: %s" format bestWayAfterUpdate)
       AntScout.system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) !
         RoutingService.UpdateBestWay(self, destination, bestWayAfterUpdate)
     }
@@ -89,6 +86,16 @@ class AntNode extends Actor with ActorLogging {
       initialize(destinations, pheromones)
     case UpdateDataStructures(destination, way, tripTime) =>
       updateDataStructures(destination, way, tripTime)
+  }
+
+  def trace(destination: ActorRef, message: String) {
+    for {
+      traceSourceId <- AntScout.traceSourceId
+      traceDestinationId <- AntScout.traceDestinationId
+      if (self.path.elements.last.matches(traceSourceId) && destination.path.elements.last.matches
+        (traceDestinationId))
+    } yield
+      log.debug("{} {}", self.path.elements.last, message)
   }
 }
 
