@@ -6,6 +6,8 @@ scalacOptions += "-deprecation"
 
 scalacOptions += "-unchecked"
 
+classpathTypes ~= (_ + "orbit")
+
 resolvers ++= Seq(
   "Java.net Maven 2 repository" at "http://download.java.net/maven/2/",
   "Sonatype releases" at "http://oss.sonatype.org/content/repositories/releases",
@@ -14,11 +16,11 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= {
-  val akkaVersion = "2.0.2"
-  val jettyVersion = "8.0.1.v20110908"
+  val akkaVersion = "2.0.3"
+  val jettyVersion = "8.0.4.v20111024"
   val liftVersion = "2.5-SNAPSHOT"
   Seq(
-    "ch.qos.logback" % "logback-classic" % "1.0.2" % "compile->default",
+    "ch.qos.logback" % "logback-classic" % "1.0.6" % "compile->default",
     "com.typesafe.akka" % "akka-actor" % akkaVersion,
     "com.typesafe.akka" % "akka-agent" % akkaVersion,
     "com.typesafe.akka" % "akka-slf4j" % akkaVersion,
