@@ -6,8 +6,6 @@ scalacOptions += "-deprecation"
 
 scalacOptions += "-unchecked"
 
-classpathTypes ~= (_ + "orbit")
-
 resolvers ++= Seq(
   "Java.net Maven 2 repository" at "http://download.java.net/maven/2/",
   "Sonatype releases" at "http://oss.sonatype.org/content/repositories/releases",
