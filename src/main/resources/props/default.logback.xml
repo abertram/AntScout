@@ -1,7 +1,7 @@
 <configuration>
     <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{20} %X{akkaSource} - %msg%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS} %-5level [%logger{20}] [%X{akkaSource}] - %msg%n</pattern>
         </encoder>
         <file>log/AntScout.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
@@ -11,16 +11,16 @@
     </appender>
 
     <logger name="comet_trace" level="off"/>
-    <logger name="de.fhwedel.antscout.antnet.AntMap" level="info"/>
-    <logger name="de.fhwedel.antscout.antnet.AntNode" level="info"/>
-    <logger name="de.fhwedel.antscout.antnet.AntSupervisor" level="info"/>
-    <logger name="de.fhwedel.antscout.antnet.AntNodeSupervisor" level="info"/>
-    <logger name="de.fhwedel.antscout.antnet.BackwardAnt" level="info"/>
-    <logger name="de.fhwedel.antscout.antnet.ForwardAnt" level="info"/>
-    <logger name="de.fhwedel.antscout.routing.RoutingService" level="info"/>
-    <logger name="net.liftweb" level="off"/>
+    <logger name="de.fhwedel.antscout.antnet.AntMap" level="info" />
+    <logger name="de.fhwedel.antscout.antnet.AntNode" level="info" />
+    <logger name="de.fhwedel.antscout.antnet.AntSupervisor" level="info" />
+    <logger name="de.fhwedel.antscout.antnet.AntNodeSupervisor" level="info" />
+    <logger name="de.fhwedel.antscout.antnet.BackwardAnt" level="info" />
+    <logger name="de.fhwedel.antscout.antnet.ForwardAnt" level="info" />
+    <logger name="de.fhwedel.antscout.routing.RoutingService" level="info" />
+    <logger name="net.liftweb" level="off" />
 
     <root level="debug">
-        <appender-ref ref="file"/>
+        <appender-ref ref="file" />
     </root>
 </configuration>
