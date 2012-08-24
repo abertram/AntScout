@@ -1,86 +1,94 @@
 <html>
 <head>
-    <meta content="text/html; charset=UTF-8" http-equiv="content-type"/>
-    <title>AntScout</title>
-    <link rel="stylesheet" href="/css/bootstrap.css">
-    <link rel="stylesheet" href="/css/style.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta content="text/html; charset=UTF-8" http-equiv="content-type" />
+  <title>AntScout</title>
+  <link rel="stylesheet" href="/css/bootstrap.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
 <div class="navbar">
-    <div class="navbar-inner">
-        <div class="container-fluid">
-            <span class="brand">AntScout</span>
-        </div>
+  <div class="navbar-inner">
+    <div class="container-fluid">
+      <span class="brand">AntScout</span>
     </div>
+  </div>
 </div>
 <div class="container-fluid">
-    <div class="alert alert-block alert-error hide" id="error">
-      <h3 class="alert-heading">Error</h3>
-      <p></p>
+  <div class="alert alert-block alert-error hide" id="error">
+    <h3 class="alert-heading">Error</h3>
+    <p></p>
+  </div>
+  <div class="row-fluid">
+    <div class="span10">
+      <div id="map"></div>
     </div>
-    <div class="row-fluid">
-        <div class="span10">
-            <div id="map"></div>
+    <div class="span2">
+      <div class="well well-small">
+        <h2>Node</h2>
+        <table class="table table-bordered table-condensed table-striped">
+          <tr>
+            <td>Id</td>
+            <td id="nodeId"></td>
+          </tr>
+          <tr>
+            <td>Longitude</td>
+            <td id="nodeLongitude"></td>
+          </tr>
+          <tr>
+            <td>Latitude</td>
+            <td id="nodeLatitude"></td>
+          </tr>
+        </table>
+        <div class="btn-group">
+          <a class="btn" id="setNodeAsSource"><i class="icon-home"></i> As source</a>
+          <a class="btn" id="setNodeAsDestination"><i class="icon-flag"></i> As target</a>
         </div>
-        <div class="span2">
-            <div class="well">
-                <h2>Node</h2>
-                <table class="table table-bordered table-condensed table-striped">
-                    <tr>
-                        <td>Id</td><td id="nodeId"></td>
-                    </tr>
-                    <tr>
-                        <td>Longitude</td><td id="nodeLongitude"></td>
-                    </tr>
-                    <tr>
-                        <td>Latitude</td><td id="nodeLatitude"></td>
-                    </tr>
-                </table>
-                <a class="btn" id="setNodeAsSource"><i class="icon-home"></i> As source</a>
-                <a class="btn" id="setNodeAsDestination"><i class="icon-flag"></i> As target</a>
-            </div>
-            <div class="well">
-                <h2>Way</h2>
-                <table class="table table-bordered table-condensed table-striped">
-                    <tr>
-                        <td>Id</td><td id="wayId"></td>
-                    </tr>
-                    <tr>
-                        <td>Length</td><td>
-                            <div class="input-append">
-                                <input id="wayLength" class="span8" disabled><span class="add-on">m</span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Max speed</td>
-                        <td>
-                            <form>
-                                <div class="input-append">
-                                    <input id="wayMaxSpeed" class="span8" disabled><span class="add-on">m/s</span>
-                                </div>
-                                <button id="wayEditMaxSpeed" class="btn" type="button"><i class="icon-edit"></i></button>
-                                <button id="waySaveMaxSpeed" class="btn" disabled type="button"><i class="icon-ok"></i></button>
-                                <button id="wayCancelEditMaxSpeed" class="btn" disabled type="button"><i class="icon-remove"></i></button>
-                            </form>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Trip time</td>
-                        <td>
-                            <div class="input-append">
-                                <input id="wayTripTime" class="span8" disabled><span class="add-on">s</span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Nodes</td><td id="wayNodes"></td>
-                    </tr>
-                </table>
-            </div>
-        </div>
+      </div>
+      <div class="well well-small">
+        <h2>Way</h2>
+        <table class="table table-bordered table-condensed table-striped">
+          <tr>
+            <td>Id</td>
+            <td id="wayId"></td>
+          </tr>
+          <tr>
+            <td>Length</td>
+            <td>
+              <div class="input-append">
+                <input id="wayLength" class="input-small" disabled type="text"><span class="add-on">m</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>Max speed</td>
+            <td>
+              <div class="input-append">
+                <input id="wayMaxSpeed" class="input-small" disabled type="text"><span class="add-on">m/s</span>
+              </div>
+              <div class="btn-group">
+                <button id="wayEditMaxSpeed" class="btn" type="button"><i class="icon-edit"></i></button>
+                <button id="waySaveMaxSpeed" class="btn" disabled type="button"><i class="icon-ok"></i></button>
+                <button id="wayCancelEditMaxSpeed" class="btn" disabled type="button"><i class="icon-remove"></i></button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>Trip time</td>
+            <td>
+              <div class="input-append">
+                <input id="wayTripTime" class="input-small" disabled type="text"><span class="add-on">s</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>Nodes</td>
+            <td id="wayNodes"></td>
+          </tr>
+        </table>
+      </div>
     </div>
+  </div>
 </div>
 <div data-lift="AddCometActor"></div>
 <script data-main="scripts/script" src="scripts/require-jquery.js"></script>
