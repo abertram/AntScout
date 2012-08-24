@@ -12,14 +12,14 @@ class AntSupervisor extends Actor with ActorLogging {
   var destinationsIterator: Iterator[ActorRef] = _
 
   def init(destinations: Set[ActorRef]) {
-//    log.info("Initializing")
+    log.debug("Initializing")
     this.destinations = destinations
     destinationsIterator = destinations.iterator
     val antCountPerSource = liftweb.util.Props.getInt("antCountPerSource") openOr DefaultAntCountPerSource
     (0 until antCountPerSource).foreach { _ =>
       context.actorOf(Props(new ForwardAnt(context.parent))) ! ForwardAnt.Task(nextDestination)
     }
-//    log.info("Initialized")
+    log.debug("Initialized")
   }
 
   def nextDestination = {
@@ -33,6 +33,8 @@ class AntSupervisor extends Actor with ActorLogging {
       init(destinations)
     case ForwardAnt.DestinationReached | ForwardAnt.DeadEndStreet | ForwardAnt.LifetimeExpired =>
       sender ! ForwardAnt.Task(nextDestination)
+    case m: Any =>
+      log.warning("Unknown message: {}", m)
   }
 }
 
