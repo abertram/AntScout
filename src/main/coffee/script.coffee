@@ -199,6 +199,7 @@ require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles)
     $.get "/directions", {
       source
       destination
+      error: directionsLayer.removeAllFeatures()
       },
       (directions) ->
         displayDirections(directions)
