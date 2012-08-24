@@ -1,8 +1,10 @@
 package de.fhwedel.antscout
 package antnet
 
-import akka.actor.{Props, ActorLogging, Actor}
+import akka.actor.{ActorRef, Props, ActorLogging, Actor}
+import akka.util.duration._
 import pheromoneMatrix.ShortestPathsPheromoneMatrixInitializer
+import collection.mutable
 
 /**
  * Created by IntelliJ IDEA.
@@ -15,11 +17,15 @@ class AntNodeSupervisor extends Actor with ActorLogging {
 
   import AntNodeSupervisor._
 
+  val antNodeStatistics = mutable.Map[ActorRef, Int]()
+
   def init() {
     log.info("Initializing")
     AntMap.nodes foreach { node =>
-      context.actorOf(Props[AntNode], node.id)
+      val child = context.actorOf(Props[AntNode], node.id)
+      antNodeStatistics += child -> 0
     }
+    context.system.scheduler.schedule(1 seconds, 1 seconds, self, ProcessStatistics)
     log.info("Initialized")
   }
 
@@ -46,12 +52,24 @@ class AntNodeSupervisor extends Actor with ActorLogging {
     log.info("Nodes initialized")
   }
 
+  def processStatistics() {
+    log.debug("Processed ants per node and second: {}", antNodeStatistics.map {
+      case (antNode, antsPerSecond) => antsPerSecond
+    }.sum / antNodeStatistics.size)
+  }
+
   protected def receive = {
+    case AntNode.Statistics(antsPerSecond) =>
+      antNodeStatistics += sender -> antsPerSecond
     case Initialize(wayData) =>
       init()
       context.parent ! AntNodeSupervisor.Initialized(wayData)
     case InitializeNodes =>
       initNodes()
+    case ProcessStatistics =>
+      processStatistics()
+    case m: Any =>
+      log.warning("Unknown message: {}", m)
   }
 }
 
@@ -62,4 +80,5 @@ object AntNodeSupervisor {
   case class Initialize(antWayData: Set[AntWayData])
   case object InitializeNodes
   case class Initialized(antWayData: Set[AntWayData])
+  case object ProcessStatistics
 }

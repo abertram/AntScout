@@ -14,6 +14,7 @@ class AntNode extends Actor with ActorLogging {
 
   import AntNode._
 
+  var antsPerSecond = 0
   var pheromoneMatrix: PheromoneMatrix = _
   implicit val timeout = Timeout(5 seconds)
   var trafficModel: TrafficModel = _
@@ -29,9 +30,7 @@ class AntNode extends Actor with ActorLogging {
 
   def initialize(destinations: Set[ActorRef], pheromones: Map[ActorRef, Map[AntWay, Double]]) {
     log.debug("Initializing")
-    val nodeId = self.path.elements.last
-    val node = AntMap.nodes.find(_.id == nodeId).get
-    val outgoingWays = AntMap.outgoingWays(node)
+    val outgoingWays = AntMap.outgoingWays(AntNode.toNode(self).get)
     pheromoneMatrix = PheromoneMatrix(destinations - self, outgoingWays)
     val tripTimes = outgoingWays.map(outgoingWay => (outgoingWay -> outgoingWay.tripTime)).toMap
     pheromoneMatrix.initialize(self, pheromones, tripTimes)
@@ -44,13 +43,23 @@ class AntNode extends Actor with ActorLogging {
     val varsigma = liftweb.util.Props.get("varsigma").map(_.toDouble) openOr TrafficModel.DefaultVarsigma
     trafficModel = TrafficModel(destinations - self, varsigma, (5 * (0.3 / varsigma)).toInt)
     context.actorFor(AntSupervisor.ActorName) ! AntSupervisor.Initialize(destinations - self)
+    context.system.scheduler.schedule(1 seconds, 1 seconds, self, ProcessStatistics)
     log.debug("Initialized")
+  }
+
+  /**
+   * Verarbeitet die Statistiken.
+   */
+  def processStatistics() {
+    val statistics = Statistics(antsPerSecond)
+    sendStatistics(statistics)
+    log.debug("{}", statistics)
+    resetStatistics()
   }
 
   def updateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double) = {
     trace(destination, "Updating data structures, source: %s, destination: %s, way: %s, trip time: %s".format(this,
-      destination,
-      way, tripTime))
+      destination, way, tripTime))
     trafficModel.addSample(destination, tripTime)
     val nodeId = self.path.elements.last
     val node = AntMap.nodes.find(_.id == nodeId).get
@@ -82,10 +91,29 @@ class AntNode extends Actor with ActorLogging {
         Probabilities(pheromoneMatrix.probabilities(destination).toMap)
       } else
         DeadEndStreet)
+      antsPerSecond += 1
     case Initialize(destinations, pheromones) =>
       initialize(destinations, pheromones)
+    case ProcessStatistics =>
+      processStatistics()
     case UpdateDataStructures(destination, way, tripTime) =>
       updateDataStructures(destination, way, tripTime)
+  }
+
+  /**
+   * Resettet die Statistiken.
+   */
+  def resetStatistics() {
+    antsPerSecond = 0
+  }
+
+  /**
+   * Versendet die Statistiken.
+   *
+   * @param statistics Statistiken, die versendet werden sollen.
+   */
+  def sendStatistics(statistics: Statistics) {
+    context.parent ! statistics
   }
 
   def trace(destination: ActorRef, message: String) {
@@ -105,6 +133,8 @@ object AntNode {
   case class Enter(destination: ActorRef)
   case class Initialize(destinations: Set[ActorRef], pheromones: Map[ActorRef, Map[AntWay, Double]])
   case class Probabilities(probabilities: Map[AntWay, Double])
+  case object ProcessStatistics
+  case class Statistics(antsPerSecond: Int)
   case class UpdateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double)
 
   /**
