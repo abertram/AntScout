@@ -1,10 +1,8 @@
 #!/bin/bash
 
-# rm hamburg.osm.bz2
-# rm schleswig-holstein.osm.bz2
+rm hamburg.osm.bz2
 
-# wget --timeout=0 http://download.geofabrik.de/osm/europe/germany/hamburg.osm.bz2
-# wget --timeout=0 http://download.geofabrik.de/osm/europe/germany/schleswig-holstein.osm.bz2
+wget --timeout=0 http://download.geofabrik.de/osm/europe/germany/hamburg.osm.bz2
 
 boundingBoxes=(\
 # hamburg.osm.bz2 Altona-Zoomstufe-18 53.548605 9.932832 53.54625 9.938046 \
@@ -28,8 +26,9 @@ boundingBoxes=(\
 # hamburg.osm.bz2 Altona-Wedel 53.6 9.6 53.49 9.95 # OSM: ..., nodes, Ant-Map: 680 nodes
 # hamburg.osm.bz2 Altona-Wedel 53.6 9.6 53.49 9.96 # OSM: ..., nodes, Ant-Map: 630 nodes
 # hamburg.osm.bz2 Altona-Wedel 53.6 9.6 53.49 9.97 # OSM: ..., nodes, Ant-Map: 732 nodes
-#  hamburg.osm.bz2 Altona-Wedel 53.6 9.6 53.49 9.9915 # OSM: ..., nodes, Ant-Map: 9993 nodes
-  hamburg.osm.bz2 Altona-Kreis 53.55131 9.9362 53.5468 9.94756
+# hamburg.osm.bz2 Altona-Wedel 53.6 9.6 53.49 9.9915 # OSM: ..., nodes, Ant-Map: 9993 nodes
+ hamburg.osm.bz2 Altona-Wedel 53.585 9.69 53.545 9.95 # OSM: ..., nodes, Ant-Map: 9993 nodes
+#  hamburg.osm.bz2 Altona-Kreis 53.55131 9.9362 53.5468 9.94756
 )
 boundingBoxParamterCount=6
 

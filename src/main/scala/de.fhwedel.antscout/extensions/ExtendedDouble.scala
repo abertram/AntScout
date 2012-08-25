@@ -54,6 +54,16 @@ class ExtendedDouble(d: Double) {
    * @return true, wenn der linke Double-Wert größer ist.
    */
   def ~>(d2: Double, epsilon: Double = ExtendedDouble.epsilon) = !(~<=(d2, epsilon))
+
+  /**
+   * Rundet einen Dooble-Wert auf eine bestimmte Anzahl Nachkommastellen.
+   *
+   * @param decimalDigits Anzahl der Nachkommastellen, auf die gerundet werden soll.
+   * @return Gerundeter Double-Wert.
+   */
+  def round(decimalDigits: Int) = {
+    (d * math.pow(10, decimalDigits)).round / math.pow(10, decimalDigits)
+  }
 }
 
 object ExtendedDouble {
