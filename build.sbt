@@ -35,7 +35,5 @@ libraryDependencies ++= {
 // coffeescripted-sbt
 seq(coffeeSettings: _*)
 
-seq(webSettings :_*)
-
 // CoffeeScript-Skripte nach webapp/scripts kompilieren
 (resourceManaged in (Compile, CoffeeKeys.coffee)) <<= (webappResources in Compile)(_.get.head / "scripts")
