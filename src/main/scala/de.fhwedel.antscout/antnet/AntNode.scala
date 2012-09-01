@@ -15,6 +15,7 @@ class AntNode extends Actor with ActorLogging {
   import AntNode._
 
   var antsPerSecond = 0
+  val antStatistics = mutable.Map[ActorRef, Double]()
   var pheromoneMatrix: PheromoneMatrix = _
   implicit val timeout = Timeout(5 seconds)
   var trafficModel: TrafficModel = _
@@ -51,7 +52,13 @@ class AntNode extends Actor with ActorLogging {
    * Verarbeitet die Statistiken.
    */
   def processStatistics() {
-    val statistics = Statistics(antsPerSecond)
+    val selectNextNodeDuration = if (antStatistics.size > 0) {
+      antStatistics.map {
+        case (ant, selectNextNodeDuration) => selectNextNodeDuration
+      }.sum / antStatistics.size
+    } else
+      0
+    val statistics = Statistics(antsPerSecond, selectNextNodeDuration)
     sendStatistics(statistics)
     log.debug("{}", statistics)
     resetStatistics()
@@ -81,6 +88,8 @@ class AntNode extends Actor with ActorLogging {
   }
 
   protected def receive = {
+    case AntSupervisor.Statistics(selectNextNodeDuration) =>
+      antStatistics += sender -> selectNextNodeDuration
     case Enter(destination) =>
       // Wenn die Pheromon-Matrix undefiniert ist, dann ist der Knoten kein gültiger Quell-Knoten (enthält keine
       // ausgehenden Wege.
@@ -134,7 +143,7 @@ object AntNode {
   case class Initialize(destinations: Set[ActorRef], pheromones: Map[ActorRef, Map[AntWay, Double]])
   case class Probabilities(probabilities: Map[AntWay, Double])
   case object ProcessStatistics
-  case class Statistics(antsPerSecond: Int)
+  case class Statistics(antsPerSecond: Int, selectNextNodeDuration: Double)
   case class UpdateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double)
 
   /**

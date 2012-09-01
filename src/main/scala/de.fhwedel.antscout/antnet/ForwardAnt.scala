@@ -1,11 +1,12 @@
 package de.fhwedel.antscout
 package antnet
 
+import akka.util.duration._
 import java.util.concurrent.TimeUnit
 import net.liftweb.util.{TimeHelpers, Props}
 import akka.util.Duration
 import akka.actor.{ActorRef, Cancellable, ActorLogging, Actor}
-import util.Statistics
+import utils.StatisticsUtils
 import collection.mutable
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -23,6 +24,7 @@ class ForwardAnt(val source: ActorRef) extends Actor with ActorLogging {
   var destination: ActorRef = _
   val logEntries = mutable.Buffer[String]()
   val memory = AntMemory()
+  val selectNextNodeDurations = mutable.Buffer[Long]()
   val timeUnit = TimeUnit.valueOf(Props.get("timeUnit", DefaultTimeUnit))
   var visitedNodesCount = 0
 
@@ -62,6 +64,16 @@ class ForwardAnt(val source: ActorRef) extends Actor with ActorLogging {
 
   override def preStart() {
     addLogEntry("Started, waiting for task")
+    context.system.scheduler.schedule(1 seconds, 1 seconds, self, ProcessStatistics)
+  }
+
+  def processStatistics() {
+    val selectNextNodeDuration = if (selectNextNodeDurations.size > 0)
+      selectNextNodeDurations.sum / selectNextNodeDurations.size
+    else
+      0
+    context.parent ! Statistics(selectNextNodeDuration)
+    selectNextNodeDurations.clear()
   }
 
   protected def receive = {
@@ -85,11 +97,14 @@ class ForwardAnt(val source: ActorRef) extends Actor with ActorLogging {
       if (!probabilitiesMatchCurrentNode)
         addLogEntry("Probabilities(%s) don't match current node, ignoring".format(probabilities))
       else {
-        val nextNode = selectNextNode(probabilities)
+        val (time, nextNode) = TimeHelpers.calcTime(selectNextNode(probabilities))
+        selectNextNodeDurations += time
         visitNode(nextNode)
       }
     case LifetimeExpired =>
       completeTask("Lifetime expired, restarting", LifetimeExpired)
+    case ProcessStatistics =>
+      processStatistics()
     case Task(destination) =>
       addLogEntry("Task received")
       this.destination = destination
@@ -137,9 +152,9 @@ class ForwardAnt(val source: ActorRef) extends Actor with ActorLogging {
     val notVisitedWays = probabilities.filter { case (w, p) => !memory.containsWay(w) }
     addLogEntry("Not visited ways: %s".format(notVisitedWays.mkString(", ")))
     val way = if (notVisitedWays.nonEmpty)
-      Statistics.selectByProbability(notVisitedWays)
+      StatisticsUtils.selectByProbability(notVisitedWays)
     else
-      Statistics.selectRandom(probabilities.keys.toSeq)
+      StatisticsUtils.selectRandom(probabilities.keys.toSeq)
     addLogEntry("Selected way: #%s".format(way.id))
     way
   }
@@ -179,6 +194,8 @@ object ForwardAnt {
   case object DeadEndStreet
   case object DestinationReached
   case object LifetimeExpired
+  case object ProcessStatistics
+  case class Statistics(averageSelectNextNodeDuration: Double)
   case class Task(destination: ActorRef)
   case object TaskFinished
 }
