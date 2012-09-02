@@ -116,9 +116,6 @@ require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles)
   disable = (elementId) ->
     $("##{ elementId }").prop("disabled", true)
 
-  displayDirections = (directions) ->
-    $("#directions").html("<ol><li>" + directions.join("</li><li>") + "</li></ol>")
-
   displayWayData = (way) ->
     id = way.id
     $("#wayId").html(id)
@@ -131,8 +128,10 @@ require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles)
 
   drawDirections = (directions) ->
     directionsLayer.removeAllFeatures()
-    if directions? and directions.length > 0
-      sourceNode = directions[0].nodes[0]
+    if directions? and directions.ways.length > 0
+      $("#pathLength").html(directions.length)
+      $("#pathTripTime").html(directions.tripTime)
+      sourceNode = directions.ways[0].nodes[0]
       sourcePoint = new OpenLayers.Geometry.Point(sourceNode.longitude, sourceNode.latitude)
         .transform(EPSG4326Projection, map.getProjectionObject())
       sourceFeature = new OpenLayers.Feature.Vector(
@@ -144,7 +143,7 @@ require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles)
           strokeColor: "green"
         }
       )
-      lastDirection = directions[directions.length - 1]
+      lastDirection = directions.ways[directions.ways.length - 1]
       targetNode = lastDirection.nodes[lastDirection.nodes.length - 1]
       targetPoint = new OpenLayers.Geometry.Point(targetNode.longitude, targetNode.latitude)
         .transform(EPSG4326Projection, map.getProjectionObject())
@@ -158,7 +157,7 @@ require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles)
         }
       )
       directionsLayer.addFeatures([sourceFeature, targetFeature])
-    addWaysToLayer(directions, directionsLayer)
+    addWaysToLayer(directions.ways, directionsLayer)
 
   AntScout.drawPath = (path) ->
     console.debug("Drawing path - path: " + path)
@@ -202,7 +201,6 @@ require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles)
       error: directionsLayer.removeAllFeatures()
       },
       (directions) ->
-        displayDirections(directions)
         drawDirections(directions)
 
   retrieveWays = () ->

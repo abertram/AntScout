@@ -51,7 +51,12 @@ object Rest extends Logger with RestHelper {
           RoutingService.FindPath(source, destination))
         path <- Await.result(pathFuture, 5 seconds).asInstanceOf[Box[Seq[AntWay]]] ?~ "No path found" ~> 404
       } yield {
-        path.map(_.toJson): JArray
+        val (length, tripTime) = path.foldLeft(0.0, 0.0) {
+          case ((lengthAcc, tripTimeAcc), way) => (way.length + lengthAcc, way.tripTime + tripTimeAcc)
+        }
+        ("length" -> length) ~
+        ("tripTime" -> tripTime) ~
+        ("ways" ->  path.map(_.toJson))
       }
     case Get(List("osmnodes"), _) => {
       OsmMap.nodes.values.map(_.toJson): JArray
