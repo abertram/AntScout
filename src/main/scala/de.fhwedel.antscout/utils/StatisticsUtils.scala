@@ -1,12 +1,12 @@
 package de.fhwedel.antscout
-package util
+package utils
 
 import scala.util.Random
 
 /**
  * Beinhaltet nützliche statistische Methoden.
  */
-object Statistics {
+object StatisticsUtils {
 
   private val random = new Random(System.currentTimeMillis)
 
