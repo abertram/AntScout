@@ -1,5 +1,5 @@
 package de.fhwedel.antscout
-package util
+package utils
 
 import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers
@@ -11,10 +11,10 @@ import org.scalatest.matchers.ShouldMatchers
  * Time: 13:01
  */
 
-class StatisticsTest extends FunSuite with ShouldMatchers {
+class StatisticsUtils$Test extends FunSuite with ShouldMatchers {
 
   test("selectByProbability") {
-    val result = (1 to 10000).map(i => Statistics.selectByProbability(Map(1 -> 0.5, 2 -> 0.6))).groupBy(i => i)
+    val result = (1 to 10000).map(i => StatisticsUtils.selectByProbability(Map(1 -> 0.5, 2 -> 0.6))).groupBy(i => i)
     Console.println(result(1).size.toDouble / (result(1).size + result(2).size))
     Console.println(result(2).size.toDouble / (result(1).size + result(2).size))
   }
