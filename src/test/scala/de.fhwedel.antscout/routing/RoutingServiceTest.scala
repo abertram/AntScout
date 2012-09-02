@@ -15,7 +15,7 @@ class RoutingServiceTest extends FunSuite with ShouldMatchers {
 
 /*
   test("apply") {
-    val nodes = (1 to 5).map(AntNode(_))
+    val nodes = (1 to 5).map(Node(_))
     val ways = (1 to 4).map(id => AntWay(id.toString, nodes(id - 1), nodes(id), 0, 0))
     RoutingService(nodes, ways)
     RoutingService.routingTable.keySet should be (nodes.toSet)
@@ -24,7 +24,7 @@ class RoutingServiceTest extends FunSuite with ShouldMatchers {
   }
   
   test("updatePropabilities") {
-    val nodes = (1 to 5).map(AntNode(_))
+    val nodes = (1 to 5).map(Node(_))
     val ways = (1 to 4).map(id => AntWay(id.toString, nodes(id - 1), nodes(id), 0, 0))
     RoutingService(nodes, ways)
     awaitCond(RoutingService.ways.size > 0)

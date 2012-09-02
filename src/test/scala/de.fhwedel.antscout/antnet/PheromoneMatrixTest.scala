@@ -14,8 +14,8 @@ import org.scalatest.matchers.ShouldMatchers
 class PheromoneMatrixTest extends FunSuite with ShouldMatchers {
 /*
   test("apply") {
-    val n = AntNode(0)
-    val ds = (1 to 2).map(AntNode(_)).toList
+    val n = Node(0)
+    val ds = (1 to 2).map(Node(_)).toList
     val ows = (1 to 2).map(id => AntWay(id.toString, n, ds(id - 1), 1, 1)).toList
     val tts = ows.map(aw => (aw, 1.0)).toMap
     val pm = PheromoneMatrix(ds.toIterable.view, ows, tts)
@@ -29,8 +29,8 @@ class PheromoneMatrixTest extends FunSuite with ShouldMatchers {
   }
 
   test("updatePheromones") {
-    val n = AntNode(0)
-    val ds = (1 to 2).map(AntNode(_)).toList
+    val n = Node(0)
+    val ds = (1 to 2).map(Node(_)).toList
     val ows = (1 to 2).map(id => AntWay(id.toString, n, ds(id - 1), 1, 1)).toList
     val tts = ows.map(aw => (aw, 1.0)).toMap
     val pm = PheromoneMatrix(ds.toIterable.view, ows, tts)

@@ -14,7 +14,7 @@ import org.scalatest.matchers.ShouldMatchers
 class TrafficModelTest extends FunSuite with ShouldMatchers {
 /*
   test("") {
-    val ds = (1 to 2).map(AntNode(_))
+    val ds = (1 to 2).map(Node(_))
     val tm = TrafficModel(ds.view, 0, 0)
     tm.items should have size (2)
     tm.items(ds(0)).tripTimes should be ('empty)
@@ -22,7 +22,7 @@ class TrafficModelTest extends FunSuite with ShouldMatchers {
   }
 
   test("+=") {
-    val ds = (1 to 2).map(AntNode(_))
+    val ds = (1 to 2).map(Node(_))
     val tm = TrafficModel(ds.view, 0, 2)
     tm += (ds(0), 1)
     tm.items(ds(0)).tripTimes should be (Seq(1))

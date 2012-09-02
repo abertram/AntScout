@@ -11,20 +11,20 @@ import org.scalatest.matchers.ShouldMatchers
  * Time: 23:47
  */
 
-class AntNodeTest extends FunSuite with ShouldMatchers {
+class NodeTest extends FunSuite with ShouldMatchers {
 
 /*
   test("apply") {
     // alle Aktoren,die von anderen Tests gestartet wurden, stoppen, um das Testergebnis nicht zu verfälschen
     Actor.registry.shutdownAll()
-    val node = AntNode(0)
+    val node = Node(0)
     Actor.registry.actorsFor("0").size should be (1)
   }
 
   test("tripTimes") {
-    val startNode = AntNode(1)
-    val endNode1 = AntNode(2)
-    val endNode2 = AntNode(3)
+    val startNode = Node(1)
+    val endNode1 = Node(2)
+    val endNode2 = Node(3)
     val antWay1 = AntWay("1-1", startNode, endNode1, 2, 1)
     val antWay2 = AntWay("2-1", startNode, endNode2, 3, 1)
     val antWays = List(antWay1, antWay2)
