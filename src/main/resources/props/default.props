@@ -1,5 +1,5 @@
 # Karte, die verwendet werden soll.
-map = maps/hamburg.osm
+map = maps/Altona-Wedel.osm
 
 timeUnit = MILLISECONDS
 
