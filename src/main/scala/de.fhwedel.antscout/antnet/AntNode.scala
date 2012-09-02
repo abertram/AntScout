@@ -15,7 +15,7 @@ class AntNode extends Actor with ActorLogging {
   import AntNode._
 
   var antsPerSecond = 0
-  val antStatistics = mutable.Map[ActorRef, Double]()
+  val antStatistics = mutable.Map[ActorRef, (Double, Double)]()
   var pheromoneMatrix: PheromoneMatrix = _
   implicit val timeout = Timeout(5 seconds)
   var trafficModel: TrafficModel = _
@@ -52,13 +52,19 @@ class AntNode extends Actor with ActorLogging {
    * Verarbeitet die Statistiken.
    */
   def processStatistics() {
-    val selectNextNodeDuration = if (antStatistics.size > 0) {
+    val processTaskDuration = if (antStatistics.size > 0) {
       antStatistics.map {
-        case (ant, selectNextNodeDuration) => selectNextNodeDuration
+        case (ant, (processTaskDuration, _)) => processTaskDuration
       }.sum / antStatistics.size
     } else
       0
-    val statistics = Statistics(antsPerSecond, selectNextNodeDuration)
+    val selectNextNodeDuration = if (antStatistics.size > 0) {
+      antStatistics.map {
+        case (ant, (_, selectNextNodeDuration)) => selectNextNodeDuration
+      }.sum / antStatistics.size
+    } else
+      0
+    val statistics = Statistics(antsPerSecond, processTaskDuration, selectNextNodeDuration)
     sendStatistics(statistics)
     log.debug("{}", statistics)
     resetStatistics()
@@ -88,8 +94,8 @@ class AntNode extends Actor with ActorLogging {
   }
 
   protected def receive = {
-    case AntSupervisor.Statistics(selectNextNodeDuration) =>
-      antStatistics += sender -> selectNextNodeDuration
+    case AntSupervisor.Statistics(processTaskDuration, selectNextNodeDuration) =>
+      antStatistics += sender -> (processTaskDuration, selectNextNodeDuration)
     case Enter(destination) =>
       // Wenn die Pheromon-Matrix undefiniert ist, dann ist der Knoten kein gültiger Quell-Knoten (enthält keine
       // ausgehenden Wege.
@@ -143,7 +149,7 @@ object AntNode {
   case class Initialize(destinations: Set[ActorRef], pheromones: Map[ActorRef, Map[AntWay, Double]])
   case class Probabilities(probabilities: Map[AntWay, Double])
   case object ProcessStatistics
-  case class Statistics(antsPerSecond: Int, selectNextNodeDuration: Double)
+  case class Statistics(antsPerSecond: Int, processTaskDuration: Double, selectNextNodeDuration: Double)
   case class UpdateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double)
 
   /**

@@ -13,6 +13,7 @@ class AntSupervisor extends Actor with ActorLogging {
   val antStatistics = mutable.Map[ActorRef, Double]()
   var destinations: Set[ActorRef] = _
   var destinationsIterator: Iterator[ActorRef] = _
+  val processTaskDurations = mutable.Buffer[Long]()
 
   def init(destinations: Set[ActorRef]) {
     log.debug("Initializing")
@@ -33,6 +34,11 @@ class AntSupervisor extends Actor with ActorLogging {
   }
 
   def processStatistics() {
+    val processTaskDuration = if (processTaskDurations.size > 0) {
+      processTaskDurations.sum / processTaskDurations.size
+    } else {
+      0
+    }
     val selectNextNodeDuration = if (antStatistics.size > 0) {
       antStatistics.map {
         case (ant, selectNextNodeDuration) => selectNextNodeDuration
@@ -40,7 +46,7 @@ class AntSupervisor extends Actor with ActorLogging {
     } else {
       0
     }
-    context.parent ! Statistics(selectNextNodeDuration)
+    context.parent ! Statistics(processTaskDuration, selectNextNodeDuration)
   }
 
   protected def receive = {
@@ -48,7 +54,14 @@ class AntSupervisor extends Actor with ActorLogging {
       antStatistics += sender -> selectNextNodeDuration
     case Initialize(destinations) =>
       init(destinations)
-    case ForwardAnt.DestinationReached | ForwardAnt.DeadEndStreet | ForwardAnt.LifetimeExpired =>
+    case ForwardAnt.DeadEndStreet(processDuration) =>
+      processTaskDurations += processDuration
+      sender ! ForwardAnt.Task(nextDestination)
+    case ForwardAnt.DestinationReached(processDuration) =>
+      processTaskDurations += processDuration
+      sender ! ForwardAnt.Task(nextDestination)
+    case ForwardAnt.LifetimeExpired(processDuration) =>
+      processTaskDurations += processDuration
       sender ! ForwardAnt.Task(nextDestination)
     case ProcessStatistics =>
       processStatistics()
@@ -64,5 +77,5 @@ object AntSupervisor {
 
   case class Initialize(destinations: Set[ActorRef])
   case object ProcessStatistics
-  case class Statistics(selectNextNodeDuration: Double)
+  case class Statistics(processTaskDuration: Double, selectNextNodeDuration: Double)
 }

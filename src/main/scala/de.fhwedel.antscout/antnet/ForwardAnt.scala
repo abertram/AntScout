@@ -25,6 +25,7 @@ class ForwardAnt(val source: ActorRef) extends Actor with ActorLogging {
   val logEntries = mutable.Buffer[String]()
   val memory = AntMemory()
   val selectNextNodeDurations = mutable.Buffer[Long]()
+  var startTime: Long = _
   val timeUnit = TimeUnit.valueOf(Props.get("timeUnit", DefaultTimeUnit))
   var visitedNodesCount = 0
 
@@ -41,6 +42,7 @@ class ForwardAnt(val source: ActorRef) extends Actor with ActorLogging {
 
   def completeTask(logEntry: String = "", parentMessage: ScalaObject) {
     cancellable.cancel()
+    val endTime = System.currentTimeMillis
     addLogEntry(logEntry)
     dumpLogEntries()
     currentNode = null
@@ -81,7 +83,7 @@ class ForwardAnt(val source: ActorRef) extends Actor with ActorLogging {
       addLogEntry("%s".format(message), time)
     case AntNode.DeadEndStreet =>
       // Der Knoten hat keine ausgehenden Wege, wir sind in einer Sackgasse angekommen.
-      completeTask("Dead-end street, restarting", DeadEndStreet)
+      completeTask("Dead-end street, restarting", DeadEndStreet(System.currentTimeMillis - startTime))
     case AntNode.Probabilities(probabilities) =>
       addLogEntry("Probabilities received")
       // Prüfen, ob die empfangengen Wahrscheinlichkeiten zu dem aktuell besuchten Knoten passen.
@@ -102,10 +104,11 @@ class ForwardAnt(val source: ActorRef) extends Actor with ActorLogging {
         visitNode(nextNode)
       }
     case LifetimeExpired =>
-      completeTask("Lifetime expired, restarting", LifetimeExpired)
+      completeTask("Lifetime expired, restarting", LifetimeExpired(System.currentTimeMillis - startTime))
     case ProcessStatistics =>
       processStatistics()
     case Task(destination) =>
+      startTime = System.currentTimeMillis
       addLogEntry("Task received")
       this.destination = destination
       cancellable = context.system.scheduler.scheduleOnce(Duration(antLifetime, timeUnit), self, LifetimeExpired)
@@ -179,7 +182,8 @@ class ForwardAnt(val source: ActorRef) extends Actor with ActorLogging {
     currentNode = node
     if (node == destination) {
       launchBackwardAnt()
-      completeTask("Destinatination reached, launching backward ant and restarting", DestinationReached)
+      completeTask("Destinatination reached, launching backward ant and restarting",
+        DestinationReached(System.currentTimeMillis - startTime))
     } else {
       addLogEntry("%s - Entering %s, destination: %s)".format(self, node, destination))
       node ! AntNode.Enter(destination)
@@ -191,9 +195,9 @@ class ForwardAnt(val source: ActorRef) extends Actor with ActorLogging {
 object ForwardAnt {
 
   case class AddLogEntry(message: String, time: Date = TimeHelpers.now)
-  case object DeadEndStreet
-  case object DestinationReached
-  case object LifetimeExpired
+  case class DeadEndStreet(processDuration: Long)
+  case class DestinationReached(processDuration: Long)
+  case class LifetimeExpired(processDuration: Long)
   case object ProcessStatistics
   case class Statistics(averageSelectNextNodeDuration: Double)
   case class Task(destination: ActorRef)
