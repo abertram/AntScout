@@ -39,6 +39,7 @@ class AntSupervisor extends Actor with ActorLogging {
     } else {
       0
     }
+    processTaskDurations.clear()
     val selectNextNodeDuration = if (antStatistics.size > 0) {
       antStatistics.map {
         case (ant, selectNextNodeDuration) => selectNextNodeDuration
