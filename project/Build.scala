@@ -31,7 +31,7 @@ object AntScoutBuild extends Build {
         if (!preprocessedMap.exists) {
           s.log.info("Preprocessing map %s" format preprocessedMap)
           val command = "maps/osmosis-0.40.1/bin/osmosis" + (if (sys.props("os.name").startsWith("Win")) ".bat" else "")
-          file(command).setExecutable(true)
+          file(command).setExecutable(true, true)
           val (left, top, right, bottom) = boundingBox
           val arguments = Seq[String](
             "-q",
