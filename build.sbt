@@ -2,9 +2,7 @@ name := "AntScout"
 
 scalaVersion := "2.9.2"
 
-scalacOptions += "-deprecation"
-
-scalacOptions += "-unchecked"
+scalacOptions ++= Seq("-deprecation", "-unchecked")
 
 resolvers ++= Seq(
   "Java.net Maven 2 repository" at "http://download.java.net/maven/2/",
