@@ -15,8 +15,8 @@ resolvers ++= Seq(
 
 libraryDependencies ++= {
   val akkaVersion = "2.0.3"
-  val jettyVersion = "8.0.4.v20111024"
-  val liftVersion = "2.5-SNAPSHOT"
+  val jettyVersion = "8.1.7.v20120910"
+  val liftVersion = "2.5-M1"
   Seq(
     "ch.qos.logback" % "logback-classic" % "1.0.6" % "compile->default",
     "com.typesafe.akka" % "akka-actor" % akkaVersion,
@@ -25,6 +25,8 @@ libraryDependencies ++= {
     "com.typesafe.akka" % "akka-testkit" % akkaVersion,
     "junit" % "junit" % "4.10" % "test",
     "net.liftweb" %% "lift-webkit" % liftVersion % "compile->default",
+    "org.eclipse.jetty.orbit" % "javax.servlet" % "3.0.0.v201112011016" % "container" artifacts Artifact("javax.servlet", "jar", "jar"),
+    "org.eclipse.jetty.orbit" % "javax.servlet" % "3.0.0.v201112011016" % "test->default" artifacts Artifact("javax.servlet", "jar", "jar"),
     "org.eclipse.jetty" % "jetty-webapp" % jettyVersion % "container",
     "org.eclipse.jetty" % "jetty-webapp" % jettyVersion % "test->default",
     "org.scalatest" %% "scalatest" % "1.7.1" % "test",
