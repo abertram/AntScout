@@ -3,7 +3,7 @@ package antnet
 
 import akka.util.duration._
 import java.util.concurrent.TimeUnit
-import net.liftweb.util.{TimeHelpers, Props}
+import net.liftweb.util.TimeHelpers
 import akka.util.Duration
 import akka.actor.{ActorRef, Cancellable, ActorLogging, Actor}
 import utils.StatisticsUtils
@@ -15,10 +15,7 @@ class ForwardAnt(val source: ActorRef) extends Actor with ActorLogging {
   
   import ForwardAnt._
 
-  val DefaultAntLifetime = 30
-  val DefaultTimeUnit = "SECONDS"
-
-  val antLifetime = Props.getInt("antLifetime", DefaultAntLifetime)
+  val antLifetime = Settings.AntLifetime
   var cancellable: Cancellable = _
   var currentNode: ActorRef = _
   var destination: ActorRef = _
@@ -26,7 +23,6 @@ class ForwardAnt(val source: ActorRef) extends Actor with ActorLogging {
   val memory = AntMemory()
   val selectNextNodeDurations = mutable.Buffer[Long]()
   var startTime: Long = _
-  val timeUnit = TimeUnit.valueOf(Props.get("timeUnit", DefaultTimeUnit))
   var visitedNodesCount = 0
 
   /**
@@ -111,7 +107,8 @@ class ForwardAnt(val source: ActorRef) extends Actor with ActorLogging {
       startTime = System.currentTimeMillis
       addLogEntry("Task received")
       this.destination = destination
-      cancellable = context.system.scheduler.scheduleOnce(Duration(antLifetime, timeUnit), self, LifetimeExpired)
+      cancellable = context.system.scheduler.scheduleOnce(Duration(antLifetime, TimeUnit.MILLISECONDS), self,
+        LifetimeExpired)
       visitNode(source)
     case m: Any =>
       log.warning("Unknown message: {}", m)

@@ -4,7 +4,6 @@ import antnet._
 import net.liftweb.common.{Box, Empty, Logger}
 import osm.OsmMap
 import routing.RoutingService
-import net.liftweb.util.Props
 import akka.actor.{ActorSystem, FSM, Actor}
 import akka.actor
 import net.liftweb.http.SessionVar
@@ -22,9 +21,7 @@ class AntScout extends Actor with FSM[AntScoutMessage, Unit] with Logger {
 
   when(Uninitialized) {
     case Event(Initialize, _) =>
-      val map = Props.get("map")
-      assert(map isDefined)
-      OsmMap(map get)
+      OsmMap(Settings.Map)
       context.actorFor(RoutingService.ActorName) ! RoutingService.Initialize
       goto(InitializingRoutingService)
   }

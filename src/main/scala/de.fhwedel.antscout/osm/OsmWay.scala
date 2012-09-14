@@ -3,7 +3,6 @@ package osm
 
 import xml.NodeSeq
 import net.liftweb.common.Logger
-import net.liftweb.util.Props
 import map.{Node, Way}
 
 /**
@@ -113,7 +112,7 @@ object OsmWay extends Logger {
             Some(value.toDouble).map(_ / 3.6)
           } catch {
             case numberFormatException: NumberFormatException => {
-              val maxSpeed = Props.get("speed.%s".format(value)).map(_.toDouble)
+              val maxSpeed = Settings.defaultSpeed(value)
               if (maxSpeed.isEmpty)
                 warn("Way %s: unknown max speed \"%s\"" format(id, value))
               maxSpeed
@@ -128,11 +127,8 @@ object OsmWay extends Logger {
           None
       }
     }
-    def maxSpeedFromHighwayTag: Option[Double] = {
-      Props.get("speed.%s".format(tags.getOrElse("highway", "defaultSpeed"))).map(_.toDouble)
-    }
-    val defaultSpeed = Props.get("speed.defaultSpeed").map(_.toDouble) getOrElse DefaultSpeed
-    val maxSpeed: Double = maxSpeedFromMaxSpeedTag orElse maxSpeedFromHighwayTag getOrElse defaultSpeed
+    def maxSpeedFromHighwayTag = Settings.defaultSpeed(tags.getOrElse("highway", "default"))
+    val maxSpeed = maxSpeedFromMaxSpeedTag orElse maxSpeedFromHighwayTag getOrElse Settings.DefaultSpeed
     val oneWay = tags.getOrElse("oneway", "")
     oneWay match {
       // TODO überlegen, wie oneway-Wert "-1" behandelt werden soll

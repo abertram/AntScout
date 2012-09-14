@@ -23,8 +23,6 @@ class PheromoneMatrix(destinations: Set[ActorRef], outgoingWays: Set[AntWay]) ex
 
   //  assert((destinations & AntMap.destinations) == destinations && (AntMap.destinations &~ destinations).size <= 1)
 
-
-  val alpha = 0.3
   val probabilities = mutable.Map[ActorRef, mutable.Map[AntWay, Double]]()
   val heuristicValues = mutable.Map[AntWay, Double]()
   val pheromones = mutable.Map[ActorRef, mutable.Map[AntWay, Double]]()
@@ -41,8 +39,8 @@ class PheromoneMatrix(destinations: Set[ActorRef], outgoingWays: Set[AntWay]) ex
   }
 
   def calculateProbability(destination: ActorRef, outgoingWay: AntWay) = {
-    val probability = pheromones(destination)(outgoingWay) + alpha * heuristicValues(outgoingWay) / (1 + alpha * (outgoingWays
-        .size - 1))
+    val probability = pheromones(destination)(outgoingWay) + Settings.Alpha * heuristicValues(outgoingWay) / (1 +
+      Settings.Alpha * (outgoingWays.size - 1))
     // Zusicherung, dass die Wahrscheinlichkeiten für den ausgehenden Weg 0 wird. Das würde bedeuten,
     // dass sich keine Ameise mehr für diesen Weg entscheiden würde.
 //    assert(probability ~> 0, "%s-%s: Probability = 0, pheromone: %s, alpha: %s, heuristic value: %s" format (self

@@ -18,7 +18,7 @@
     <logger name="de.fhwedel.antscout.antnet.BackwardAnt" level="info" />
     <logger name="de.fhwedel.antscout.antnet.ForwardAnt" level="info" />
     <logger name="de.fhwedel.antscout.routing.RoutingService" level="info" />
-    <logger name="net.liftweb" level="off" />
+    <logger name="net.liftweb" level="info" />
 
     <root level="debug">
         <appender-ref ref="file" />

@@ -1,8 +1,6 @@
 package de.fhwedel.antscout
 package extensions
 
-import net.liftweb.util.Props
-
 /**
  * Erweitert die Klasse Double um nützliche Methoden.
  */
@@ -69,14 +67,9 @@ class ExtendedDouble(d: Double) {
 object ExtendedDouble {
 
   /**
-   * Standard-Schwellwert für den Vergleich
-   */
-  val DefaultEpsilon = 0.00001
-
-  /**
    * Schwellwert für den Vergleich. Dieser wird aus einer Konfigurationsdatei gelesen. Wenn in der Konfigurationsdatei kein Schwellwert gefunden wird, wird der Standard-Schwellwert verwendet.
    */
-  val epsilon = Props.get("epsilon").map(_.toDouble).openOr(DefaultEpsilon)
+  val epsilon = Settings.Epsilon
 
   implicit def extendDouble(d: Double) = new ExtendedDouble(d)
 }

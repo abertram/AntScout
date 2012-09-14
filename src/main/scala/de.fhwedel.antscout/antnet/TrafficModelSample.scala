@@ -37,13 +37,13 @@ class TrafficModelSample(varsigma: Double, windowSize: Int) {
    * @return Errechnete Verstärkung
    */
   def reinforcement(tripTime: Double, neighbourCount: Double) = {
-    val c1 = 0.7
-    val c2 = 0.3
     val iInf = bestTripTime
-    val z = 1.7
-    val iSup = mean + z * math.sqrt(variance / windowSize)
+    val iSup = mean + Settings.Z * math.sqrt(variance / windowSize)
     val stabilityTerm = (iSup - iInf) + (tripTime - iInf)
-    val r = c1 * (bestTripTime / tripTime) + c2 * (if (stabilityTerm ~> 0.0) ((iSup - iInf) / stabilityTerm) else 0)
+    val r = Settings.C1 * (bestTripTime / tripTime) + Settings.C2 * (if (stabilityTerm ~> 0.0) ((iSup - iInf) /
+      stabilityTerm)
+    else
+      0)
     // TODO Prüfen, ob die Werte <= 0 und > 1 durch Rechenfehler zustande kommen
     val squashedReinforcement = TrafficModelSample.transformBySquash(math.max(0.05, math.min(r, 0.95)),
       neighbourCount)
@@ -68,13 +68,14 @@ object TrafficModelSample {
    * @param a
    * @return
    */
-  def squash(x: Double, neighbourCount: Double, a: Double = 10) = {
+  def squash(x: Double, neighbourCount: Double, a: Double = Settings.A) = {
     require((x ~> 0) && (x ~<= 1), "x: %f".format(x))
     1 + math.exp(a / (x * neighbourCount))
   }
 
   /**
-   * Laut Literatur eigentlich s(r) / s(1). Wenn aber in s(x) das (...)^(-1) weggelassen wird, wird aus s(r) / s(1) (s1) / s(r).
+   * Laut Literatur eigentlich s(r) / s(1). Wenn aber in s(x) das (...)^(-1) weggelassen wird,
+   * wird aus s(r) / s(1) (s1) / s(r).
    *
    * @param x
    * @param N

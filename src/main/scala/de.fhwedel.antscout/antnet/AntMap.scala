@@ -3,7 +3,7 @@ package antnet
 
 import net.liftweb.common.Logger
 import osm.{OsmOneWay, OsmWay, OsmNode, OsmMap}
-import net.liftweb.util.{Props, TimeHelpers}
+import net.liftweb.util.TimeHelpers
 import annotation.tailrec
 import collection.immutable.{Set, Map}
 import collection.mutable
@@ -493,12 +493,7 @@ object AntMap extends Logger {
     computeAntWayData(nodeWaysMapping)
   }
 
-  lazy val relevantHighways = {
-    val relevantHighwaysValue = Props get ("antMap.relevantHighways", DefaultRelevantHighways)
-    val untrimmedRelevantHighways = relevantHighwaysValue.split(',')
-    val trimmedRelevantHighways = untrimmedRelevantHighways.map(_.trim)
-    trimmedRelevantHighways.toSet
-  }
+  lazy val relevantHighways = Settings.RelevantHighWays.toSet
 
   def sources = _sources
 

@@ -4,7 +4,6 @@ package antnet.pheromoneMatrix
 import antnet.{AntNode, AntMap}
 import net.liftweb.common.Logger
 import map.Node
-import net.liftweb.util.Props
 
 /**
  * Initialisiert die Pheromon-Tabelle, indem für jedes Knoten-Paar der kürzeste Pfad gesucht wird.
@@ -16,8 +15,7 @@ class ShortestPathsPheromoneMatrixInitializer(sources: Set[Node], destinations: 
     extends PheromoneMatrixInitializer(sources, destinations) with Logger {
 
   def initPheromones = {
-    val bestWayPheromone = Props.get("bestWayPheromone").map(_.toDouble).openOr(ShortestPathsPheromoneMatrixInitializer
-      .DefaultBestWayPheromone)
+    val bestWayPheromone = Settings.BestWayPheromone
     val (distanceMatrix, intermediateMatrix) = AntMap.calculateShortestPaths(AntMap.adjacencyMatrix, AntMap
       .predecessorMatrix)
     sources.map { source =>
@@ -45,8 +43,6 @@ class ShortestPathsPheromoneMatrixInitializer(sources: Set[Node], destinations: 
 }
 
 object ShortestPathsPheromoneMatrixInitializer {
-
-  val DefaultBestWayPheromone = 0.8
 
   def apply(nodes: Set[Node], sources: Set[Node], destinations: Set[Node]) =
     new ShortestPathsPheromoneMatrixInitializer(sources, destinations)

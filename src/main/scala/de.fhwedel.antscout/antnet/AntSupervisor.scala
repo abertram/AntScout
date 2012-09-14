@@ -4,7 +4,6 @@ package antnet
 import akka.actor.{ActorRef, Props, ActorLogging, Actor}
 import akka.util.duration._
 import collection.mutable
-import net.liftweb
 
 class AntSupervisor extends Actor with ActorLogging {
 
@@ -19,7 +18,7 @@ class AntSupervisor extends Actor with ActorLogging {
     log.debug("Initializing")
     this.destinations = destinations
     destinationsIterator = destinations.iterator
-    val antCountPerSource = liftweb.util.Props.getInt("antCountPerSource") openOr DefaultAntCountPerSource
+    val antCountPerSource = Settings.AntCountPerSource
     (0 until antCountPerSource).foreach { _ =>
       context.actorOf(Props(new ForwardAnt(context.parent))) ! ForwardAnt.Task(nextDestination)
     }
@@ -74,7 +73,6 @@ class AntSupervisor extends Actor with ActorLogging {
 object AntSupervisor {
 
   val ActorName = "ant"
-  val DefaultAntCountPerSource = 1
 
   case class Initialize(destinations: Set[ActorRef])
   case object ProcessStatistics

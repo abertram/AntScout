@@ -28,7 +28,5 @@ class TrafficModel(destinations: Set[ActorRef], varsigma: Double, wMax: Int) ext
 
 object TrafficModel {
 
-  val DefaultVarsigma = 0.1
-
   def apply(destinations: Set[ActorRef], varsigma: Double, wMax: Int) = new TrafficModel(destinations, varsigma, wMax)
 }

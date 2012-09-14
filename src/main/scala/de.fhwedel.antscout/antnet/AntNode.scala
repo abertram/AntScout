@@ -5,7 +5,6 @@ import akka.actor.{Props, Actor, ActorLogging, ActorRef}
 import akka.util.duration._
 import akka.util.Timeout
 import collection.mutable
-import net.liftweb
 import pheromoneMatrix.PheromoneMatrix
 import routing.RoutingService
 import map.Node
@@ -41,8 +40,7 @@ class AntNode extends Actor with ActorLogging {
     log.debug("Best ways calculated, result: {}, sending to the routing service", bestWays)
     AntScout.system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) !
       RoutingService.InitializeBestWays(self, bestWays)
-    val varsigma = liftweb.util.Props.get("varsigma").map(_.toDouble) openOr TrafficModel.DefaultVarsigma
-    trafficModel = TrafficModel(destinations - self, varsigma, (5 * (0.3 / varsigma)).toInt)
+    trafficModel = TrafficModel(destinations - self, Settings.Varsigma, Settings.Wmax)
     context.actorFor(AntSupervisor.ActorName) ! AntSupervisor.Initialize(destinations - self)
     context.system.scheduler.schedule(1 seconds, 1 seconds, self, ProcessStatistics)
     log.debug("Initialized")
