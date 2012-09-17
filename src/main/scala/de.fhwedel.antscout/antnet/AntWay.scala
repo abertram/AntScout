@@ -71,7 +71,7 @@ class AntWay(id: String, override val nodes: Seq[Node], val startNode: ActorRef,
     ("tripTime" -> tripTime)
   }
 
-  override def toString = "#%s #%s - #%s".format(id, startNode, endNode)
+  override def toString = "#%s #%s - #%s".format(id, AntNode.nodeId(startNode), AntNode.nodeId(endNode))
 
   def tripTime = length / maxSpeed
 

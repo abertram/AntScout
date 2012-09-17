@@ -1,25 +1,30 @@
 package de.fhwedel.antscout
 package antnet
 
-import akka.actor.{Props, Actor, ActorLogging, ActorRef}
+import akka.actor.{Cancellable, ActorRef, ActorLogging, Actor}
+import akka.util.{Duration, Timeout}
 import akka.util.duration._
-import akka.util.Timeout
 import collection.mutable
 import pheromoneMatrix.PheromoneMatrix
 import routing.RoutingService
 import map.Node
+import java.util.concurrent.TimeUnit
 
 class AntNode extends Actor with ActorLogging {
 
   import AntNode._
 
   var antsPerSecond = 0
-  val antStatistics = mutable.Map[ActorRef, (Double, Double)]()
+  val antStatistics = mutable.Buffer[Double]()
+  /**
+   * Ziele, die von diesem Knoten aus erreichbar sind.
+   */
+  val destinations = mutable.Set[ActorRef]()
+  // TODO pheromoneMatrix sollte vom Datentyp Option[PheromoneMatrix] sein.
   var pheromoneMatrix: PheromoneMatrix = _
   implicit val timeout = Timeout(5 seconds)
-  var trafficModel: TrafficModel = _
-
-  context.actorOf(Props[AntSupervisor], AntSupervisor.ActorName)
+  val cancellables = mutable.Set[Cancellable]()
+  var trafficModel: Option[TrafficModel] = None
 
   def bestWay(destination: ActorRef) = {
     val (bestWay, _) = pheromoneMatrix.probabilities(destination).toSeq.sortBy {
@@ -30,39 +35,74 @@ class AntNode extends Actor with ActorLogging {
 
   def initialize(destinations: Set[ActorRef], pheromones: Map[ActorRef, Map[AntWay, Double]]) {
     log.debug("Initializing")
+    this.destinations ++= mutable.Set(destinations.toSeq: _*)
+    assert(this.destinations.nonEmpty)
+    assert(!this.destinations.contains(self))
     val outgoingWays = AntMap.outgoingWays(AntNode.toNode(self).get)
-    pheromoneMatrix = PheromoneMatrix(destinations - self, outgoingWays)
+    pheromoneMatrix = PheromoneMatrix(destinations, outgoingWays)
     val tripTimes = outgoingWays.map(outgoingWay => (outgoingWay -> outgoingWay.tripTime)).toMap
     pheromoneMatrix.initialize(self, pheromones, tripTimes)
     val bestWays = mutable.Map[ActorRef, AntWay]()
     log.debug("Calculating best ways")
-    (destinations - self).foreach(destination => bestWays += (destination -> bestWay(destination)))
+    destinations.foreach(destination => bestWays += (destination -> bestWay(destination)))
     log.debug("Best ways calculated, result: {}, sending to the routing service", bestWays)
     AntScout.system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) !
       RoutingService.InitializeBestWays(self, bestWays)
-    trafficModel = TrafficModel(destinations - self, Settings.Varsigma, Settings.Wmax)
-    context.actorFor(AntSupervisor.ActorName) ! AntSupervisor.Initialize(destinations - self)
-    context.system.scheduler.schedule(1 seconds, 1 seconds, self, ProcessStatistics)
+    trafficModel = Some(TrafficModel(destinations, Settings.Varsigma, Settings.Wmax))
+    // Scheduler zum Erzeugen der Ameisen
+    cancellables += context.system.scheduler.schedule(Duration.Zero, Duration(Settings.AntLaunchDelay,
+      TimeUnit.MILLISECONDS), self, LaunchAnts)
+    cancellables += context.system.scheduler.schedule(1 seconds, 1 seconds, self, ProcessStatistics)
     log.debug("Initialized")
+  }
+
+  def launchAnts() {
+    log.debug("Launching ants, destinations")
+    for (destination <- destinations)
+      self ! Ant(self, destination)
+  }
+
+  override def postStop() {
+    for (cancellable <- cancellables)
+      cancellable.cancel()
+  }
+
+  def processAnt(ant: Ant) {
+    if (self == ant.destination) {
+      // Ziel erreicht
+      antStatistics += ant.age
+      val ant1 = ant.log("Destination reached, updating nodes")
+//      log.info(ant1.prepareLogEntries)
+      ant1.updateNodes()
+    } else if (ant.age > Settings.MaxAntAge) {
+      // Ameise ist zu alt
+      antStatistics += ant.age
+      val ant1 = ant.log("Lifetime expired, removing ant")
+//      log.info(ant1.prepareLogEntries)
+    } else if (!(pheromoneMatrix != null && pheromoneMatrix.probabilities.isDefinedAt(ant.destination))) {
+      // Wenn die Pheromon-Matrix undefiniert ist, dann ist der Knoten kein gültiger Quell-Knoten (enthält keine
+      // ausgehenden Wege.
+      // Wenn die Wahrscheinlichkeiten für einen Ziel-Knoten undefiniert sind, dann ist der Ziel-Knoten von diesem
+      // Knoten nicht erreichbar.
+      // In beiden Fällen wird die Ameise aus dem System entfernt.
+      antStatistics += ant.age
+      val ant1 = ant.log("Dead end street reached, removing ant")
+//      log.info(ant1.prepareLogEntries)
+    } else {
+      val ant1 = ant.log("Visiting node %s".format(AntNode.nodeId(self)))
+      val probabilities = pheromoneMatrix.probabilities(ant1.destination).toMap
+      val (nextNode, ant2) = ant1.nextNode(self, probabilities)
+      nextNode ! ant2
+    }
+    antsPerSecond += 1
   }
 
   /**
    * Verarbeitet die Statistiken.
    */
   def processStatistics() {
-    val processTaskDuration = if (antStatistics.size > 0) {
-      antStatistics.map {
-        case (ant, (processTaskDuration, _)) => processTaskDuration
-      }.sum / antStatistics.size
-    } else
-      0
-    val selectNextNodeDuration = if (antStatistics.size > 0) {
-      antStatistics.map {
-        case (ant, (_, selectNextNodeDuration)) => selectNextNodeDuration
-      }.sum / antStatistics.size
-    } else
-      0
-    val statistics = Statistics(antsPerSecond, processTaskDuration, selectNextNodeDuration)
+    val antAge = if (antStatistics.size > 0) antStatistics.sum / antStatistics.size else 0
+    val statistics = Statistics(antsPerSecond, antAge)
     sendStatistics(statistics)
     log.debug("{}", statistics)
     resetStatistics()
@@ -71,46 +111,44 @@ class AntNode extends Actor with ActorLogging {
   def updateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double) = {
     trace(destination, "Updating data structures, source: %s, destination: %s, way: %s, trip time: %s".format(this,
       destination, way, tripTime))
-    trafficModel.addSample(destination, tripTime)
-    val nodeId = self.path.elements.last
-    val node = AntMap.nodes.find(_.id == nodeId).get
-    val outgoingWays = AntMap.outgoingWays(node)
-    val reinforcement = trafficModel.reinforcement(destination, tripTime, outgoingWays.size)
-    trace(destination, "Updating pheromones: way: %s, reinforcement: %s" format (way, reinforcement))
-    val bestWayBeforeUpdate = bestWay(destination)
-    trace(destination, "Before update: pheromones: %s, best way: %s" format (pheromoneMatrix.pheromones(destination),
-      bestWayBeforeUpdate))
-    pheromoneMatrix.updatePheromones(destination, way, reinforcement)
-    val bestWayAfterUpdate = bestWay(destination)
-    trace(destination, "After update: pheromones: %s, best way: %s" format (pheromoneMatrix.pheromones(destination),
-      bestWayAfterUpdate))
-    if (bestWayAfterUpdate != bestWayBeforeUpdate) {
-      trace(destination, "Sending best way to routing service: %s" format bestWayAfterUpdate)
-      AntScout.system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) !
-        RoutingService.UpdateBestWay(self, destination, bestWayAfterUpdate)
+    assert(trafficModel.isDefined, "Traffic model is undefined, node: %s, destination: %s, way: %s".format(self,
+      destination, way))
+    for (trafficModel <- this.trafficModel) {
+      assert(trafficModel.samples.isDefinedAt(destination), "Node: %s, destination: %s".format(self, destination))
+      trafficModel.addSample(destination, tripTime)
+      val nodeId = self.path.elements.last
+      val node = AntMap.nodes.find(_.id == nodeId).get
+      val outgoingWays = AntMap.outgoingWays(node)
+      val reinforcement = trafficModel.reinforcement(destination, tripTime, outgoingWays.size)
+      trace(destination, "Updating pheromones: way: %s, reinforcement: %s" format (way, reinforcement))
+      val bestWayBeforeUpdate = bestWay(destination)
+      trace(destination, "Before update: pheromones: %s, best way: %s" format (pheromoneMatrix.pheromones(destination),
+        bestWayBeforeUpdate))
+      pheromoneMatrix.updatePheromones(destination, way, reinforcement)
+      val bestWayAfterUpdate = bestWay(destination)
+      trace(destination, "After update: pheromones: %s, best way: %s" format (pheromoneMatrix.pheromones(destination),
+        bestWayAfterUpdate))
+      if (bestWayAfterUpdate != bestWayBeforeUpdate) {
+        trace(destination, "Sending best way to routing service: %s" format bestWayAfterUpdate)
+        AntScout.system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) !
+          RoutingService.UpdateBestWay(self, destination, bestWayAfterUpdate)
+      }
     }
   }
 
   protected def receive = {
-    case AntSupervisor.Statistics(processTaskDuration, selectNextNodeDuration) =>
-      antStatistics += sender -> (processTaskDuration, selectNextNodeDuration)
-    case Enter(destination) =>
-      // Wenn die Pheromon-Matrix undefiniert ist, dann ist der Knoten kein gültiger Quell-Knoten (enthält keine
-      // ausgehenden Wege.
-      // Wenn die Wahrscheinlichkeiten für einen Ziel-Knoten undefiniert sind, dann ist der Ziel-Knoten von diesem
-      // Knoten nicht erreichbar.
-      // In beiden Fällen wird der anfragenden Ameise Sackgasse als Antwort gesendet.
-      sender ! (if (pheromoneMatrix != null && pheromoneMatrix.probabilities.isDefinedAt(destination)) {
-        Probabilities(pheromoneMatrix.probabilities(destination).toMap)
-      } else
-        DeadEndStreet)
-      antsPerSecond += 1
+    case ant: Ant =>
+      processAnt(ant)
     case Initialize(destinations, pheromones) =>
       initialize(destinations, pheromones)
+    case LaunchAnts =>
+      launchAnts()
     case ProcessStatistics =>
       processStatistics()
     case UpdateDataStructures(destination, way, tripTime) =>
       updateDataStructures(destination, way, tripTime)
+    case m: Any =>
+      log.warning("Unknown message: {}", m)
   }
 
   /**
@@ -118,6 +156,7 @@ class AntNode extends Actor with ActorLogging {
    */
   def resetStatistics() {
     antsPerSecond = 0
+    antStatistics.clear()
   }
 
   /**
@@ -145,9 +184,10 @@ object AntNode {
   case object DeadEndStreet
   case class Enter(destination: ActorRef)
   case class Initialize(destinations: Set[ActorRef], pheromones: Map[ActorRef, Map[AntWay, Double]])
+  case object LaunchAnts
   case class Probabilities(probabilities: Map[AntWay, Double])
   case object ProcessStatistics
-  case class Statistics(antsPerSecond: Int, processTaskDuration: Double, selectNextNodeDuration: Double)
+  case class Statistics(antsPerSecond: Int, antAge: Double)
   case class UpdateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double)
 
   /**

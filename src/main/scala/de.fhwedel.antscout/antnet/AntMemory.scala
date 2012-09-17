@@ -2,39 +2,24 @@ package de.fhwedel.antscout
 package antnet
 
 import net.liftweb.common.Logger
-import collection.mutable.ListBuffer
 import akka.actor.ActorRef
 
-/**
- * Created by IntelliJ IDEA.
- * User: alex
- * Date: 05.01.12
- * Time: 23:04
- */
-
-class AntMemory extends Logger {
-
-  val items = ListBuffer.empty[AntMemoryItem]
-
-  def clear() {
-    items.clear()
-  }
+class AntMemory(val items: Seq[AntMemoryItem]) extends Logger {
 
   def containsNode(node: ActorRef) = items.find(_.node == node).isDefined
 
   def containsWay(way: AntWay) = items.find(_.way == way).isDefined
 
-  def memorize(node: ActorRef, way: AntWay, tripTime: Double) {
-    AntMemoryItem(node, way, tripTime) +=: items
-  }
+  def memorize(node: ActorRef, way: AntWay, tripTime: Double) =
+    new AntMemory(AntMemoryItem(node, way, tripTime) +: items)
 
-  def removeCircle(node: ActorRef) {
-//    debug("Removing circle of #%s".format(node id))
-    do {
-      items -= items.head
-    } while (items.nonEmpty && items.head.node != node)
-    if (!items.isEmpty)
-      items -= items.head
+  def removeCycle(node: ActorRef) = {
+//    debug("Removing cycle of #%s".format(node id))
+    val newItems = {
+      val newItems = items.dropWhile(_.node != node)
+      if (newItems.isEmpty) newItems else newItems.drop(1)
+    }
+    new AntMemory(newItems)
   }
 
   override def toString = items.toString
@@ -42,5 +27,5 @@ class AntMemory extends Logger {
 
 object AntMemory {
 
-  def apply() = new AntMemory()
+  def apply() = new AntMemory(Seq())
 }

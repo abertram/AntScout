@@ -17,13 +17,13 @@ class AntNodeSupervisor extends Actor with ActorLogging {
 
   import AntNodeSupervisor._
 
-  val antNodeStatistics = mutable.Map[ActorRef, (Int, Double, Double)]()
+  val antNodeStatistics = mutable.Map[ActorRef, (Int, Double)]()
 
   def init() {
     log.info("Initializing")
     AntMap.nodes foreach { node =>
       val child = context.actorOf(Props[AntNode], node.id)
-      antNodeStatistics += child -> (0, 0.0, 0.0)
+      antNodeStatistics += child -> (0, 0.0)
     }
     context.system.scheduler.schedule(1 seconds, 1 seconds, self, ProcessStatistics)
     log.info("Initialized")
@@ -47,29 +47,26 @@ class AntNodeSupervisor extends Actor with ActorLogging {
       }
       // unerreichbare Ziele rausfiltern
       val reachableDestinations = destinations.filter(destination => pheromones.isDefinedAt(destination))
-      source ! AntNode.Initialize(reachableDestinations, pheromones)
+      source ! AntNode.Initialize(reachableDestinations - source, pheromones)
     }
     log.info("Nodes initialized")
   }
 
   def processStatistics() {
     log.debug("Processed ants per node and second: {}", antNodeStatistics.map {
-      case (antNode, (antsPerSecond, _, _)) => antsPerSecond
+      case (antNode, (antsPerSecond, _)) => antsPerSecond
     }.sum / antNodeStatistics.size)
-    log.debug("Process task duration: {} ms", antNodeStatistics.map {
-      case (antNode, (_, processTaskDuration, _)) => processTaskDuration
+    log.debug("Average ant age: {} ms", antNodeStatistics.map {
+      case (antNode, (_, antAge)) => antAge
     }.sum / antNodeStatistics.size)
-    log.debug("Processed tasks per second: {}", 1 / ((antNodeStatistics.map {
-      case (antNode, (_, processTaskDuration, _)) => processTaskDuration
+    log.debug("Average tasks per second: {}", 1 / ((antNodeStatistics.map {
+      case (antNode, (_, antAge)) => antAge
     }.sum / antNodeStatistics.size) * 10e-3))
-    log.debug("Select next node duration: {} ms", antNodeStatistics.map {
-      case (antNode, (_, _, averageSelectNextNodeDuration)) => averageSelectNextNodeDuration
-    }.sum / antNodeStatistics.size)
   }
 
   protected def receive = {
-    case AntNode.Statistics(antsPerSecond, processTaskDuration, averageSelectNextNodeDuration) =>
-      antNodeStatistics += sender -> (antsPerSecond, processTaskDuration, averageSelectNextNodeDuration)
+    case AntNode.Statistics(antsPerSecond, antAge) =>
+      antNodeStatistics += sender -> (antsPerSecond, antAge)
     case Initialize(wayData) =>
       init()
       context.parent ! AntNodeSupervisor.Initialized(wayData)

@@ -28,10 +28,15 @@ object Settings {
   val AntCountPerSource = getInt("ant-scout.ant-count-per-source")
 
   /**
-   * "Lebenszeit" einer Ameise in Millisekunden. Wenn die Ameisen ihr Ziel nicht innerhalb dieser Zeit erreicht hat,
+   * Intervall in Millisekunden, in dem die Ameisen erzeugt werden.
+   */
+  val AntLaunchDelay = getInt("ant-scout.ant-net.ant-launch-delay")
+
+  /**
+   * Maximales Alter einer Ameise in Millisekunden. Wenn die Ameise ihr Ziel nicht innerhalb dieser Zeit erreicht hat,
    * wird sie aus dem System entfernt.
    */
-  val AntLifetime = getMilliseconds("ant-scout.ant-net.ant-lifetime")
+  val MaxAntAge = getMilliseconds("ant-scout.ant-net.max-ant-age")
 
   /**
    * Mit diesem Wert wird der beste Weg in der Pheromon-Matrix initialisiert, der als nächstes auf dem Weg zum Ziel
