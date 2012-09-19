@@ -2,6 +2,8 @@ package de.fhwedel.antscout
 
 import com.typesafe.config.ConfigFactory
 import scala.collection.JavaConverters._
+import akka.util.Duration
+import java.util.concurrent.TimeUnit
 
 /**
  * Konfiguration.
@@ -67,6 +69,8 @@ object Settings {
    * Karte, die verwendet werden soll.
    */
   val Map = getString("ant-scout.map")
+
+  val ProcessStatisticsDelay = Duration(getInt("ant-scout.process-statistics-delay"), TimeUnit.SECONDS)
 
   /**
    * Weg-Klassen, die für den AntNet-Algorithmus berücksichtigt werden sollen.

@@ -1,10 +1,10 @@
 package de.fhwedel.antscout
 package antnet
 
-import akka.actor.{ActorRef, Props, ActorLogging, Actor}
-import akka.util.duration._
+import akka.actor.{Props, ActorLogging, Actor}
 import pheromoneMatrix.ShortestPathsPheromoneMatrixInitializer
-import collection.mutable
+import net.liftweb.http.NamedCometListener
+import net.liftweb.common.Full
 
 /**
  * Created by IntelliJ IDEA.
@@ -17,15 +17,14 @@ class AntNodeSupervisor extends Actor with ActorLogging {
 
   import AntNodeSupervisor._
 
-  val antNodeStatistics = mutable.Map[ActorRef, (Int, Double)]()
+  val statistics = new AntNodeSupervisorStatistics()
 
   def init() {
     log.info("Initializing")
-    AntMap.nodes foreach { node =>
-      val child = context.actorOf(Props[AntNode], node.id)
-      antNodeStatistics += child -> (0, 0.0)
+    AntMap.nodes foreach { node => context.actorOf(Props[AntNode], node.id) }
+    context.system.scheduler.schedule(Settings.ProcessStatisticsDelay, Settings.ProcessStatisticsDelay) {
+      self ! ProcessStatistics(System.currentTimeMillis)
     }
-    context.system.scheduler.schedule(1 seconds, 1 seconds, self, ProcessStatistics)
     log.info("Initialized")
   }
 
@@ -52,28 +51,19 @@ class AntNodeSupervisor extends Actor with ActorLogging {
     log.info("Nodes initialized")
   }
 
-  def processStatistics() {
-    log.debug("Processed ants per node and second: {}", antNodeStatistics.map {
-      case (antNode, (antsPerSecond, _)) => antsPerSecond
-    }.sum / antNodeStatistics.size)
-    log.debug("Average ant age: {} ms", antNodeStatistics.map {
-      case (antNode, (_, antAge)) => antAge
-    }.sum / antNodeStatistics.size)
-    log.debug("Average tasks per second: {}", 1 / ((antNodeStatistics.map {
-      case (antNode, (_, antAge)) => antAge
-    }.sum / antNodeStatistics.size) * 10e-3))
-  }
-
   protected def receive = {
-    case AntNode.Statistics(antsPerSecond, antAge) =>
-      antNodeStatistics += sender -> (antsPerSecond, antAge)
+    case antNodeStatistics: AntNode.Statistics =>
+      statistics.antNodeStatistics += sender -> antNodeStatistics
     case Initialize(wayData) =>
       init()
       context.parent ! AntNodeSupervisor.Initialized(wayData)
     case InitializeNodes =>
       initNodes()
-    case ProcessStatistics =>
-      processStatistics()
+    case ProcessStatistics(createTime) =>
+      log.debug("Time to receive ProcessStatistics: {} ms", System.currentTimeMillis - createTime)
+      NamedCometListener.getDispatchersFor(Full("statistics")) foreach { actor =>
+        actor.map(_ ! statistics.prepare)
+      }
     case m: Any =>
       log.warning("Unknown message: {}", m)
   }
@@ -86,5 +76,7 @@ object AntNodeSupervisor {
   case class Initialize(antWayData: Set[AntWayData])
   case object InitializeNodes
   case class Initialized(antWayData: Set[AntWayData])
-  case object ProcessStatistics
+  case class ProcessStatistics(createTime: Long)
+  case class Statistics(deadEndStreetReachedAnts: Int, destinationReachedAnts: Int, launchedAnts: Int,
+    maxAgeExceededAnts: Int, processedAnts: Int)
 }

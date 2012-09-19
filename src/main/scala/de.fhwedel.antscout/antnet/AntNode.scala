@@ -14,14 +14,13 @@ class AntNode extends Actor with ActorLogging {
 
   import AntNode._
 
-  var antsPerSecond = 0
-  val antStatistics = mutable.Buffer[Double]()
   /**
    * Ziele, die von diesem Knoten aus erreichbar sind.
    */
   val destinations = mutable.Set[ActorRef]()
   // TODO pheromoneMatrix sollte vom Datentyp Option[PheromoneMatrix] sein.
   var pheromoneMatrix: PheromoneMatrix = _
+  val statistics = new AntNodeStatistics()
   implicit val timeout = Timeout(5 seconds)
   val cancellables = mutable.Set[Cancellable]()
   var trafficModel: Option[TrafficModel] = None
@@ -52,7 +51,8 @@ class AntNode extends Actor with ActorLogging {
     // Scheduler zum Erzeugen der Ameisen
     cancellables += context.system.scheduler.schedule(Duration.Zero, Duration(Settings.AntLaunchDelay,
       TimeUnit.MILLISECONDS), self, LaunchAnts)
-    cancellables += context.system.scheduler.schedule(1 seconds, 1 seconds, self, ProcessStatistics)
+    cancellables += context.system.scheduler.schedule(Settings.ProcessStatisticsDelay, Settings.ProcessStatisticsDelay,
+      self, ProcessStatistics)
     log.debug("Initialized")
   }
 
@@ -60,6 +60,7 @@ class AntNode extends Actor with ActorLogging {
     log.debug("Launching ants, destinations")
     for (destination <- destinations)
       self ! Ant(self, destination)
+    statistics.launchedAnts += destinations.size
   }
 
   override def postStop() {
@@ -70,14 +71,16 @@ class AntNode extends Actor with ActorLogging {
   def processAnt(ant: Ant) {
     if (self == ant.destination) {
       // Ziel erreicht
-      antStatistics += ant.age
+      statistics.antAges += ant.age
       val ant1 = ant.log("Destination reached, updating nodes")
 //      log.info(ant1.prepareLogEntries)
+      statistics.destinationReachedAnts += 1
       ant1.updateNodes()
     } else if (ant.age > Settings.MaxAntAge) {
       // Ameise ist zu alt
-      antStatistics += ant.age
+      statistics.antAges += ant.age
       val ant1 = ant.log("Lifetime expired, removing ant")
+      statistics.maxAgeExceededAnts += 1
 //      log.info(ant1.prepareLogEntries)
     } else if (!(pheromoneMatrix != null && pheromoneMatrix.probabilities.isDefinedAt(ant.destination))) {
       // Wenn die Pheromon-Matrix undefiniert ist, dann ist der Knoten kein gültiger Quell-Knoten (enthält keine
@@ -85,8 +88,9 @@ class AntNode extends Actor with ActorLogging {
       // Wenn die Wahrscheinlichkeiten für einen Ziel-Knoten undefiniert sind, dann ist der Ziel-Knoten von diesem
       // Knoten nicht erreichbar.
       // In beiden Fällen wird die Ameise aus dem System entfernt.
-      antStatistics += ant.age
+      statistics.antAges += ant.age
       val ant1 = ant.log("Dead end street reached, removing ant")
+      statistics.deadEndStreetReachedAnts += 1
 //      log.info(ant1.prepareLogEntries)
     } else {
       val ant1 = ant.log("Visiting node %s".format(AntNode.nodeId(self)))
@@ -94,18 +98,7 @@ class AntNode extends Actor with ActorLogging {
       val (nextNode, ant2) = ant1.nextNode(self, probabilities)
       nextNode ! ant2
     }
-    antsPerSecond += 1
-  }
-
-  /**
-   * Verarbeitet die Statistiken.
-   */
-  def processStatistics() {
-    val antAge = if (antStatistics.size > 0) antStatistics.sum / antStatistics.size else 0
-    val statistics = Statistics(antsPerSecond, antAge)
-    sendStatistics(statistics)
-    log.debug("{}", statistics)
-    resetStatistics()
+    statistics.processedAnts += 1
   }
 
   def updateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double) = {
@@ -144,28 +137,11 @@ class AntNode extends Actor with ActorLogging {
     case LaunchAnts =>
       launchAnts()
     case ProcessStatistics =>
-      processStatistics()
+      context.parent ! statistics.prepare
     case UpdateDataStructures(destination, way, tripTime) =>
       updateDataStructures(destination, way, tripTime)
     case m: Any =>
       log.warning("Unknown message: {}", m)
-  }
-
-  /**
-   * Resettet die Statistiken.
-   */
-  def resetStatistics() {
-    antsPerSecond = 0
-    antStatistics.clear()
-  }
-
-  /**
-   * Versendet die Statistiken.
-   *
-   * @param statistics Statistiken, die versendet werden sollen.
-   */
-  def sendStatistics(statistics: Statistics) {
-    context.parent ! statistics
   }
 
   def trace(destination: ActorRef, message: String) {
@@ -187,7 +163,8 @@ object AntNode {
   case object LaunchAnts
   case class Probabilities(probabilities: Map[AntWay, Double])
   case object ProcessStatistics
-  case class Statistics(antsPerSecond: Int, antAge: Double)
+  case class Statistics(antAge: Double, deadEndStreetReachedAnts: Int, destinationReachedAnts: Int, launchedAnts: Int,
+    maxAgeExceededAnts: Int, processedAnts: Int)
   case class UpdateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double)
 
   /**

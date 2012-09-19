@@ -1,4 +1,4 @@
-require(["jquery", "styles", "openlayers/OpenLayers", "underscore"], ($, styles) ->
+require(["jquery", "styles", "bootstrap", "openlayers/OpenLayers", "underscore"], ($, styles) ->
 
   # globales AntScout-Object erstellen
   @AntScout = {}
