@@ -33,6 +33,8 @@ libraryDependencies ++= {
   )
 }
 
+net.virtualvoid.sbt.graph.Plugin.graphSettings
+
 // coffeescripted-sbt
 seq(coffeeSettings: _*)
 
