@@ -26,7 +26,7 @@ class OpenLayers extends NamedCometActorTrait {
       }
       partialUpdate(Call("AntScout.drawPath", pathAsJson).cmd)
     }
-    case m: Any => logger.warn("Unknown message")
+    case m: Any => logger.warn("Unknown message: %s" format m)
   }
 
   def render = Call("console.log", ".").cmd
