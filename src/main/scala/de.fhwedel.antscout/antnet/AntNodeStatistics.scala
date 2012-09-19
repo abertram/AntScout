@@ -13,15 +13,19 @@ import collection.mutable
 class AntNodeStatistics {
 
   val antAges = mutable.Buffer[Long]()
+  var deadEndStreetReachedAnts = 0
   var destinationReachedAnts = 0
   var launchedAnts = 0
+  var maxAgeExceededAnts = 0
   var processedAnts = 0
 
   def prepare = {
     AntNode.Statistics(
       antAge = if (antAges.size > 0) antAges.sum / antAges.size else 0,
+      deadEndStreetReachedAnts = deadEndStreetReachedAnts,
       destinationReachedAnts = destinationReachedAnts,
       launchedAnts = launchedAnts,
+      maxAgeExceededAnts = maxAgeExceededAnts,
       processedAnts = processedAnts
     )
   }

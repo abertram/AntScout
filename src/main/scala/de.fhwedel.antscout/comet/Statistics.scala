@@ -16,6 +16,12 @@ class Statistics extends Logger with NamedCometActorTrait {
       partialUpdate(SetHtml("destination-reached-ants",
         Text("%d (%f%%)".format(statistics.destinationReachedAnts, statistics.destinationReachedAnts.toFloat /
           statistics.launchedAnts * 100))))
+      partialUpdate(SetHtml("dead-end-street-reached-ants",
+        Text("%d (%f%%)".format(statistics.deadEndStreetReachedAnts, statistics.deadEndStreetReachedAnts.toFloat /
+          statistics.launchedAnts * 100))))
+      partialUpdate(SetHtml("max-age-exceeded-ants",
+        Text("%d (%f%%)".format(statistics.maxAgeExceededAnts, statistics.maxAgeExceededAnts.toFloat /
+          statistics.launchedAnts * 100))))
     case m: Any =>
       warn("Unknown message: %s" format m)
   }

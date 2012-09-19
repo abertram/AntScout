@@ -80,6 +80,7 @@ class AntNode extends Actor with ActorLogging {
       // Ameise ist zu alt
       statistics.antAges += ant.age
       val ant1 = ant.log("Lifetime expired, removing ant")
+      statistics.maxAgeExceededAnts += 1
 //      log.info(ant1.prepareLogEntries)
     } else if (!(pheromoneMatrix != null && pheromoneMatrix.probabilities.isDefinedAt(ant.destination))) {
       // Wenn die Pheromon-Matrix undefiniert ist, dann ist der Knoten kein gültiger Quell-Knoten (enthält keine
@@ -89,6 +90,7 @@ class AntNode extends Actor with ActorLogging {
       // In beiden Fällen wird die Ameise aus dem System entfernt.
       statistics.antAges += ant.age
       val ant1 = ant.log("Dead end street reached, removing ant")
+      statistics.deadEndStreetReachedAnts += 1
 //      log.info(ant1.prepareLogEntries)
     } else {
       val ant1 = ant.log("Visiting node %s".format(AntNode.nodeId(self)))
@@ -161,7 +163,8 @@ object AntNode {
   case object LaunchAnts
   case class Probabilities(probabilities: Map[AntWay, Double])
   case object ProcessStatistics
-  case class Statistics(antAge: Double, destinationReachedAnts: Int, launchedAnts: Int, processedAnts: Int)
+  case class Statistics(antAge: Double, deadEndStreetReachedAnts: Int, destinationReachedAnts: Int, launchedAnts: Int,
+    maxAgeExceededAnts: Int, processedAnts: Int)
   case class UpdateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double)
 
   /**
