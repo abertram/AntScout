@@ -108,7 +108,8 @@ class OsmNode(id: String, val geographicCoordinate: GeographicCoordinate) extend
       val way1 = adjacentWays.head
       val way2 = adjacentWays.last
       (this == way1.nodes.head || this == way1.nodes.last) && (this == way2.nodes.head || this == way2.nodes.last) &&
-        way1.name == way2.name &&
+        // Zur Reduzierung der Knoten-Anzahl werden die Namen ignoriert.
+//        way1.name == way2.name &&
         way1.getClass == way2.getClass
     }
   }
