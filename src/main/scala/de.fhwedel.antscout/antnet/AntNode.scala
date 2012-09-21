@@ -95,7 +95,9 @@ class AntNode extends Actor with ActorLogging {
     } else {
       val ant1 = ant.log("Visiting node %s".format(AntNode.nodeId(self)))
       val probabilities = pheromoneMatrix.probabilities(ant1.destination).toMap
+      val startTime = System.currentTimeMillis
       val (nextNode, ant2) = ant1.nextNode(self, probabilities)
+      statistics.selectNextNodeDurations += System.currentTimeMillis - startTime
       nextNode ! ant2
     }
     statistics.processedAnts += 1
@@ -108,6 +110,7 @@ class AntNode extends Actor with ActorLogging {
       destination, way))
     for (trafficModel <- this.trafficModel) {
       assert(trafficModel.samples.isDefinedAt(destination), "Node: %s, destination: %s".format(self, destination))
+      val startTime = System.currentTimeMillis
       trafficModel.addSample(destination, tripTime)
       val nodeId = self.path.elements.last
       val node = AntMap.nodes.find(_.id == nodeId).get
@@ -118,6 +121,7 @@ class AntNode extends Actor with ActorLogging {
       trace(destination, "Before update: pheromones: %s, best way: %s" format (pheromoneMatrix.pheromones(destination),
         bestWayBeforeUpdate))
       pheromoneMatrix.updatePheromones(destination, way, reinforcement)
+      statistics.updateDataStructuresDurations += System.currentTimeMillis - startTime
       val bestWayAfterUpdate = bestWay(destination)
       trace(destination, "After update: pheromones: %s, best way: %s" format (pheromoneMatrix.pheromones(destination),
         bestWayAfterUpdate))
@@ -164,7 +168,7 @@ object AntNode {
   case class Probabilities(probabilities: Map[AntWay, Double])
   case object ProcessStatistics
   case class Statistics(antAge: Double, deadEndStreetReachedAnts: Int, destinationReachedAnts: Int, launchedAnts: Int,
-    maxAgeExceededAnts: Int, processedAnts: Int)
+    maxAgeExceededAnts: Int, processedAnts: Int, selectNextNodeDuration: Double, updateDataStructuresDuration: Double)
   case class UpdateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double)
 
   /**

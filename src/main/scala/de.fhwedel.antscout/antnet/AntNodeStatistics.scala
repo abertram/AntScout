@@ -18,6 +18,8 @@ class AntNodeStatistics {
   var launchedAnts = 0
   var maxAgeExceededAnts = 0
   var processedAnts = 0
+  var selectNextNodeDurations = mutable.Buffer[Long]()
+  var updateDataStructuresDurations = mutable.Buffer[Long]()
 
   def prepare = {
     AntNode.Statistics(
@@ -26,7 +28,11 @@ class AntNodeStatistics {
       destinationReachedAnts = destinationReachedAnts,
       launchedAnts = launchedAnts,
       maxAgeExceededAnts = maxAgeExceededAnts,
-      processedAnts = processedAnts
+      processedAnts = processedAnts,
+      selectNextNodeDuration = if (selectNextNodeDurations.size > 0) selectNextNodeDurations.sum /
+        selectNextNodeDurations.size else 0,
+      updateDataStructuresDuration = if (updateDataStructuresDurations.size > 0) updateDataStructuresDurations.sum /
+        updateDataStructuresDurations.size else 0
     )
   }
 

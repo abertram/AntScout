@@ -47,12 +47,26 @@ class AntNodeSupervisorStatistics {
       }.sum / antNodeStatistics.size / Settings.ProcessStatisticsDelay.toSeconds.toInt
     } else
       0
+    val selectNextNodeDuration = if (antNodeStatistics.size > 0) {
+      antNodeStatistics.map {
+        case (_, statistics) => statistics.selectNextNodeDuration
+      }.sum / antNodeStatistics.size
+    } else
+      0
+    val updateDataStructuresDuration = if (antNodeStatistics.size > 0) {
+      antNodeStatistics.map {
+        case (_, statistics) => statistics.updateDataStructuresDuration
+      }.sum / antNodeStatistics.size
+    } else
+      0
     AntNodeSupervisor.Statistics(
       deadEndStreetReachedAnts = deadEndStreetReachedAnts,
       destinationReachedAnts = destinationReachedAnts,
       launchedAnts = launchedAnts,
       maxAgeExceededAnts = maxAgeExceededAnts,
-      processedAnts = processedAnts
+      processedAnts = processedAnts,
+      selectNextNodeDuration = selectNextNodeDuration,
+      updateDataStructuresDuration = updateDataStructuresDuration
     )
 //    log.debug("Processed ants per node and second: {}",
 //    log.debug("Average ant age: {} ms", antNodeStatistics.map {
