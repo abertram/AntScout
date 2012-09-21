@@ -10,7 +10,7 @@ object AntScoutBuild extends Build {
   val originalMap = file("%s/%s%s" format (mapDirectory, mapName, mapExtension))
   val preprocessedMaps = Seq(
     (originalMap, (9.9362, 53.55131, 9.94756, 53.5468), file("%s/%s" format (mapDirectory, "Altona-Kreis.osm"))),
-    (originalMap, (9.69, 53.585, 9.95, 53.545), file("%s/%s" format (mapDirectory, "Altona-Wedel.osm")))
+    (originalMap, (9.69, 53.5844, 9.91, 53.5464), file("%s/%s" format (mapDirectory, "Altona-Wedel.osm")))
   )
 
   val downloadMap = TaskKey[Unit]("download-map")
