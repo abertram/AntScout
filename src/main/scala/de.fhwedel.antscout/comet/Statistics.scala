@@ -14,17 +14,18 @@ class Statistics extends Logger with NamedCometActorTrait {
     case statistics: AntNodeSupervisor.Statistics =>
       partialUpdate(SetHtml("launched-ants", Text(statistics.launchedAnts.toString)))
       partialUpdate(SetHtml("destination-reached-ants",
-        Text("%d (%f%%)".format(statistics.destinationReachedAnts, statistics.destinationReachedAnts.toFloat /
+        Text("%d (%.2f%%)".format(statistics.destinationReachedAnts, statistics.destinationReachedAnts.toFloat /
           statistics.launchedAnts * 100))))
       partialUpdate(SetHtml("dead-end-street-reached-ants",
-        Text("%d (%f%%)".format(statistics.deadEndStreetReachedAnts, statistics.deadEndStreetReachedAnts.toFloat /
+        Text("%d (%.2f%%)".format(statistics.deadEndStreetReachedAnts, statistics.deadEndStreetReachedAnts.toFloat /
           statistics.launchedAnts * 100))))
       partialUpdate(SetHtml("max-age-exceeded-ants",
-        Text("%d (%f%%)".format(statistics.maxAgeExceededAnts, statistics.maxAgeExceededAnts.toFloat /
+        Text("%d (%.2f%%)".format(statistics.maxAgeExceededAnts, statistics.maxAgeExceededAnts.toFloat /
           statistics.launchedAnts * 100))))
-      partialUpdate(SetHtml("select-next-node-duration", Text(statistics.selectNextNodeDuration.toString)))
-      partialUpdate(SetHtml("update-data-structures-duration", Text(statistics.updateDataStructuresDuration.toString)))
-      partialUpdate(SetHtml("launch-ants-duration", Text(statistics.launchAntsDuration.toString)))
+      partialUpdate(SetHtml("select-next-node-duration", Text("%.4f" format statistics.selectNextNodeDuration)))
+      partialUpdate(SetHtml("update-data-structures-duration", Text("%.4f" format statistics
+        .updateDataStructuresDuration)))
+      partialUpdate(SetHtml("launch-ants-duration", Text("%.4f" format statistics.launchAntsDuration)))
     case m: Any =>
       warn("Unknown message: %s" format m)
   }
