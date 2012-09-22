@@ -18,7 +18,8 @@ class AntOneWayData(maxSpeed: Double, nodes: Seq[OsmNode]) extends AntWayData(ma
     if (this.nodes.containsSlice(nodes))
       this
     else {
-      assert(this.nodes.last == nodes.head || nodes.last == this.nodes.head)
+      assert(this.nodes.last == nodes.head || nodes.last == this.nodes.head, ("this.nodes: %s, nodes: %s")
+        .format(this.nodes, nodes))
       val newNodes = if (this.nodes.last == nodes.head)
         this.nodes ++ nodes.tail
       else if (this.nodes.last == nodes.last)

@@ -9,6 +9,7 @@ import pheromoneMatrix.PheromoneMatrix
 import routing.RoutingService
 import map.Node
 import java.util.concurrent.TimeUnit
+import osm.{OsmNode, OsmMap}
 
 class AntNode extends Actor with ActorLogging {
 
@@ -32,6 +33,44 @@ class AntNode extends Actor with ActorLogging {
     bestWay
   }
 
+  /**
+   * Erzeugt die Scheduler zum Erzeugen der Ameisen. Die Ziele werden nach Entfernung gruppiert und für jede Gruppe
+   * ein eigener Scheduler erzeugt.
+   *
+   * @param destinations Erreichbare Ziele dieses Knotens.
+   */
+  def createAntsLaunchSchedulers(destinations: Set[ActorRef]) {
+    val distances = destinations.map { destination =>
+      // Enfernungen zu allen Zielen berechnen
+      (destination, self.distanceTo(destination).round)
+    }.groupBy {
+      // gruppieren
+      case (_, distance) => (distance / Settings.AntsLaunchGroupDistance).toInt
+    }.map {
+      // Gruppen-Id und Ziel beibehalten
+      case (key, distances) =>
+        key -> distances.map {
+          case (destination, _) => destination
+        }
+    }
+    // nötig für die Prüfung, ob alle Ziele durch die Scheduler abgedeckt sind
+//    val processedDestinations = mutable.Set[ActorRef]()
+    // Gruppen-Ids von groß nach klein verarbeiten
+    (0 to distances.keys.max).foldRight(Settings.AntsLaunchInitialDelay) {
+      case (i, delay) => {
+        // Gruppen-Id definiert?
+        if (distances.isDefinedAt(i)) {
+          // Scheduler erzeugen
+          cancellables += context.system.scheduler.schedule(Duration.Zero, Duration(delay,
+            TimeUnit.MILLISECONDS), self, LaunchAnts(distances(i)))
+//          processedDestinations ++= distances(i)
+        }
+        delay + Settings.AntsLaunchDelayIncrement
+      }
+    }
+//    assert(this.destinations == processedDestinations)
+  }
+
   def initialize(destinations: Set[ActorRef], pheromones: Map[ActorRef, Map[AntWay, Double]]) {
     log.debug("Initializing")
     this.destinations ++= mutable.Set(destinations.toSeq: _*)
@@ -48,15 +87,13 @@ class AntNode extends Actor with ActorLogging {
     AntScout.system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) !
       RoutingService.InitializeBestWays(self, bestWays)
     trafficModel = Some(TrafficModel(destinations, Settings.Varsigma, Settings.Wmax))
-    // Scheduler zum Erzeugen der Ameisen
-    cancellables += context.system.scheduler.schedule(Duration.Zero, Duration(Settings.AntLaunchDelay,
-      TimeUnit.MILLISECONDS), self, LaunchAnts)
     cancellables += context.system.scheduler.schedule(Settings.ProcessStatisticsDelay, Settings.ProcessStatisticsDelay,
       self, ProcessStatistics)
+    createAntsLaunchSchedulers(destinations)
     log.debug("Initialized")
   }
 
-  def launchAnts() {
+  def launchAnts(destinations: Set[ActorRef]) {
     log.debug("Launching ants, destinations")
     val startTime = System.currentTimeMillis
     for (destination <- destinations) {
@@ -146,8 +183,8 @@ class AntNode extends Actor with ActorLogging {
       processAnt(ant)
     case Initialize(destinations, pheromones) =>
       initialize(destinations, pheromones)
-    case LaunchAnts =>
-      launchAnts()
+    case LaunchAnts(destinations) =>
+      launchAnts(destinations)
     case ProcessStatistics =>
       context.parent ! statistics.prepare
       statistics.reset()
@@ -173,7 +210,7 @@ object AntNode {
   case object DeadEndStreet
   case class Enter(destination: ActorRef)
   case class Initialize(destinations: Set[ActorRef], pheromones: Map[ActorRef, Map[AntWay, Double]])
-  case object LaunchAnts
+  case class LaunchAnts(destinations: Set[ActorRef])
   case class Probabilities(probabilities: Map[AntWay, Double])
   case object ProcessStatistics
   case class Statistics(antAge: Double, deadEndStreetReachedAnts: Int, destinationReachedAnts: Int,
@@ -220,4 +257,6 @@ object AntNode {
     val nodeId = this.nodeId(antNode)
     AntMap.nodes.find(_.id == nodeId)
   }
+
+  implicit def toOsmNode(antNode: ActorRef): OsmNode = OsmMap.nodes(nodeId(antNode))
 }
