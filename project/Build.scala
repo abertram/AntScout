@@ -32,29 +32,32 @@ object AntScoutBuild extends Build {
   }
 
   val preprocessMapTask = preprocessMap <<= streams.map { s: TaskStreams =>
-    s.log.info("Preprocessing map")
-    val command = "maps/osmosis-0.40.1/bin/osmosis" + (if (sys.props("os.name").startsWith("Win")) ".bat" else "")
-    file(command).setExecutable(true, true)
-    preprocessedMaps foreach {
-      case (originalMap, boundingBox, preprocessedMap) =>
-        if (!preprocessedMap.exists) {
-          s.log.info("Creating map %s" format preprocessedMap)
-          val (left, top, right, bottom) = boundingBox
-          val arguments = Seq[String](
-            "-q",
-            "--read-pbf", "file=" + originalMap,
-            "--bounding-box", "left=" + left, "top=" + top, "right=" + right, "bottom=" + bottom, "completeWays=yes",
-            "--tag-filter", "accept-ways", "highway=motorway,motorway_link,trunk,trunk_link,primary,primary_link," +
-              "secondary,secondary_link,tertiary,tertiary_link,residential,living_street,unclassified",
-            "--tag-filter", "reject-relations",
-            "--used-node",
-            "--write-xml", preprocessedMap.toString
-          )
-          (Process(command, arguments) !) match {
-            case 0 => s.log.success("Map %s created" format preprocessedMap)
-            case _ => s.log.error("Creating map %s failed" format preprocessedMap)
+    if (preprocessedMaps exists { case (_, _, preprocessedMap) => !preprocessedMap.exists }) {
+      s.log.info("Preprocessing maps")
+      val command = "maps/osmosis-0.40.1/bin/osmosis" + (if (sys.props("os.name").startsWith("Win")) ".bat" else "")
+      file(command).setExecutable(true, true)
+      preprocessedMaps foreach {
+        case (originalMap, boundingBox, preprocessedMap) => {
+          if (!preprocessedMap.exists) {
+            s.log.info("Preprocessing map %s" format preprocessedMap)
+            val (left, top, right, bottom) = boundingBox
+            val arguments = Seq[String](
+              "-q",
+              "--read-pbf", "file=" + originalMap,
+              "--bounding-box", "left=" + left, "top=" + top, "right=" + right, "bottom=" + bottom, "completeWays=yes",
+              "--tag-filter", "accept-ways", "highway=motorway,motorway_link,trunk,trunk_link,primary,primary_link," +
+                "secondary,secondary_link,tertiary,tertiary_link,residential,living_street,unclassified",
+              "--tag-filter", "reject-relations",
+              "--used-node",
+              "--write-xml", preprocessedMap.toString
+            )
+            (Process(command, arguments) !) match {
+              case 0 => s.log.success("Map %s preprocessed" format preprocessedMap)
+              case _ => s.log.error("Preprocessing map %s failed" format preprocessedMap)
+            }
           }
         }
+      }
     }
   }
 
