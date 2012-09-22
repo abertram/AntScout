@@ -23,17 +23,21 @@ object AntScoutBuild extends Build {
       val mapUrl = url("http://download.geofabrik.de/osm/europe/germany/%s%s" format (mapName, mapExtension))
       s.log.info("Downloading map from %s to %s" format (mapUrl, originalMap))
       sbt.IO.download(mapUrl, originalMap)
-      s.log.success("Map downloaded")
+      if (originalMap.exists)
+        s.log.success("Map downloaded")
+      else
+        s.log.error("Downloading map failed")
     }
   }
 
   val preprocessMapTask = preprocessMap <<= streams.map { s: TaskStreams =>
+    s.log.info("Preprocessing map")
+    val command = "maps/osmosis-0.40.1/bin/osmosis" + (if (sys.props("os.name").startsWith("Win")) ".bat" else "")
+    file(command).setExecutable(true, true)
     preprocessedMaps foreach {
       case (originalMap, boundingBox, preprocessedMap) =>
         if (!preprocessedMap.exists) {
-          s.log.info("Preprocessing map %s" format preprocessedMap)
-          val command = "maps/osmosis-0.40.1/bin/osmosis" + (if (sys.props("os.name").startsWith("Win")) ".bat" else "")
-          file(command).setExecutable(true, true)
+          s.log.info("Creating map %s" format preprocessedMap)
           val (left, top, right, bottom) = boundingBox
           val arguments = Seq[String](
             "-q",
@@ -46,8 +50,8 @@ object AntScoutBuild extends Build {
             "--write-xml", preprocessedMap.toString
           )
           (Process(command, arguments) !) match {
-            case 0 => s.log.success("Map %s preprocessed" format preprocessedMap)
-            case _ => s.log.error("Preprocessing map %s failed" format preprocessedMap)
+            case 0 => s.log.success("Map %s created" format preprocessedMap)
+            case _ => s.log.error("Creating map %s failed" format preprocessedMap)
           }
         }
     }
