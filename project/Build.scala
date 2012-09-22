@@ -11,7 +11,7 @@ object AntScoutBuild extends Build {
   val preprocessedMaps = Seq(
     (originalMap, (9.8682, 53.5660023, 9.9458, 53.5438), file("%s/%s" format (mapDirectory,
       "Altona-100-Knoten.osm"))),
-    (originalMap, (9.9362, 53.55131, 9.94756, 53.5468), file("%s/%s" format (mapDirectory, "Altona-Kreis.osm"))),
+    (originalMap, (9.9362, 53.55131, 9.949, 53.5468), file("%s/%s" format (mapDirectory, "Altona-Kreis.osm"))),
     (originalMap, (9.69, 53.5844, 9.91, 53.5464), file("%s/%s" format (mapDirectory, "Altona-Wedel.osm")))
   )
 
