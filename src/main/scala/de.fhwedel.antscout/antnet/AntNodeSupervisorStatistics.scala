@@ -29,6 +29,12 @@ class AntNodeSupervisorStatistics {
       }.sum
     } else
       0
+    val launchAntsDuration = if (antNodeStatistics.size > 0) {
+      antNodeStatistics.map {
+        case (_, statistics) => statistics.launchAntsDuration
+      }.sum / antNodeStatistics.size
+    } else
+      0
     val launchedAnts = if (antNodeStatistics.size > 0) {
       antNodeStatistics.map {
         case (_, statistics) => statistics.launchedAnts
@@ -62,6 +68,7 @@ class AntNodeSupervisorStatistics {
     AntNodeSupervisor.Statistics(
       deadEndStreetReachedAnts = deadEndStreetReachedAnts,
       destinationReachedAnts = destinationReachedAnts,
+      launchAntsDuration = launchAntsDuration,
       launchedAnts = launchedAnts,
       maxAgeExceededAnts = maxAgeExceededAnts,
       processedAnts = processedAnts,

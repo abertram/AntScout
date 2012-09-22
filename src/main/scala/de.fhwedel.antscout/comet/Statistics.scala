@@ -24,6 +24,7 @@ class Statistics extends Logger with NamedCometActorTrait {
           statistics.launchedAnts * 100))))
       partialUpdate(SetHtml("select-next-node-duration", Text(statistics.selectNextNodeDuration.toString)))
       partialUpdate(SetHtml("update-data-structures-duration", Text(statistics.updateDataStructuresDuration.toString)))
+      partialUpdate(SetHtml("launch-ants-duration", Text(statistics.launchAntsDuration.toString)))
     case m: Any =>
       warn("Unknown message: %s" format m)
   }

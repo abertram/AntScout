@@ -58,8 +58,10 @@ class AntNode extends Actor with ActorLogging {
 
   def launchAnts() {
     log.debug("Launching ants, destinations")
+    val startTime = System.currentTimeMillis
     for (destination <- destinations)
       self ! Ant(self, destination)
+    statistics.launchAntsDurations += System.currentTimeMillis - startTime
     statistics.launchedAnts += destinations.size
   }
 
@@ -142,6 +144,7 @@ class AntNode extends Actor with ActorLogging {
       launchAnts()
     case ProcessStatistics =>
       context.parent ! statistics.prepare
+      statistics.reset()
     case UpdateDataStructures(destination, way, tripTime) =>
       updateDataStructures(destination, way, tripTime)
     case m: Any =>
@@ -167,8 +170,9 @@ object AntNode {
   case object LaunchAnts
   case class Probabilities(probabilities: Map[AntWay, Double])
   case object ProcessStatistics
-  case class Statistics(antAge: Double, deadEndStreetReachedAnts: Int, destinationReachedAnts: Int, launchedAnts: Int,
-    maxAgeExceededAnts: Int, processedAnts: Int, selectNextNodeDuration: Double, updateDataStructuresDuration: Double)
+  case class Statistics(antAge: Double, deadEndStreetReachedAnts: Int, destinationReachedAnts: Int,
+    launchAntsDuration: Double, launchedAnts: Int, maxAgeExceededAnts: Int, processedAnts: Int,
+    selectNextNodeDuration: Double, updateDataStructuresDuration: Double)
   case class UpdateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double)
 
   /**
