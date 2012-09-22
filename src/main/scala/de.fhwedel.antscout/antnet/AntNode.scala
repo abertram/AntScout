@@ -59,8 +59,14 @@ class AntNode extends Actor with ActorLogging {
   def launchAnts() {
     log.debug("Launching ants, destinations")
     val startTime = System.currentTimeMillis
-    for (destination <- destinations)
-      self ! Ant(self, destination)
+    for (destination <- destinations) {
+      val ant = Ant(self, destination, "Visiting node %s".format(AntNode.nodeId(self)))
+      val probabilities = pheromoneMatrix.probabilities(destination).toMap
+      val startTime = System.currentTimeMillis
+      val (nextNode, ant1) = ant.nextNode(self, probabilities)
+      statistics.selectNextNodeDurations += System.currentTimeMillis - startTime
+      nextNode ! ant1
+    }
     statistics.launchAntsDurations += System.currentTimeMillis - startTime
     statistics.launchedAnts += destinations.size
   }

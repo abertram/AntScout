@@ -78,4 +78,12 @@ object Ant {
 
   def apply(source: ActorRef, destination: ActorRef) = new Ant(source, destination, AntMemory(),
     Seq("%s -> %s".format(AntNode.nodeId(source), AntNode.nodeId(destination))), System.currentTimeMillis)
+
+  def apply(source: ActorRef, destination: ActorRef, logEntries: Seq[String]) =
+    new Ant(source, destination, AntMemory(), logEntries.reverse ++ Seq("%s -> %s".format(AntNode.nodeId(source),
+      AntNode.nodeId(destination))), System.currentTimeMillis)
+
+  def apply(source: ActorRef, destination: ActorRef, logEntry: String) =
+    new Ant(source, destination, AntMemory(), logEntry +: Seq("%s -> %s".format(AntNode.nodeId(source),
+      AntNode.nodeId(destination))), System.currentTimeMillis)
 }
