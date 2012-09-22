@@ -90,7 +90,6 @@ class OsmNode(id: String, val geographicCoordinate: GeographicCoordinate) extend
    *    Kreis-Wegen sind. Start-Knoten von Kreis-Wegen müssen drei adjazente Strassen haben, da zwei davon die selbe
    *    Strasse ist. Sonst würde der Knoten fälschlicherweise als Verbindung erkannt werden.)
    * - Der Knoten ist ein äußerer Knoten in beiden Strassen.
-   * - Die Namen der adjazenten Strassen sind gleich.
    * - Die adjazenten Wege sind entweder beide Einbahnstrassen oder beide keine Einbahnstrassen.
    *
    * @param nodeWaysMapping Abbildung von von OSM-Knoten auf OSM-Wege, die für die Berechnung verwendet werden soll.
@@ -105,12 +104,13 @@ class OsmNode(id: String, val geographicCoordinate: GeographicCoordinate) extend
       else
         2
     } && {
-      val way1 = adjacentWays.head
-      val way2 = adjacentWays.last
-      (this == way1.nodes.head || this == way1.nodes.last) && (this == way2.nodes.head || this == way2.nodes.last) &&
-        // Zur Reduzierung der Knoten-Anzahl werden die Namen ignoriert.
-//        way1.name == way2.name &&
-        way1.getClass == way2.getClass
+      (adjacentWays.head, adjacentWays.last) match {
+        case (way1: OsmOneWay, way2: OsmOneWay) =>
+          way1.nodes.last == way2.nodes.head || way2.nodes.last == way1.nodes.head
+        case (way1: OsmWay, way2: OsmWay) =>
+          Set(way1.nodes.head, way1.nodes.last, way2.nodes.head, way2.nodes.last).size == 3
+        case _ => false
+      }
     }
   }
 
