@@ -64,7 +64,7 @@ class RoutingService extends Actor with ActorLogging {
           .startAndEndNodes.contains(source)).isDefined)) {
         log.debug("Updatig best way from {} to {} - way: {}, sender: {}", source, destination, way, sender)
         path = findPath(this.source, this.destination)
-        NamedCometListener.getDispatchersFor(Full("OpenLayers")) foreach { actor =>
+        NamedCometListener.getDispatchersFor(Full("openLayers")) foreach { actor =>
           actor.map(_ ! OpenLayers.DrawPath(path))
         }
       }

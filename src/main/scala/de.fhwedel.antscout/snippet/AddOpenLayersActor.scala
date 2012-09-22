@@ -3,9 +3,9 @@ package snippet
 
 import net.liftweb.http.NamedCometActorSnippet
 
-object AddCometActor extends NamedCometActorSnippet {
+object AddOpenLayersActor extends NamedCometActorSnippet {
 
   def cometClass = "OpenLayers"
 
-  def name = "OpenLayers"
+  def name = "openLayers"
 }
