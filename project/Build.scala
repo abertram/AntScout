@@ -13,7 +13,7 @@ object AntScoutBuild extends Build {
       "Altona-100-Knoten.osm"))),
     (originalMap, (9.8898, 53.5560023, 9.949, 53.5438), file("%s/%s" format (mapDirectory, "Altona-50-Knoten.osm"))),
     (originalMap, (9.9362, 53.55131, 9.949, 53.5468), file("%s/%s" format (mapDirectory, "Altona-Kreis.osm"))),
-    (originalMap, (9.69, 53.5844, 9.91, 53.5464), file("%s/%s" format (mapDirectory, "Altona-Wedel.osm")))
+    (originalMap, (9.69, 53.58499, 9.912, 53.5464), file("%s/%s" format (mapDirectory, "Altona-Wedel.osm")))
   )
 
   val downloadMap = TaskKey[Unit]("download-map")
