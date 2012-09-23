@@ -16,6 +16,10 @@ class AntNodeSupervisorStatistics {
   val antNodeStatistics = mutable.Map[ActorRef, AntNode.Statistics]()
   var processedAnts = 0
 
+  def meanBy(f: AntNode.Statistics => Double) = antNodeStatistics.values.map(f).sum / antNodeStatistics.size
+
+  def meanBy(f: AntNode.Statistics => Int) = antNodeStatistics.values.map(f).sum / antNodeStatistics.size
+
   def prepare = {
     val deadEndStreetReachedAnts = if (antNodeStatistics.size > 0) {
       antNodeStatistics.map {
@@ -45,6 +49,12 @@ class AntNodeSupervisorStatistics {
       antNodeStatistics.map {
         case (_, statistics) => statistics.maxAgeExceededAnts
       }.sum / antNodeStatistics.size / Settings.ProcessStatisticsDelay.toSeconds.toInt
+    } else
+      0
+    val processAntDuration = if (antNodeStatistics.size > 0) {
+      antNodeStatistics.map {
+        case (_, statistics) => statistics.processAntDuration
+      }.sum /antNodeStatistics.size
     } else
       0
     val processedAnts = if (antNodeStatistics.size > 0) {
@@ -83,6 +93,7 @@ class AntNodeSupervisorStatistics {
       launchAntsDuration = launchAntsDuration,
       launchedAnts = launchedAnts,
       maxAgeExceededAnts = maxAgeExceededAnts,
+      processAntDuration = processAntDuration,
       processedAnts = processedAnts,
       selectNextNodeDuration = selectNextNodeDuration,
       totalDeadEndStreetReachedAnts = totalDeadEndStreetReachedAnts,

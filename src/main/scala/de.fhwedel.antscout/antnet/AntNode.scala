@@ -10,6 +10,7 @@ import routing.RoutingService
 import map.Node
 import java.util.concurrent.TimeUnit
 import osm.{OsmNode, OsmMap}
+import net.liftweb.util.TimeHelpers
 
 class AntNode extends Actor with ActorLogging {
 
@@ -135,38 +136,41 @@ class AntNode extends Actor with ActorLogging {
    * @param ant Die zu verarbeitende Ameise.
    */
   def processAnt(ant: Ant) {
-    if (self == ant.destination) {
-      // Ziel erreicht
-      statistics.antAges += ant.age
-      val ant1 = ant.log("Destination reached, visited %d nodes, updating nodes" format ant.memory.size)
-      statistics.incrementDestinationReachedAnts()
-      ant1.updateNodes()
-      trace(ant1.source, ant1.destination, ant1.prepareLogEntries)
-    } else if (ant.age > Settings.MaxAntAge) {
-      // Ameise ist zu alt
-      statistics.antAges += ant.age
-      val ant1 = ant.log("Lifetime expired, visited %d nodes, removing ant" format ant.memory.size)
-      statistics.incrementMaxAgeExceededAnts()
-      trace(ant1.source, ant1.destination, ant1.prepareLogEntries)
-    } else if (!(pheromoneMatrix != null && pheromoneMatrix.probabilities.isDefinedAt(ant.destination))) {
-      // Wenn die Pheromon-Matrix undefiniert ist, dann ist der Knoten kein gültiger Quell-Knoten (enthält keine
-      // ausgehenden Wege.
-      // Wenn die Wahrscheinlichkeiten für einen Ziel-Knoten undefiniert sind, dann ist der Ziel-Knoten von diesem
-      // Knoten nicht erreichbar.
-      // In beiden Fällen wird die Ameise aus dem System entfernt.
-      statistics.antAges += ant.age
-      val ant1 = ant.log("Dead end street reached, visited %d nodes, removing ant" format ant.memory.size)
-      statistics.incrementDeadEndStreetReachedAnts()
-      trace(ant1.source, ant1.destination, ant1.prepareLogEntries)
-    } else {
-      val ant1 = ant.log("Visiting node %s".format(AntNode.nodeId(self)))
-      val probabilities = pheromoneMatrix.probabilities(ant1.destination).toMap
-      val startTime = System.currentTimeMillis
-      val (nextNode, ant2) = ant1.nextNode(self, probabilities)
-      statistics.selectNextNodeDurations += System.currentTimeMillis - startTime
-      nextNode ! ant2
+    val (time, _) = TimeHelpers.calcTime {
+      if (self == ant.destination) {
+        // Ziel erreicht
+        statistics.antAges += ant.age
+        val ant1 = ant.log("Destination reached, visited %d nodes, updating nodes" format ant.memory.size)
+        statistics.incrementDestinationReachedAnts()
+        ant1.updateNodes()
+        trace(ant1.source, ant1.destination, ant1.prepareLogEntries)
+      } else if (ant.age > Settings.MaxAntAge) {
+        // Ameise ist zu alt
+        statistics.antAges += ant.age
+        val ant1 = ant.log("Lifetime expired, visited %d nodes, removing ant" format ant.memory.size)
+        statistics.incrementMaxAgeExceededAnts()
+        trace(ant1.source, ant1.destination, ant1.prepareLogEntries)
+      } else if (!(pheromoneMatrix != null && pheromoneMatrix.probabilities.isDefinedAt(ant.destination))) {
+        // Wenn die Pheromon-Matrix undefiniert ist, dann ist der Knoten kein gültiger Quell-Knoten (enthält keine
+        // ausgehenden Wege.
+        // Wenn die Wahrscheinlichkeiten für einen Ziel-Knoten undefiniert sind, dann ist der Ziel-Knoten von diesem
+        // Knoten nicht erreichbar.
+        // In beiden Fällen wird die Ameise aus dem System entfernt.
+        statistics.antAges += ant.age
+        val ant1 = ant.log("Dead end street reached, visited %d nodes, removing ant" format ant.memory.size)
+        statistics.incrementDeadEndStreetReachedAnts()
+        trace(ant1.source, ant1.destination, ant1.prepareLogEntries)
+      } else {
+        val ant1 = ant.log("Visiting node %s".format(AntNode.nodeId(self)))
+        val probabilities = pheromoneMatrix.probabilities(ant1.destination).toMap
+        val startTime = System.currentTimeMillis
+        val (nextNode, ant2) = ant1.nextNode(self, probabilities)
+        statistics.selectNextNodeDurations += System.currentTimeMillis - startTime
+        nextNode ! ant2
+      }
+      statistics.processedAnts += 1
     }
-    statistics.processedAnts += 1
+    statistics.processAntDurations += time
   }
 
   def updateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double) = {
@@ -249,10 +253,21 @@ object AntNode {
   case class LaunchAnts(destinations: Set[ActorRef])
   case class Probabilities(probabilities: Map[AntWay, Double])
   case object ProcessStatistics
-  case class Statistics(antAge: Double, deadEndStreetReachedAnts: Int, destinationReachedAnts: Int,
-    launchAntsDuration: Double, launchedAnts: Int, maxAgeExceededAnts: Int, processedAnts: Int,
-    selectNextNodeDuration: Double, totalDeadEndStreetReachedAnts: Int, totalDestinationReachedAnts: Int,
-    totalLaunchedAnts: Int, totalMaxAgeExceededAnts: Int, updateDataStructuresDuration: Double)
+  case class Statistics(
+    antAge: Double,
+    deadEndStreetReachedAnts: Int,
+    destinationReachedAnts: Int,
+    launchAntsDuration: Double,
+    launchedAnts: Int,
+    maxAgeExceededAnts: Int,
+    processAntDuration: Double,
+    processedAnts: Int,
+    selectNextNodeDuration: Double,
+    totalDeadEndStreetReachedAnts: Int,
+    totalDestinationReachedAnts: Int,
+    totalLaunchedAnts: Int,
+    totalMaxAgeExceededAnts: Int,
+    updateDataStructuresDuration: Double)
   case class UpdateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double)
 
   /**

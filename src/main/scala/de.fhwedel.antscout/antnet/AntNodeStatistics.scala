@@ -18,6 +18,7 @@ class AntNodeStatistics {
   var launchAntsDurations = mutable.Buffer[Long]()
   private var launchedAnts = 0
   private var maxAgeExceededAnts = 0
+  var processAntDurations = mutable.Buffer[Long]()
   var processedAnts = 0
   var selectNextNodeDurations = mutable.Buffer[Long]()
   private var totalDeadEndStreetReachedAnts = 0
@@ -63,6 +64,8 @@ class AntNodeStatistics {
         0,
       launchedAnts = launchedAnts,
       maxAgeExceededAnts = maxAgeExceededAnts,
+      processAntDuration = if (processAntDurations.size > 0) processAntDurations.sum.toDouble / processAntDurations
+        .size else 0,
       processedAnts = processedAnts,
       selectNextNodeDuration = if (selectNextNodeDurations.size > 0)
         selectNextNodeDurations.sum / selectNextNodeDurations.size
@@ -89,6 +92,7 @@ class AntNodeStatistics {
     launchAntsDurations.clear()
     launchedAnts = 0
     maxAgeExceededAnts = 0
+    processAntDurations.clear()
     selectNextNodeDurations.clear()
     updateDataStructuresDurations.clear()
   }

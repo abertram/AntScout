@@ -1,12 +1,12 @@
 package de.fhwedel.antscout
 package comet
 
-import net.liftweb.http.NamedCometActorTrait
-import net.liftweb.http.js.JE.Call
 import antnet.AntNodeSupervisor
-import net.liftweb.http.js.JsCmds.SetHtml
-import xml.Text
 import net.liftweb.common.Logger
+import net.liftweb.http.js.JE.Call
+import net.liftweb.http.js.JsCmds.SetHtml
+import net.liftweb.http.NamedCometActorTrait
+import xml.Text
 
 class Statistics extends Logger with NamedCometActorTrait {
 
@@ -21,6 +21,7 @@ class Statistics extends Logger with NamedCometActorTrait {
         * 100))))
       partialUpdate(SetHtml("dead-end-street-reached-ants-per-second", Text("%d (%.2f%%)".format(statistics
         .deadEndStreetReachedAnts, statistics.deadEndStreetReachedAnts.toFloat / statistics.launchedAnts * 100))))
+      partialUpdate(SetHtml("process-ant-duration", Text("%.2f" format statistics.processAntDuration)))
       partialUpdate(SetHtml("total-dead-end-street-reached-ants", Text("%d (%.2f%%)".format(statistics
         .totalDeadEndStreetReachedAnts, statistics.totalDeadEndStreetReachedAnts.toFloat / statistics.totalLaunchedAnts
         * 100))))
