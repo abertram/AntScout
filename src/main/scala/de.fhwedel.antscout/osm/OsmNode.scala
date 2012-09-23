@@ -103,13 +103,12 @@ class OsmNode(id: String, val geographicCoordinate: GeographicCoordinate) extend
         3
       else
         2
-    } && {
+    } && adjacentWays.forall(_.getClass == adjacentWays.head.getClass) && {
       (adjacentWays.head, adjacentWays.last) match {
         case (way1: OsmOneWay, way2: OsmOneWay) =>
           way1.nodes.last == way2.nodes.head || way2.nodes.last == way1.nodes.head
         case (way1: OsmWay, way2: OsmWay) =>
           Set(way1.nodes.head, way1.nodes.last, way2.nodes.head, way2.nodes.last).size == 3
-        case _ => false
       }
     }
   }
