@@ -110,15 +110,35 @@
       </div>
     </div>
     <div class="tab-pane" id="tab2">
-      <div class="well">
-        Launched ants: <span id="launched-ants"></span>
-        <br>
-        Destination reached ants: <span id="destination-reached-ants"></span>
-        <br>
-        Dead end street reached ants: <span id="dead-end-street-reached-ants"></span>
-        <br>
-        Max age exceeded ants: <span id="max-age-exceeded-ants"></span>
-        <br>
+      <div class="span6 well">
+        <h1>Ants</h1>
+        <table class="table table-bordered table-condensed table-hover table-striped">
+          <tr>
+            <th></th>
+            <th>per second</th>
+            <th>total</th>
+          </tr>
+          <tr>
+            <td>Launched</td>
+            <td id="launched-ants-per-second"></td>
+            <td id="total-launched-ants"></td>
+          </tr>
+          <tr>
+            <td>Destination reached</td>
+            <td id="destination-reached-ants-per-second"></td>
+            <td id="total-destination-reached-ants"></td>
+          </tr>
+          <tr>
+            <td>Dead end street reached</td>
+            <td id="dead-end-street-reached-ants-per-second"></td>
+            <td id="total-dead-end-street-reached-ants"></td>
+          </tr>
+          <tr>
+            <td>Max age exceeded</td>
+            <td id="max-age-exceeded-ants-per-second"></td>
+            <td id="total-max-age-exceeded-ants"></td>
+          </tr>
+        </table>
         Select next node duration: <span id="select-next-node-duration"></span> ms
         <br>
         Update data structures duration: <span id="update-data-structures-duration"></span> ms

@@ -79,5 +79,6 @@ object AntNodeSupervisor {
   case class ProcessStatistics(createTime: Long)
   case class Statistics(deadEndStreetReachedAnts: Int, destinationReachedAnts: Int,
     launchAntsDuration: Double, launchedAnts: Int, maxAgeExceededAnts: Int, processedAnts: Int,
-    selectNextNodeDuration: Double, updateDataStructuresDuration: Double)
+    selectNextNodeDuration: Double, totalDeadEndStreetReachedAnts: Int, totalDestinationReachedAnts: Int,
+    totalLaunchedAnts: Int, totalMaxAgeExceededAnts: Int, updateDataStructuresDuration: Double)
 }

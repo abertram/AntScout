@@ -68,7 +68,7 @@ class AntNode extends Actor with ActorLogging {
       nextNode ! ant1
     }
     statistics.launchAntsDurations += System.currentTimeMillis - startTime
-    statistics.launchedAnts += destinations.size
+    statistics.incrementLaunchedAnts(destinations.size)
   }
 
   override def postStop() {
@@ -82,13 +82,13 @@ class AntNode extends Actor with ActorLogging {
       statistics.antAges += ant.age
       val ant1 = ant.log("Destination reached, updating nodes")
 //      log.info(ant1.prepareLogEntries)
-      statistics.destinationReachedAnts += 1
+      statistics.incrementDestinationReachedAnts()
       ant1.updateNodes()
     } else if (ant.age > Settings.MaxAntAge) {
       // Ameise ist zu alt
       statistics.antAges += ant.age
       val ant1 = ant.log("Lifetime expired, removing ant")
-      statistics.maxAgeExceededAnts += 1
+      statistics.incrementMaxAgeExceededAnts()
 //      log.info(ant1.prepareLogEntries)
     } else if (!(pheromoneMatrix != null && pheromoneMatrix.probabilities.isDefinedAt(ant.destination))) {
       // Wenn die Pheromon-Matrix undefiniert ist, dann ist der Knoten kein gültiger Quell-Knoten (enthält keine
@@ -98,7 +98,7 @@ class AntNode extends Actor with ActorLogging {
       // In beiden Fällen wird die Ameise aus dem System entfernt.
       statistics.antAges += ant.age
       val ant1 = ant.log("Dead end street reached, removing ant")
-      statistics.deadEndStreetReachedAnts += 1
+      statistics.incrementDeadEndStreetReachedAnts()
 //      log.info(ant1.prepareLogEntries)
     } else {
       val ant1 = ant.log("Visiting node %s".format(AntNode.nodeId(self)))
@@ -178,7 +178,8 @@ object AntNode {
   case object ProcessStatistics
   case class Statistics(antAge: Double, deadEndStreetReachedAnts: Int, destinationReachedAnts: Int,
     launchAntsDuration: Double, launchedAnts: Int, maxAgeExceededAnts: Int, processedAnts: Int,
-    selectNextNodeDuration: Double, updateDataStructuresDuration: Double)
+    selectNextNodeDuration: Double, totalDeadEndStreetReachedAnts: Int, totalDestinationReachedAnts: Int,
+    totalLaunchedAnts: Int, totalMaxAgeExceededAnts: Int, updateDataStructuresDuration: Double)
   case class UpdateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double)
 
   /**
