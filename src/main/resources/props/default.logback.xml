@@ -15,8 +15,6 @@
     <logger name="de.fhwedel.antscout.antnet.AntNode" level="info" />
     <logger name="de.fhwedel.antscout.antnet.AntSupervisor" level="info" />
     <logger name="de.fhwedel.antscout.antnet.AntNodeSupervisor" level="info" />
-    <logger name="de.fhwedel.antscout.antnet.BackwardAnt" level="info" />
-    <logger name="de.fhwedel.antscout.antnet.ForwardAnt" level="info" />
     <logger name="de.fhwedel.antscout.routing.RoutingService" level="info" />
     <logger name="net.liftweb" level="warn" />
 

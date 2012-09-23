@@ -71,8 +71,14 @@ class AntNode extends Actor with ActorLogging {
 //    assert(this.destinations == processedDestinations)
   }
 
+  /**
+   * Initialisiert diesen Knoten.
+   *
+   * @param destinations Erreichbare Ziele.
+   * @param pheromones Pheromon-Matrix, mit der die Pheromon-Matrix des Knotens initialisiert werden soll.
+   */
   def initialize(destinations: Set[ActorRef], pheromones: Map[ActorRef, Map[AntWay, Double]]) {
-    log.debug("Initializing")
+    traceBySource("Initializing")
     this.destinations ++= mutable.Set(destinations.toSeq: _*)
     assert(this.destinations.nonEmpty)
     assert(!this.destinations.contains(self))
@@ -81,23 +87,30 @@ class AntNode extends Actor with ActorLogging {
     val tripTimes = outgoingWays.map(outgoingWay => (outgoingWay -> outgoingWay.tripTime)).toMap
     pheromoneMatrix.initialize(self, pheromones, tripTimes)
     val bestWays = mutable.Map[ActorRef, AntWay]()
-    log.debug("Calculating best ways")
+    traceBySource("Calculating best ways")
     destinations.foreach(destination => bestWays += (destination -> bestWay(destination)))
-    log.debug("Best ways calculated, result: {}, sending to the routing service", bestWays)
+    traceBySource("Best ways calculated, result: %s, sending to the routing service" format bestWays)
     AntScout.system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) !
       RoutingService.InitializeBestWays(self, bestWays)
     trafficModel = Some(TrafficModel(destinations, Settings.Varsigma, Settings.Wmax))
     cancellables += context.system.scheduler.schedule(Settings.ProcessStatisticsDelay, Settings.ProcessStatisticsDelay,
       self, ProcessStatistics)
     createAntsLaunchSchedulers(destinations)
-    log.debug("Initialized")
+    traceBySource("Initialized")
   }
 
+  /**
+   * Erzeugt die Ameisen.
+   *
+   * @param destinations Ziele der Ameisen.
+   */
   def launchAnts(destinations: Set[ActorRef]) {
-    log.debug("Launching ants, destinations")
+    for (traceDestinationId <- TraceDestinationId if destinations.contains(AntNode(traceDestinationId))) {
+      traceBySource("Launching ants, destinations: %s" format destinations)
+    }
     val startTime = System.currentTimeMillis
     for (destination <- destinations) {
-      val ant = Ant(self, destination, "Visiting node %s".format(AntNode.nodeId(self)))
+      val ant = Ant(self, destination, Ant.logEntry("Visiting node %s".format(AntNode.nodeId(self))))
       val probabilities = pheromoneMatrix.probabilities(destination).toMap
       val startTime = System.currentTimeMillis
       val (nextNode, ant1) = ant.nextNode(self, probabilities)
@@ -108,25 +121,33 @@ class AntNode extends Actor with ActorLogging {
     statistics.incrementLaunchedAnts(destinations.size)
   }
 
+  /**
+   * Event-Handler, der nach dem Stoppen des Aktors augeführt wird.
+   */
   override def postStop() {
     for (cancellable <- cancellables)
       cancellable.cancel()
   }
 
+  /**
+   * Verarbeitet eine Ameise.
+   *
+   * @param ant Die zu verarbeitende Ameise.
+   */
   def processAnt(ant: Ant) {
     if (self == ant.destination) {
       // Ziel erreicht
       statistics.antAges += ant.age
-      val ant1 = ant.log("Destination reached, updating nodes")
-//      log.info(ant1.prepareLogEntries)
+      val ant1 = ant.log("Destination reached, visited %d nodes, updating nodes" format ant.memory.size)
       statistics.incrementDestinationReachedAnts()
       ant1.updateNodes()
+      trace(ant1.source, ant1.destination, ant1.prepareLogEntries)
     } else if (ant.age > Settings.MaxAntAge) {
       // Ameise ist zu alt
       statistics.antAges += ant.age
-      val ant1 = ant.log("Lifetime expired, removing ant")
+      val ant1 = ant.log("Lifetime expired, visited %d nodes, removing ant" format ant.memory.size)
       statistics.incrementMaxAgeExceededAnts()
-//      log.info(ant1.prepareLogEntries)
+      trace(ant1.source, ant1.destination, ant1.prepareLogEntries)
     } else if (!(pheromoneMatrix != null && pheromoneMatrix.probabilities.isDefinedAt(ant.destination))) {
       // Wenn die Pheromon-Matrix undefiniert ist, dann ist der Knoten kein gültiger Quell-Knoten (enthält keine
       // ausgehenden Wege.
@@ -134,9 +155,9 @@ class AntNode extends Actor with ActorLogging {
       // Knoten nicht erreichbar.
       // In beiden Fällen wird die Ameise aus dem System entfernt.
       statistics.antAges += ant.age
-      val ant1 = ant.log("Dead end street reached, removing ant")
+      val ant1 = ant.log("Dead end street reached, visited %d nodes, removing ant" format ant.memory.size)
       statistics.incrementDeadEndStreetReachedAnts()
-//      log.info(ant1.prepareLogEntries)
+      trace(ant1.source, ant1.destination, ant1.prepareLogEntries)
     } else {
       val ant1 = ant.log("Visiting node %s".format(AntNode.nodeId(self)))
       val probabilities = pheromoneMatrix.probabilities(ant1.destination).toMap
@@ -149,8 +170,8 @@ class AntNode extends Actor with ActorLogging {
   }
 
   def updateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double) = {
-    trace(destination, "Updating data structures, source: %s, destination: %s, way: %s, trip time: %s".format(this,
-      destination, way, tripTime))
+    trace(self, destination, ("Updating data structures, source: %s, destination: %s, way: %s, trip time: %s")
+      .format(this, destination, way, tripTime))
     assert(trafficModel.isDefined, "Traffic model is undefined, node: %s, destination: %s, way: %s".format(self,
       destination, way))
     for (trafficModel <- this.trafficModel) {
@@ -161,17 +182,17 @@ class AntNode extends Actor with ActorLogging {
       val node = AntMap.nodes.find(_.id == nodeId).get
       val outgoingWays = AntMap.outgoingWays(node)
       val reinforcement = trafficModel.reinforcement(destination, tripTime, outgoingWays.size)
-      trace(destination, "Updating pheromones: way: %s, reinforcement: %s" format (way, reinforcement))
+      trace(self, destination, "Updating pheromones: way: %s, reinforcement: %s" format (way, reinforcement))
       val bestWayBeforeUpdate = bestWay(destination)
-      trace(destination, "Before update: pheromones: %s, best way: %s" format (pheromoneMatrix.pheromones(destination),
-        bestWayBeforeUpdate))
+      trace(self, destination, "Before update: pheromones: %s, best way: %s" format (pheromoneMatrix
+        .pheromones(destination), bestWayBeforeUpdate))
       pheromoneMatrix.updatePheromones(destination, way, reinforcement)
       statistics.updateDataStructuresDurations += System.currentTimeMillis - startTime
       val bestWayAfterUpdate = bestWay(destination)
-      trace(destination, "After update: pheromones: %s, best way: %s" format (pheromoneMatrix.pheromones(destination),
-        bestWayAfterUpdate))
+      trace(self, destination, "After update: pheromones: %s, best way: %s" format (pheromoneMatrix
+        .pheromones(destination), bestWayAfterUpdate))
       if (bestWayAfterUpdate != bestWayBeforeUpdate) {
-        trace(destination, "Sending best way to routing service: %s" format bestWayAfterUpdate)
+        trace(self, destination, "Sending best way to routing service: %s" format bestWayAfterUpdate)
         AntScout.system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) !
           RoutingService.UpdateBestWay(self, destination, bestWayAfterUpdate)
       }
@@ -194,14 +215,29 @@ class AntNode extends Actor with ActorLogging {
       log.warning("Unknown message: {}", m)
   }
 
-  def trace(destination: ActorRef, message: String) {
+  def trace(source: ActorRef, destination: ActorRef, message: String) {
     for {
-      traceSourceId <- AntScout.traceSourceId
-      traceDestinationId <- AntScout.traceDestinationId
-      if (self.path.elements.last.matches(traceSourceId) && destination.path.elements.last.matches
-        (traceDestinationId))
+      traceSourceId <- TraceSourceId
+      traceDestinationId <- TraceDestinationId
+      if (AntNode.nodeId(source).matches(traceSourceId) && AntNode.nodeId(destination).matches(traceDestinationId))
     } yield
-      log.debug("{} {}", self.path.elements.last, message)
+      log.info("{}", message)
+  }
+
+  def traceByDestination(destination: ActorRef, message: String) {
+    for {
+      traceDestinationId <- TraceDestinationId
+      if (AntNode.nodeId(destination).matches(traceDestinationId))
+    } yield
+      log.debug("{}", message)
+  }
+
+  def traceBySource(message: String, source: ActorRef = self) {
+    for {
+      traceSourceId <- TraceSourceId
+      if (AntNode.nodeId(source).matches(traceSourceId))
+    } yield
+      log.debug("{}", message)
   }
 }
 

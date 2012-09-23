@@ -22,6 +22,13 @@ class AntMemory(val items: Seq[AntMemoryItem]) extends Logger {
     new AntMemory(newItems)
   }
 
+  /**
+   * Berechnet die Anzahl der Ameisen-Gedächtnis-Elemente.
+   *
+   * @return Anzahl der Ameisen-Gedächtnis-Elemente.
+   */
+  def size = items.size
+
   override def toString = items.toString
 }
 
