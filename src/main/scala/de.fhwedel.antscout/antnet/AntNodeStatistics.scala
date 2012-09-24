@@ -55,7 +55,7 @@ class AntNodeStatistics {
    */
   def prepare = {
     AntNode.Statistics(
-      antAge = if (antAges.size > 0) antAges.sum / antAges.size else 0,
+      antAge = if (antAges.size > 0) antAges.sum.toDouble / antAges.size / 10e3 else 0,
       deadEndStreetReachedAnts = deadEndStreetReachedAnts,
       destinationReachedAnts = destinationReachedAnts,
       launchAntsDuration = if (launchAntsDurations.size > 0)
@@ -93,6 +93,7 @@ class AntNodeStatistics {
     launchedAnts = 0
     maxAgeExceededAnts = 0
     processAntDurations.clear()
+    processedAnts = 0
     selectNextNodeDurations.clear()
     updateDataStructuresDurations.clear()
   }

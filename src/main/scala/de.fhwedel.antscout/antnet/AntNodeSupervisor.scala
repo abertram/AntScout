@@ -78,6 +78,7 @@ object AntNodeSupervisor {
   case class Initialized(antWayData: Set[AntWayData])
   case class ProcessStatistics(createTime: Long)
   case class Statistics(
+    antAge: Double,
     deadEndStreetReachedAnts: Int,
     destinationReachedAnts: Int,
     launchAntsDuration: Double,
