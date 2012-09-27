@@ -107,12 +107,17 @@ class AntNode extends Actor with ActorLogging {
    * @param destinations Ziele der Ameisen.
    */
   def launchAnts(destinations: Set[ActorRef]) {
-    for (traceDestinationId <- TraceDestinationId if destinations.contains(AntNode(traceDestinationId))) {
-      traceBySource("Launching ants, destinations: %s" format destinations)
+    if (ShouldLog) {
+      for (traceDestinationId <- TraceDestinationId if destinations.contains(AntNode(traceDestinationId))) {
+        traceBySource("Launching ants, destinations: %s" format destinations)
+      }
     }
     val startTime = System.currentTimeMillis
     for (destination <- destinations) {
-      val ant = Ant(self, destination, Ant.logEntry("Visiting node %s".format(AntNode.nodeId(self))))
+      val ant = if (Ant.ShouldLog)
+        Ant(self, destination, Ant.logEntry("Visiting node %s".format(AntNode.nodeId(self))))
+      else
+        Ant(self, destination)
       val probabilities = pheromoneMatrix.probabilities(destination).toMap
       val startTime = System.currentTimeMillis
       val (nextNode, ant1) = ant.nextNode(self, probabilities)
@@ -141,14 +146,20 @@ class AntNode extends Actor with ActorLogging {
       if (self == ant.destination) {
         // Ziel erreicht
         statistics.antAges += ant.age
-        val ant1 = ant.log("Destination reached, visited %d nodes, updating nodes" format ant.memory.size)
+        val ant1 = if (Ant.ShouldLog)
+          ant.log("Destination reached, visited %d nodes, updating nodes" format ant.memory.size)
+        else
+          ant
         statistics.incrementDestinationReachedAnts()
         ant1.updateNodes()
         trace(ant1.source, ant1.destination, ant1.prepareLogEntries)
       } else if (ant.age > Settings.MaxAntAge) {
         // Ameise ist zu alt
         statistics.antAges += ant.age
-        val ant1 = ant.log("Lifetime expired, visited %d nodes, removing ant" format ant.memory.size)
+        val ant1 = if (Ant.ShouldLog)
+          ant.log("Lifetime expired, visited %d nodes, removing ant" format ant.memory.size)
+        else
+          ant
         statistics.incrementMaxAgeExceededAnts()
         trace(ant1.source, ant1.destination, ant1.prepareLogEntries)
       } else if (!(pheromoneMatrix != null && pheromoneMatrix.probabilities.isDefinedAt(ant.destination))) {
@@ -158,11 +169,17 @@ class AntNode extends Actor with ActorLogging {
         // Knoten nicht erreichbar.
         // In beiden Fällen wird die Ameise aus dem System entfernt.
         statistics.antAges += ant.age
-        val ant1 = ant.log("Dead end street reached, visited %d nodes, removing ant" format ant.memory.size)
+        val ant1 = if (Ant.ShouldLog)
+          ant.log("Dead end street reached, visited %d nodes, removing ant" format ant.memory.size)
+        else
+          ant
         statistics.incrementDeadEndStreetReachedAnts()
         trace(ant1.source, ant1.destination, ant1.prepareLogEntries)
       } else {
-        val ant1 = ant.log("Visiting node %s".format(AntNode.nodeId(self)))
+        val ant1 = if (Ant.ShouldLog)
+          ant.log("Visiting node %s".format(AntNode.nodeId(self)))
+        else
+          ant
         val probabilities = pheromoneMatrix.probabilities(ant1.destination).toMap
         val startTime = System.currentTimeMillis
         val (nextNode, ant2) = ant1.nextNode(self, probabilities)
@@ -175,8 +192,9 @@ class AntNode extends Actor with ActorLogging {
   }
 
   def updateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double) = {
-    trace(self, destination, ("Updating data structures, source: %s, destination: %s, way: %s, trip time: %s")
-      .format(this, destination, way, tripTime))
+    if (ShouldLog)
+      trace(self, destination, ("Updating data structures, source: %s, destination: %s, way: %s, trip time: %s")
+        .format(this, destination, way, tripTime))
     assert(trafficModel.isDefined, "Traffic model is undefined, node: %s, destination: %s, way: %s".format(self,
       destination, way))
     for (trafficModel <- this.trafficModel) {
@@ -187,17 +205,21 @@ class AntNode extends Actor with ActorLogging {
       val node = AntMap.nodes.find(_.id == nodeId).get
       val outgoingWays = AntMap.outgoingWays(node)
       val reinforcement = trafficModel.reinforcement(destination, tripTime, outgoingWays.size)
-      trace(self, destination, "Updating pheromones: way: %s, reinforcement: %s" format (way, reinforcement))
+      if (ShouldLog)
+        trace(self, destination, "Updating pheromones: way: %s, reinforcement: %s" format (way, reinforcement))
       val bestWayBeforeUpdate = bestWay(destination)
-      trace(self, destination, "Before update: pheromones: %s, best way: %s" format (pheromoneMatrix
-        .pheromones(destination), bestWayBeforeUpdate))
+      if (ShouldLog)
+        trace(self, destination, "Before update: pheromones: %s, best way: %s" format (pheromoneMatrix
+          .pheromones(destination), bestWayBeforeUpdate))
       pheromoneMatrix.updatePheromones(destination, way, reinforcement)
       statistics.updateDataStructuresDurations += System.currentTimeMillis - startTime
       val bestWayAfterUpdate = bestWay(destination)
-      trace(self, destination, "After update: pheromones: %s, best way: %s" format (pheromoneMatrix
-        .pheromones(destination), bestWayAfterUpdate))
+      if (ShouldLog)
+        trace(self, destination, "After update: pheromones: %s, best way: %s" format (pheromoneMatrix
+          .pheromones(destination), bestWayAfterUpdate))
       if (bestWayAfterUpdate != bestWayBeforeUpdate) {
-        trace(self, destination, "Sending best way to routing service: %s" format bestWayAfterUpdate)
+        if (ShouldLog)
+          trace(self, destination, "Sending best way to routing service: %s" format bestWayAfterUpdate)
         AntScout.system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) !
           RoutingService.UpdateBestWay(self, destination, bestWayAfterUpdate)
       }
@@ -259,6 +281,8 @@ class AntNode extends Actor with ActorLogging {
 }
 
 object AntNode {
+
+  val ShouldLog = false
 
   case object DeadEndStreet
   case class Enter(destination: ActorRef)
