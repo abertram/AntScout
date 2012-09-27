@@ -21,7 +21,7 @@ class AntNodeSupervisor extends Actor with ActorLogging {
 
   def init() {
     log.info("Initializing")
-    AntMap.nodes foreach { node => context.actorOf(Props[AntNode], node.id) }
+    AntMap.nodes foreach { node => context.actorOf(Props[AntNode].withDispatcher("ant-node-dispatcher"), node.id) }
     context.system.scheduler.schedule(Settings.ProcessStatisticsDelay, Settings.ProcessStatisticsDelay) {
       self ! ProcessStatistics(System.currentTimeMillis)
     }

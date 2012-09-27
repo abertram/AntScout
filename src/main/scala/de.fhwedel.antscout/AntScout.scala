@@ -13,7 +13,8 @@ class AntScout extends Actor with FSM[AntScoutMessage, Unit] with Logger {
 
   import AntScout._
 
-  context.actorOf(actor.Props[AntNodeSupervisor], AntNodeSupervisor.ActorName)
+  context.actorOf(actor.Props[AntNodeSupervisor].withDispatcher("ant-node-supervisor-dispatcher"),
+    AntNodeSupervisor.ActorName)
   context.actorOf(actor.Props[RoutingService], RoutingService.ActorName)
 
   startWith(Uninitialized, Unit)
