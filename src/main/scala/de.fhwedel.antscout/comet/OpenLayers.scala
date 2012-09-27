@@ -19,8 +19,8 @@ class OpenLayers extends NamedCometActorTrait {
           val (length, tripTime) = path.foldLeft(0.0, 0.0) {
             case ((lengthAcc, tripTimeAcc), way) => (way.length + lengthAcc, way.tripTime + tripTimeAcc)
           }
-          ("length" -> length) ~
-          ("tripTime" -> tripTime) ~
+          ("length" -> "%.2f".format(length)) ~
+          ("tripTime" -> "%.2f".format(tripTime)) ~
           ("ways" ->  path.map(_.toJson))
         case _ => JArray(List[AntWay]().map(_.toJson))
       }
