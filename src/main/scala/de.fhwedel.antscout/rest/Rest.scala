@@ -43,20 +43,22 @@ object Rest extends Logger with RestHelper {
       for {
         sourceId <- S.param("source") ?~ "Source is missing" ~> 400
         destinationId <- S.param("destination") ?~ "Destination is missing" ~> 400
-        val source = AntScout.system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName,
+        source = AntScout.system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName,
           sourceId))
-        val destination = AntScout.system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName,
+        destination = AntScout.system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName,
           destinationId))
-        val pathFuture = (AntScout.system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) ?
+        pathFuture = (AntScout.system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) ?
           RoutingService.FindPath(source, destination))
         path <- Await.result(pathFuture, 5 seconds).asInstanceOf[Box[Seq[AntWay]]] ?~ "No path found" ~> 404
       } yield {
+        selectedSource send Some(sourceId)
+        selectedDestination send  Some(destinationId)
         val (length, tripTime) = path.foldLeft(0.0, 0.0) {
           case ((lengthAcc, tripTimeAcc), way) => (way.length + lengthAcc, way.tripTime + tripTimeAcc)
         }
         ("length" -> length) ~
         ("tripTime" -> tripTime) ~
-        ("ways" ->  path.map(_.toJson))
+        ("ways" -> path.map(_.toJson))
       }
     case Get(List("osmnodes"), _) => {
       OsmMap.nodes.values.map(_.toJson): JArray

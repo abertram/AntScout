@@ -11,6 +11,8 @@ import map.Node
 import java.util.concurrent.TimeUnit
 import osm.{OsmNode, OsmMap}
 import net.liftweb.util.TimeHelpers
+import net.liftweb.http.NamedCometListener
+import net.liftweb.common.Full
 
 class AntNode extends Actor with ActorLogging {
 
@@ -107,11 +109,11 @@ class AntNode extends Actor with ActorLogging {
    * @param destinations Ziele der Ameisen.
    */
   def launchAnts(destinations: Set[ActorRef]) {
-    if (ShouldLog) {
-      for (traceDestinationId <- TraceDestinationId if destinations.contains(AntNode(traceDestinationId))) {
-        traceBySource("Launching ants, destinations: %s" format destinations)
-      }
-    }
+//    if (ShouldLog) {
+//      for (traceDestinationId <- TraceDestinationId if destinations.contains(AntNode(traceDestinationId))) {
+//        traceBySource("Launching ants, destinations: %s" format destinations)
+//      }
+//    }
     val startTime = System.currentTimeMillis
     for (destination <- destinations) {
       val ant = if (Ant.ShouldLog)
@@ -147,21 +149,25 @@ class AntNode extends Actor with ActorLogging {
         // Ziel erreicht
         statistics.antAges += ant.age
         val ant1 = if (Ant.ShouldLog)
-          ant.log("Destination reached, visited %d nodes, updating nodes" format ant.memory.size)
+          ant.log(Seq("Destination reached, visited %d nodes, took %d milliseconds" format (ant.memory.size, ant.age),
+            "Memory: %s" format ant.memory.items.reverse.mkString("\n\t\t", "\t\t", ""), "Updating nodes"))
         else
           ant
         statistics.incrementDestinationReachedAnts()
-        ant1.updateNodes()
-        trace(ant1.source, ant1.destination, ant1.prepareLogEntries)
+        val ant2 = ant1.updateNodes()
+        if (ShouldLog)
+          trace(ant2.source, ant2.destination, ant2.prepareLogEntries)
       } else if (ant.age > Settings.MaxAntAge) {
         // Ameise ist zu alt
         statistics.antAges += ant.age
         val ant1 = if (Ant.ShouldLog)
-          ant.log("Lifetime expired, visited %d nodes, removing ant" format ant.memory.size)
+          ant.log("Lifetime expired, visited %d nodes, took %s milliseconds, removing ant" format (ant.memory.size,
+            ant.age))
         else
           ant
         statistics.incrementMaxAgeExceededAnts()
-        trace(ant1.source, ant1.destination, ant1.prepareLogEntries)
+        if (ShouldLog)
+          trace(ant1.source, ant1.destination, ant1.prepareLogEntries)
       } else if (!(pheromoneMatrix != null && pheromoneMatrix.probabilities.isDefinedAt(ant.destination))) {
         // Wenn die Pheromon-Matrix undefiniert ist, dann ist der Knoten kein gültiger Quell-Knoten (enthält keine
         // ausgehenden Wege.
@@ -170,11 +176,13 @@ class AntNode extends Actor with ActorLogging {
         // In beiden Fällen wird die Ameise aus dem System entfernt.
         statistics.antAges += ant.age
         val ant1 = if (Ant.ShouldLog)
-          ant.log("Dead end street reached, visited %d nodes, removing ant" format ant.memory.size)
+          ant.log("Dead end street reached, visited %d nodes, took %d milliseconds, removing ant" format (ant.memory
+            .size, ant.age))
         else
           ant
         statistics.incrementDeadEndStreetReachedAnts()
-        trace(ant1.source, ant1.destination, ant1.prepareLogEntries)
+        if (ShouldLog)
+          trace(ant1.source, ant1.destination, ant1.prepareLogEntries)
       } else {
         val ant1 = if (Ant.ShouldLog)
           ant.log("Visiting node %s".format(AntNode.nodeId(self)))
@@ -194,7 +202,7 @@ class AntNode extends Actor with ActorLogging {
   def updateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double) = {
     if (ShouldLog)
       trace(self, destination, ("Updating data structures, source: %s, destination: %s, way: %s, trip time: %s")
-        .format(this, destination, way, tripTime))
+        .format(self, destination, way, tripTime))
     assert(trafficModel.isDefined, "Traffic model is undefined, node: %s, destination: %s, way: %s".format(self,
       destination, way))
     for (trafficModel <- this.trafficModel) {
@@ -212,6 +220,16 @@ class AntNode extends Actor with ActorLogging {
         trace(self, destination, "Before update: pheromones: %s, best way: %s" format (pheromoneMatrix
           .pheromones(destination), bestWayBeforeUpdate))
       pheromoneMatrix.updatePheromones(destination, way, reinforcement)
+      for {
+        selectedSource <- selectedSource()
+        selectedDestination <- selectedDestination()
+        if (AntNode.nodeId(self) == selectedSource && AntNode.nodeId(destination) == selectedDestination)
+      } yield {
+        NamedCometListener.getDispatchersFor(Full("userInterface")) foreach { actor =>
+          actor.map(_ ! PheromonesAndProbabilities(selectedSource, selectedDestination, pheromoneMatrix
+            .pheromones(destination).toSeq, pheromoneMatrix.probabilities(destination).toSeq))
+        }
+      }
       statistics.updateDataStructuresDurations += System.currentTimeMillis - startTime
       val bestWayAfterUpdate = bestWay(destination)
       if (ShouldLog)
@@ -268,7 +286,7 @@ class AntNode extends Actor with ActorLogging {
       traceDestinationId <- TraceDestinationId
       if (AntNode.nodeId(destination).matches(traceDestinationId))
     } yield
-      log.debug("{}", message)
+      log.info("{}", message)
   }
 
   def traceBySource(message: String, source: ActorRef = self) {
@@ -276,7 +294,7 @@ class AntNode extends Actor with ActorLogging {
       traceSourceId <- TraceSourceId
       if (AntNode.nodeId(source).matches(traceSourceId))
     } yield
-      log.debug("{}", message)
+      log.info("{}", message)
   }
 }
 
@@ -288,7 +306,8 @@ object AntNode {
   case class Enter(destination: ActorRef)
   case class Initialize(destinations: Set[ActorRef], pheromones: Map[ActorRef, Map[AntWay, Double]])
   case class LaunchAnts(destinations: Set[ActorRef])
-  case class Probabilities(probabilities: Map[AntWay, Double])
+  case class PheromonesAndProbabilities(source: String, destination: String, pheromones: Seq[(AntWay, Double)],
+    probabilities: Seq[(AntWay, Double)])
   case object ProcessStatistics
   case class Statistics(
     antAge: Double,

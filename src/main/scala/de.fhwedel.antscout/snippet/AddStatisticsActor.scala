@@ -10,7 +10,7 @@ import net.liftweb.http.NamedCometActorSnippet
  * Time: 17:03
  */
 
-class AddStatisticsActor extends NamedCometActorSnippet {
+object AddStatisticsActor extends NamedCometActorSnippet {
 
   def cometClass = "Statistics"
 

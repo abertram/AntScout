@@ -59,6 +59,28 @@
                 <td id="nodeLatitude"></td>
               </tr>
             </table>
+            <div class="accordion" id="node-accordion">
+              <div class="accordion-group">
+                <div class="accordion-heading">
+                  <a class="accordion-toggle" data-toggle="collapse" href="#pheromones-accordion-body">
+                    Pheromones
+                  </a>
+                </div>
+                <div id="pheromones-accordion-body" class="accordion-body collapse">
+                  <div id="pheromones" class="accordion-inner"></div>
+                </div>
+              </div>
+              <div class="accordion-group">
+                <div class="accordion-heading">
+                  <a class="accordion-toggle" data-toggle="collapse" href="#probabilities-accordion-body">
+                    Probabilities
+                  </a>
+                </div>
+                <div id="probabilities-accordion-body" class="accordion-body collapse">
+                  <div id="probabilities" class="accordion-inner"></div>
+                </div>
+              </div>
+            </div>
             <div class="btn-group">
               <a class="btn" id="setNodeAsSource"><i class="icon-home"></i> As source</a>
               <a class="btn" id="setNodeAsDestination"><i class="icon-flag"></i> As target</a>
@@ -171,6 +193,7 @@
 </div>
 <div data-lift="AddOpenLayersActor"></div>
 <div data-lift="AddStatisticsActor"></div>
+<div data-lift="AddUserInterfaceActor"></div>
 <script data-main="scripts/script" src="scripts/require-jquery.js"></script>
 </body>
 </html>

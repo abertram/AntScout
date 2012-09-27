@@ -27,6 +27,9 @@ class Ant(val source: ActorRef, val destination: ActorRef, val memory: AntMemory
    */
   def containsCycle(node: ActorRef) = memory.containsNode(node)
 
+  def log(entries: Seq[String]) = new Ant(source, destination, memory, entries.reverse.map(logEntry(_)) ++ logEntries,
+    startTime)
+
   def log(entry: String) = new Ant(source, destination, memory, logEntry(entry) +: logEntries, startTime)
 
   def prepareLogEntries = logEntries.reverse.mkString("\n\t")
@@ -70,15 +73,16 @@ class Ant(val source: ActorRef, val destination: ActorRef, val memory: AntMemory
     "%s -> %s, memory: %s".format(AntNode.nodeId(source), AntNode.nodeId(destination), memory)
   }
 
-  def updateNodes() {
-    memory.items.foldLeft(0.0) {
-      case (tripTimeAcc, antMemoryItem @ AntMemoryItem(node, way, tripTime)) => {
+  def updateNodes() = {
+    val (_, logEntries1) = memory.items.foldLeft((0.0, Seq[String]())) {
+      case ((tripTimeAcc, logEntries), antMemoryItem @ AntMemoryItem(node, way, tripTime)) => {
         val tripTimeSum = tripTimeAcc + tripTime
         val updateDataStructures = AntNode.UpdateDataStructures(destination, way, tripTimeSum)
         node ! updateDataStructures
-        tripTimeSum
+        (tripTimeSum, if (ShouldLog) "Updating %s: %s".format(node, updateDataStructures) +: logEntries else Seq())
       }
     }
+    new Ant(source, destination, memory, logEntries1 ++ logEntries, startTime)
   }
 }
 
