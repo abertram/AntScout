@@ -21,10 +21,15 @@ class AntNodeSupervisorStatistics {
   def meanBy(f: AntNode.Statistics => Int) = antNodeStatistics.values.map(f).sum / antNodeStatistics.size
 
   def prepare = {
-    val (antAge) = if (antNodeStatistics.isEmpty)
-      (0)
+    val (antAge, idleTimes) = if (antNodeStatistics.isEmpty)
+      (0.0,
+        antNodeStatistics.map { case (node, statistics) => AntNode.nodeId(node) -> (0L, 0L, 0L) }.toMap
+      )
     else {
-      antNodeStatistics.values.map(_.antAge).sum / antNodeStatistics.size
+      (antNodeStatistics.values.map(_.antAge).sum / antNodeStatistics.size,
+      antNodeStatistics.map { case (node, statistics) => AntNode.nodeId(node) -> (statistics.idleTimes
+        .min, statistics.idleTimes.sum / statistics.idleTimes.size,
+        statistics.idleTimes.max) }.toMap)
     }
     val deadEndStreetReachedAnts = if (antNodeStatistics.size > 0) {
       antNodeStatistics.map {
@@ -95,6 +100,7 @@ class AntNodeSupervisorStatistics {
     AntNodeSupervisor.Statistics(
       deadEndStreetReachedAnts = deadEndStreetReachedAnts,
       destinationReachedAnts = destinationReachedAnts,
+      idleTimes = idleTimes,
       launchAntsDuration = launchAntsDuration,
       launchedAnts = launchedAnts,
       maxAgeExceededAnts = maxAgeExceededAnts,

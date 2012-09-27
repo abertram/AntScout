@@ -15,6 +15,7 @@ class AntNodeStatistics {
   val antAges = mutable.Buffer[Long]()
   private var deadEndStreetReachedAnts = 0
   private var destinationReachedAnts = 0
+  val idleTimes = mutable.Buffer[Long]()
   var launchAntsDurations = mutable.Buffer[Long]()
   private var launchedAnts = 0
   private var maxAgeExceededAnts = 0
@@ -58,6 +59,7 @@ class AntNodeStatistics {
       antAge = if (antAges.size > 0) antAges.sum.toDouble / antAges.size / 10e3 else 0,
       deadEndStreetReachedAnts = deadEndStreetReachedAnts,
       destinationReachedAnts = destinationReachedAnts,
+      idleTimes = idleTimes,
       launchAntsDuration = if (launchAntsDurations.size > 0)
         launchAntsDurations.sum.toDouble / launchAntsDurations.size
       else

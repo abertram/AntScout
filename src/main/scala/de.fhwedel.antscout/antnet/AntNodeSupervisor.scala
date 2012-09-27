@@ -81,6 +81,7 @@ object AntNodeSupervisor {
     antAge: Double,
     deadEndStreetReachedAnts: Int,
     destinationReachedAnts: Int,
+    idleTimes: Map[String, (Long, Long, Long)],
     launchAntsDuration: Double,
     launchedAnts: Int,
     maxAgeExceededAnts: Int,

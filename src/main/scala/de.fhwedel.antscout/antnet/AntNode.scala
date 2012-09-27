@@ -20,6 +20,7 @@ class AntNode extends Actor with ActorLogging {
    * Ziele, die von diesem Knoten aus erreichbar sind.
    */
   val destinations = mutable.Set[ActorRef]()
+  var lastProcessReceiveTime: Option[Long] = None
   // TODO pheromoneMatrix sollte vom Datentyp Option[PheromoneMatrix] sein.
   var pheromoneMatrix: PheromoneMatrix = _
   val statistics = new AntNodeStatistics()
@@ -205,17 +206,29 @@ class AntNode extends Actor with ActorLogging {
 
   protected def receive = {
     case ant: Ant =>
+      lastProcessReceiveTime.map(statistics.idleTimes += System.currentTimeMillis - _)
+      lastProcessReceiveTime = Some(System.currentTimeMillis)
       processAnt(ant)
     case Initialize(destinations, pheromones) =>
+      lastProcessReceiveTime.map(statistics.idleTimes += System.currentTimeMillis - _)
+      lastProcessReceiveTime = Some(System.currentTimeMillis)
       initialize(destinations, pheromones)
     case LaunchAnts(destinations) =>
+      lastProcessReceiveTime.map(statistics.idleTimes += System.currentTimeMillis - _)
+      lastProcessReceiveTime = Some(System.currentTimeMillis)
       launchAnts(destinations)
     case ProcessStatistics =>
+      lastProcessReceiveTime.map(statistics.idleTimes += System.currentTimeMillis - _)
+      lastProcessReceiveTime = Some(System.currentTimeMillis)
       context.parent ! statistics.prepare
       statistics.reset()
     case UpdateDataStructures(destination, way, tripTime) =>
+      lastProcessReceiveTime.map(statistics.idleTimes += System.currentTimeMillis - _)
+      lastProcessReceiveTime = Some(System.currentTimeMillis)
       updateDataStructures(destination, way, tripTime)
     case m: Any =>
+      lastProcessReceiveTime.map(statistics.idleTimes += System.currentTimeMillis - _)
+      lastProcessReceiveTime = Some(System.currentTimeMillis)
       log.warning("Unknown message: {}", m)
   }
 
@@ -257,6 +270,7 @@ object AntNode {
     antAge: Double,
     deadEndStreetReachedAnts: Int,
     destinationReachedAnts: Int,
+    idleTimes: mutable.Buffer[Long],
     launchAntsDuration: Double,
     launchedAnts: Int,
     maxAgeExceededAnts: Int,
