@@ -1,81 +1,115 @@
-require(["jquery", "styles", "bootstrap", "openlayers/OpenLayers", "underscore"], ($, styles) ->
+require(["jquery", "styles", "bootstrap", "leaflet", "openlayers/OpenLayers", "underscore"], ($, styles) ->
 
   # globales AntScout-Object erstellen
   @AntScout = {}
+
+  cloudmadeUrl = 'http://{s}.tile.cloudmade.com/{apiKey}/{styleId}/256/{z}/{x}/{y}.png'
+  cloudmadeAttribution = 'Map data &copy; 2011 OpenStreetMap contributors, Imagery &copy; 2011 CloudMade';
+
   destination = null
-  directionsLayer = new OpenLayers.Layer.Vector(
-    "Directions"
-    {
-      renderers: ["Canvas", "SVG", "VML"]
-      style: styles.directionsDefaultStyle
-    }
+  directionsLayer = L.tileLayer(cloudmadeUrl,
+    attribution: cloudmadeAttribution
+    apiKey: "396d772f0ece43f49d3801843fd86fbc"
+    styleId: 997
   )
+#    "Directions"
+#    {
+#      renderers: ["Canvas", "SVG", "VML"]
+#      style: styles.directionsDefaultStyle
+#    }
+#  )
   EPSG4326Projection = new OpenLayers.Projection("EPSG:4326")
-  incomingWaysLayer = new OpenLayers.Layer.Vector(
-    "Incoming ways"
-    {
-      style: styles.incomingWaysStyle
-      visibility: false
-    }
+  incomingWaysLayer = L.tileLayer(cloudmadeUrl,
+    attribution: cloudmadeAttribution
+    apiKey: "396d772f0ece43f49d3801843fd86fbc"
+    styleId: 997
   )
+#    "Incoming ways"
+#    {
+#      style: styles.incomingWaysStyle
+#      visibility: false
+#    }
+#  )
   map = null
   nodes = null
-  nodesLayer = new OpenLayers.Layer.Vector(
-    "Nodes"
-    {
-      styleMap: new OpenLayers.StyleMap(
-        default: styles.nodesDefaultStyle
-        select: styles.nodesSelectStyle
-      )
-      visibility: false
-    }
+  nodesLayer = L.tileLayer(cloudmadeUrl,
+    attribution: cloudmadeAttribution
+    apiKey: "396d772f0ece43f49d3801843fd86fbc"
+    styleId: 997
   )
-  nodesLayer.events.on({
-    "featureselected": (e) ->
-      id = e.feature.attributes.node.id
-      $("#nodeId").html("<a href=\"http://www.openstreetmap.org/browse/node/#{ id }\">#{ id }</a>")
-      $("#nodeLongitude").html(e.feature.attributes.node.longitude)
-      $("#nodeLatitude").html(e.feature.attributes.node.latitude)
-      retrieveNode(id)
-    "visibilitychanged": (e) ->
-      if nodesLayer.getVisibility() and not nodes?
-        retrieveNodes()
-  })
-  osmLayer = new OpenLayers.Layer.OSM()
-  outgoingWaysLayer = new OpenLayers.Layer.Vector(
-    "Outgoing ways"
-    {
-      style: styles.outgoingWaysStyle
-      visibility: false
-    }
+#    new OpenLayers.Layer.Vector(
+#    "Nodes"
+#    {
+#      styleMap: new OpenLayers.StyleMap(
+#        default: styles.nodesDefaultStyle
+#        select: styles.nodesSelectStyle
+#      )
+#      visibility: false
+#    }
+#  )
+#  nodesLayer.events.on({
+#    "featureselected": (e) ->
+#      id = e.feature.attributes.node.id
+#      $("#nodeId").html("<a href=\"http://www.openstreetmap.org/browse/node/#{ id }\">#{ id }</a>")
+#      $("#nodeLongitude").html(e.feature.attributes.node.longitude)
+#      $("#nodeLatitude").html(e.feature.attributes.node.latitude)
+#      retrieveNode(id)
+#    "visibilitychanged": (e) ->
+#      if nodesLayer.getVisibility() and not nodes?
+#        retrieveNodes()
+#  })
+#  osmLayer = new OpenLayers.Layer.OSM()
+  outgoingWaysLayer = L.tileLayer(cloudmadeUrl,
+    attribution: cloudmadeAttribution
+    apiKey: "396d772f0ece43f49d3801843fd86fbc"
+    styleId: 997
   )
+#    "Outgoing ways"
+#    {
+#      style: styles.outgoingWaysStyle
+#      visibility: false
+#    }
+#  )
   ways = null
-  waysLayer = new OpenLayers.Layer.Vector(
-    "Ways"
-    {
-      styleMap: new OpenLayers.StyleMap(
-        default: styles.waysDefaultStyle
-        select: styles.waysSelectStyle
-      )
-      visibility: false
-    }
+  waysLayer = L.tileLayer(cloudmadeUrl,
+    attribution: cloudmadeAttribution
+    apiKey: "396d772f0ece43f49d3801843fd86fbc"
+    styleId: 997
   )
-  waysLayer.events.on({
-    "featureselected": (e) ->
-      displayWayData(e.feature.attributes.way)
-    "visibilitychanged": (e) ->
-      if waysLayer.getVisibility() and waysLayer.features.length is 0
-        retrieveWays()
-  })
+#      "Ways"
+#    {
+#      styleMap: new OpenLayers.StyleMap(
+#        default: styles.waysDefaultStyle
+#        select: styles.waysSelectStyle
+#      )
+#      visibility: false
+#    }
+#  )
+#  waysLayer.events.on({
+#    "featureselected": (e) ->
+#      displayWayData(e.feature.attributes.way)
+#    "visibilitychanged": (e) ->
+#      if waysLayer.getVisibility() and waysLayer.features.length is 0
+#        retrieveWays()
+#  })
   selectFeatureControl = new OpenLayers.Control.SelectFeature([nodesLayer, waysLayer]);
   source = null
 
   $(() ->
-    map = new OpenLayers.Map "map"
-    map.addControls([new OpenLayers.Control.LayerSwitcher(), selectFeatureControl]);
-    map.addLayers([incomingWaysLayer, osmLayer, outgoingWaysLayer, waysLayer, directionsLayer, nodesLayer]);
-    selectFeatureControl.activate();
-    map.zoomToMaxExtent()
+    map = L.map('map',
+      layers: [incomingWaysLayer, outgoingWaysLayer, waysLayer, directionsLayer, nodesLayer]
+    ).fitWorld()
+    L.control.layers({},
+      "Incoming ways": incomingWaysLayer
+      "Outgoing ways": outgoingWaysLayer
+      "Ways": waysLayer
+      "Directions": directionsLayer
+      "Nodes": nodesLayer
+    ).addTo(map)
+#    map.addControls([new OpenLayers.Control.LayerSwitcher(), selectFeatureControl]);
+#    map.addLayers([incomingWaysLayer, osmLayer, outgoingWaysLayer, waysLayer, directionsLayer, nodesLayer]);
+#    selectFeatureControl.activate();
+#    map.zoomToMaxExtent()
     $("#retrieveDirections").click -> retrieveDirections()
     $("#setNodeAsSource").click -> setNodeAsSource()
     $("#setNodeAsDestination").click -> setNodeAsDestination()
