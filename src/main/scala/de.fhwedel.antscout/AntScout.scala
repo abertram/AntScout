@@ -4,7 +4,7 @@ import antnet._
 import net.liftweb.common.Logger
 import osm.OsmMap
 import routing.RoutingService
-import akka.actor.{ActorSystem, FSM, Actor}
+import akka.actor.{FSM, Actor}
 import akka.actor
 
 sealed trait AntScoutMessage
@@ -60,7 +60,6 @@ object AntScout {
   case object InitializingRoutingService extends AntScoutMessage
   case object RoutingServiceInitialized extends AntScoutMessage
 
-  val system = ActorSystem("AntScout")
   system.actorOf(actor.Props[AntScout], AntScout.ActorName)
 
   def init() {

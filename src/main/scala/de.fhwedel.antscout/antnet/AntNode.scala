@@ -94,7 +94,7 @@ class AntNode extends Actor with ActorLogging {
     traceBySource("Calculating best ways")
     destinations.foreach(destination => bestWays += (destination -> bestWay(destination)))
     traceBySource("Best ways calculated, result: %s, sending to the routing service" format bestWays)
-    AntScout.system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) !
+    system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) !
       RoutingService.InitializeBestWays(self, bestWays)
     trafficModel = Some(TrafficModel(destinations, Settings.Varsigma, Settings.Wmax))
     cancellables += context.system.scheduler.schedule(Settings.ProcessStatisticsDelay, Settings.ProcessStatisticsDelay,
@@ -238,7 +238,7 @@ class AntNode extends Actor with ActorLogging {
       if (bestWayAfterUpdate != bestWayBeforeUpdate) {
         if (ShouldLog)
           trace(self, destination, "Sending best way to routing service: %s" format bestWayAfterUpdate)
-        AntScout.system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) !
+        system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) !
           RoutingService.UpdateBestWay(self, destination, bestWayAfterUpdate)
       }
     }
@@ -334,7 +334,7 @@ object AntNode {
    * @return
    */
   def apply(node: Node) = {
-    AntScout.system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName, node.id))
+    system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName, node.id))
   }
 
   /**
@@ -344,7 +344,7 @@ object AntNode {
    * @return
    */
   def apply(nodeId: String) = {
-    AntScout.system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName, nodeId))
+    system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName, nodeId))
   }
 
   /**

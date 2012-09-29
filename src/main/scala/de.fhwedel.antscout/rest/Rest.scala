@@ -43,11 +43,11 @@ object Rest extends Logger with RestHelper {
       for {
         sourceId <- S.param("source") ?~ "Source is missing" ~> 400
         destinationId <- S.param("destination") ?~ "Destination is missing" ~> 400
-        source = AntScout.system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName,
+        source = system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName,
           sourceId))
-        destination = AntScout.system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName,
+        destination = system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName,
           destinationId))
-        pathFuture = (AntScout.system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) ?
+        pathFuture = (system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) ?
           RoutingService.FindPath(source, destination))
         path <- Await.result(pathFuture, 5 seconds).asInstanceOf[Box[Seq[AntWay]]] ?~ "No path found" ~> 404
       } yield {

@@ -20,7 +20,6 @@ import akka.actor.ActorRef
 class AntWay(id: String, override val nodes: Seq[Node], val startNode: ActorRef, val endNode: ActorRef,
   val length: Double, originalMaxSpeed: Double) extends Way(id, nodes) with Logger {
 
-  implicit val system = AntScout.system
   implicit val timeout = Timeout(5 seconds)
 
   private val _maxSpeed = Agent(originalMaxSpeed)
@@ -91,9 +90,9 @@ object AntWay extends Logger {
   def apply(id: String, nodes: Seq[OsmNode], maxSpeed: Double, oneWay: Boolean = false) = {
     val startNodeId = nodes.head.id
     val endNodeId = nodes.last.id
-    val startNode = AntScout.system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName,
+    val startNode = system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName,
       startNodeId))
-    val endNode = AntScout.system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName, endNodeId))
+    val endNode = system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName, endNodeId))
     val length = nodes.zip(nodes.tail).map(n => n._1.distanceTo(n._2)).sum
     if (oneWay)
       new AntOneWay(id, nodes, startNode, endNode, length, maxSpeed)
