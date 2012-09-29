@@ -124,7 +124,7 @@ require(["jquery", "styles", "bootstrap", "openlayers/OpenLayers", "underscore"]
     $("#wayTripTime").val(way.tripTime)
     nodes = for node in way.nodes
       "<a href=\"http://www.openstreetmap.org/browse/node/#{ node.id }\">#{ node.id }</a>"
-    $("#wayNodes").html("<ul><li>" + nodes.join("</li><li>") + "</li></ul>")
+    $("#way-nodes").html("<ul><li>" + nodes.join("</li><li>") + "</li></ul>")
 
   drawDirections = (directions) ->
     directionsLayer.removeAllFeatures()
