@@ -8,27 +8,27 @@ define ->
   )
   styles =
     directionsDefaultStyle: $.extend({}, wayStyle,
-      strokeColor: "#00cc00"
+      color: "#00cc00"
     )
     incomingWaysStyle: $.extend({}, style,
       fillColor: "lightgreen"
-      strokeColor: "green"
+      color: "green"
     )
-    nodesDefaultStyle: $.extend({}, style,
+    node: $.extend({}, style,
       fillColor: "#ff7373"
-      strokeColor: "#ff0000"
+      color: "#ff0000"
     )
     nodesSelectStyle: $.extend({}, style,
       fillColor: "#67e667"
-      strokeColor: "#00cc00"
+      color: "#00cc00"
     )
     outgoingWaysStyle: $.extend({}, style,
       fillColor: "lightcoral"
-      strokeColor: "red"
+      color: "red"
     )
     waysDefaultStyle: $.extend({}, wayStyle,
-      strokeColor: "#ff9200"
+      color: "#ff9200"
     )
     waysSelectStyle: $.extend({}, wayStyle,
-      strokeColor: "#0b61a4"
+      color: "#0b61a4"
     )
