@@ -1,5 +1,6 @@
 .idea/
 AntScout.iml
 lib_managed/
+log/
 project/boot/
 target/
