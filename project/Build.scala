@@ -21,7 +21,7 @@ object AntScoutBuild extends Build {
 
   val downloadMapTask = downloadMap <<= streams.map { s: TaskStreams =>
     if (!originalMap.exists) {
-      val mapUrl = url("http://download.geofabrik.de/osm/europe/germany/%s%s" format (mapName, mapExtension))
+      val mapUrl = url("http://download.geofabrik.de/openstreetmap/europe/germany/%s%s" format (mapName, mapExtension))
       s.log.info("Downloading map from %s to %s" format (mapUrl, originalMap))
       sbt.IO.download(mapUrl, originalMap)
       if (originalMap.exists)
