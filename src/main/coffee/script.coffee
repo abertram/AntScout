@@ -32,21 +32,22 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "openlayers/OpenLayers"
   source = null
   sourceMarker = null
 
+  deselectNode = () ->
+    if selectedNode?
+      incomingWaysLayer.clearLayers()
+      outgoingWaysLayer.clearLayers()
+      selectedNode.setRadius(styles.node.radius)
+      selectedNode.setStyle(styles.node)
+      selectedNode = null
+
   retrieveNodes = () ->
     $.get "nodes",
       (nodes) ->
         this.nodes = this
         for node in nodes
-          layer = new L.CircleMarker([node.latitude, node.longitude], 1)
+          layer = L.circleMarker([node.latitude, node.longitude], styles.node)
           layer.node = node
-          layer.addTo(nodesLayer).on("click"
-            (e) ->
-              selectedNode = this.node
-              $("#nodeId").html("<a href=\"http://www.openstreetmap.org/browse/node/#{ this.node.id }\">#{ this.node.id }</a>")
-              $("#nodeLongitude").html(this.node.longitude)
-              $("#nodeLatitude").html(this.node.latitude)
-              retrieveNode(this.node.id)
-          )
+          layer.addTo(nodesLayer).on("click", (e) -> selectNode(e.target))
         map.fitBounds(for node in nodes
           [node.latitude, node.longitude])
 
@@ -58,6 +59,18 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "openlayers/OpenLayers"
           for node in way.nodes
             [node.latitude, node.longitude]
         )
+
+  selectNode = (nodePath) ->
+    shouldSelect = !selectedNode? or nodePath != selectedNode
+    deselectNode()
+    if shouldSelect
+      nodePath.setRadius(styles.selectedNode.radius)
+      nodePath.setStyle(styles.selectedNode)
+      selectedNode = nodePath
+      $("#nodeId").html("<a href=\"http://www.openstreetmap.org/browse/node/#{ selectedNode.node.id }\">#{ selectedNode.node.id }</a>")
+      $("#nodeLongitude").html(selectedNode.node.longitude)
+      $("#nodeLatitude").html(selectedNode.node.latitude)
+      retrieveNode(selectedNode.node.id)
 
   $(() ->
     map = L.map("map",
@@ -149,7 +162,7 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "openlayers/OpenLayers"
       drawDirections(directions)
 
   setNodeAsDestination = () ->
-    destination = selectedNode
+    destination = selectedNode.node
     if not destinationMarker?
       destinationMarker ?= L.marker([destination.latitude, destination.longitude],
         icon: L.icon(
@@ -162,7 +175,7 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "openlayers/OpenLayers"
     retrieveDirections(source, destination) if source? and destination?
 
   setNodeAsSource = () ->
-    source = selectedNode
+    source = selectedNode.node
     if not sourceMarker?
       sourceMarker ?= L.marker([source.latitude, source.longitude],
         icon: L.icon(

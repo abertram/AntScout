@@ -17,10 +17,12 @@ define ->
     node: $.extend({}, style,
       fillColor: "#ff7373"
       color: "#ff0000"
+      radius: 10
     )
-    nodesSelectStyle: $.extend({}, style,
+    selectedNode: $.extend({}, style,
       fillColor: "#67e667"
       color: "#00cc00"
+      radius: 15
     )
     outgoingWaysStyle: $.extend({}, style,
       fillColor: "lightcoral"
