@@ -1,5 +1,8 @@
 .idea/
 AntScout.iml
 lib_managed/
+log/
+maps/*.osm
+maps/*.pbf
 project/boot/
 target/
