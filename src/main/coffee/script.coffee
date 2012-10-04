@@ -15,7 +15,6 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "openlayers/OpenLayers"
   destination = null
   destinationMarker = null
   directionsLayer = new L.LayerGroup()
-  EPSG4326Projection = new OpenLayers.Projection("EPSG:4326")
   incomingWaysLayer = new L.LayerGroup()
   map = null
   nodes = null
@@ -29,6 +28,7 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "openlayers/OpenLayers"
   waysLayer = new L.LayerGroup()
   selectFeatureControl = new OpenLayers.Control.SelectFeature([nodesLayer, waysLayer]);
   selectedNode = null
+  selectedWay = null
   source = null
   sourceMarker = null
 
@@ -39,6 +39,11 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "openlayers/OpenLayers"
       selectedNode.setRadius(styles.node.radius)
       selectedNode.setStyle(styles.node)
       selectedNode = null
+
+  deselectWay = (style) ->
+    if selectedWay?
+      selectedWay.setStyle(style)
+      selectedWay = null
 
   retrieveNodes = () ->
     $.get "nodes",
@@ -54,7 +59,7 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "openlayers/OpenLayers"
   retrieveWays = () ->
     $.get "ways",
       (ways) ->
-        addWaysToLayer(ways, waysLayer, styles.waysDefaultStyle)
+        addWaysToLayer(ways, waysLayer, styles.way, styles.selectedWay)
         map.fitBounds(for way in ways
           for node in way.nodes
             [node.latitude, node.longitude]
@@ -71,6 +76,14 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "openlayers/OpenLayers"
       $("#nodeLongitude").html(selectedNode.node.longitude)
       $("#nodeLatitude").html(selectedNode.node.latitude)
       retrieveNode(selectedNode.node.id)
+
+  selectWay = (way, style, selectedStyle) ->
+    shouldSelect = !selectedWay? or way != selectedWay
+    deselectWay(style)
+    if shouldSelect
+      selectedWay = way
+      selectedWay.setStyle(selectedStyle)
+      displayWayData(way.way)
 
   $(() ->
     map = L.map("map",
@@ -113,12 +126,12 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "openlayers/OpenLayers"
     )
   )
 
-  addWaysToLayer = (ways, layer, style) ->
+  addWaysToLayer = (ways, layer, style, selectedStyle) ->
     for way in ways
       polyline = new L.Polyline((for node in way.nodes
         [node.latitude, node.longitude]), style)
       polyline.way = way
-      polyline.on("click", (e) -> displayWayData(this.way)).addTo(layer)
+      polyline.on("click", (e) -> selectWay(e.target, style, selectedStyle)).addTo(layer)
 
   disable = (elementId) ->
     $("##{ elementId }").prop("disabled", true)
@@ -150,9 +163,9 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "openlayers/OpenLayers"
     $.get "node/#{ id }",
       (nodeData) ->
         incomingWaysLayer.clearLayers()
-        addWaysToLayer(nodeData.incomingWays, incomingWaysLayer, styles.incomingWaysStyle)
+        addWaysToLayer(nodeData.incomingWays, incomingWaysLayer, styles.incomingWay, styles.selectedIncomingWay)
         outgoingWaysLayer.clearLayers()
-        addWaysToLayer(nodeData.outgoingWays, outgoingWaysLayer, styles.outgoingWaysStyle)
+        addWaysToLayer(nodeData.outgoingWays, outgoingWaysLayer, styles.outgoingWay, styles.selectedOutgoingWay)
 
   retrieveDirections = (source, destination) ->
     $.get "/directions", {
