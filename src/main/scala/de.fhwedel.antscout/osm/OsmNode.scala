@@ -99,7 +99,7 @@ class OsmNode(id: String, val geographicCoordinate: GeographicCoordinate) extend
     val adjacentWays = nodeWaysMapping (this)
     adjacentWays.size == {
       // Prüfung, ob der Weg ein Kreis-Weg ist
-      if (adjacentWays.find(way => way.isCircle && way.isStartNode(this)).isDefined)
+      if (adjacentWays.exists(_.isCircle))
         3
       else
         2

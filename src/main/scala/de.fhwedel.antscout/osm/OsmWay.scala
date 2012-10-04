@@ -94,9 +94,9 @@ object OsmWay extends Logger {
   def parseWay(way: xml.Node, nodes: Map[String, OsmNode]): OsmWay = {
     def parseNodes(wayId: String, wayNodes: NodeSeq) = {
       wayNodes.flatMap(wayNode => {
-        val id = (wayNode \ "@ref").text
-        assert(nodes.isDefinedAt(id), "Way id: %s, node id: %s".format(wayId, id))
-        nodes.get(id)
+        val wayNodeId = (wayNode \ "@ref").text
+//        assert(nodes.isDefinedAt(wayNodeId), "Way id: %s, node id: %s".format(wayId, wayNodeId))
+        nodes.find { case (id, _) => id == wayNodeId } map { case (_, node) => node }
       }).toList
     }
     val id = (way \ "@id").text
