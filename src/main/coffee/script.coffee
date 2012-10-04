@@ -1,4 +1,4 @@
-require(["jquery", "styles", "bootstrap", "leaflet-src", "openlayers/OpenLayers", "underscore"], ($, styles) ->
+require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styles) ->
 
   # globales AntScout-Object erstellen
   @AntScout = {}
@@ -26,7 +26,6 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "openlayers/OpenLayers"
   outgoingWaysLayer = new L.LayerGroup()
   ways = null
   waysLayer = new L.LayerGroup()
-  selectFeatureControl = new OpenLayers.Control.SelectFeature([nodesLayer, waysLayer]);
   selectedNode = null
   selectedWay = null
   source = null
@@ -108,18 +107,16 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "openlayers/OpenLayers"
     $("#wayEditMaxSpeed, #waySaveMaxSpeed, #wayCancelEditMaxSpeed").click -> toggleWayEditMaxSpeedControls()
     $("#wayEditMaxSpeed").click -> $("#wayMaxSpeed").select()
     $("#waySaveMaxSpeed").click ->
-      id = waysLayer.selectedFeatures[0].attributes.way.id
       maxSpeed = parseFloat($("#wayMaxSpeed").val().replace(",", "."))
       $.ajax({
         contentType: "application/json"
         type: "PUT"
-        url: "way/#{ id }"
+        url: "way/#{ selectedWay.way.id }"
         data: JSON.stringify(
           maxSpeed: maxSpeed
         )
       }).done (way) ->
-        wayFeature = _.find(waysLayer.features, (feature) -> feature.attributes.way.id == id)
-        wayFeature.attributes.way = way
+        selectedWay.way = way
         displayWayData(way)
     $(document).ajaxError((event, jqXHR, ajaxSettings, thrownError) ->
       showErrorMessage(jqXHR.responseText)
