@@ -33,12 +33,7 @@ object Rest extends Logger with RestHelper {
       ("incomingWays" -> incomingWays.map(_.toJson)) ~
       ("outgoingWays" -> outgoingWays.map(_.toJson))
     case Get(List("nodes"), _) =>
-      AntMap.nodes.map { n =>
-        val osmNode = OsmMap.nodes(n.id)
-        ("id" -> n.id) ~
-          ("latitude" -> osmNode.geographicCoordinate.latitude) ~
-          ("longitude" -> osmNode.geographicCoordinate.longitude)
-      }: JArray
+      AntMap.nodes.map(node => OsmMap.nodes(node.id).toJson): JArray
     case Get(List("directions"), _) =>
       for {
         sourceId <- S.param("source") ?~ "Source is missing" ~> 400
