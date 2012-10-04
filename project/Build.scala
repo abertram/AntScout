@@ -9,11 +9,11 @@ object AntScoutBuild extends Build {
   val mapExtension = ".pbf"
   val originalMap = file("%s/%s%s" format (mapDirectory, mapName, mapExtension))
   val preprocessedMaps = Seq(
-    (originalMap, (9.8682, 53.5660023, 9.9458, 53.5438), file("%s/%s" format (mapDirectory,
-      "Altona-100-Knoten.osm"))),
+    (originalMap, (9.886, 53.587, 9.93, 53.545), file("%s/%s" format (mapDirectory,
+      "Bahrenfeld-Gross-Flottbek-Othmarschen-Ottensen.osm"))),
     (originalMap, (9.8898, 53.5560023, 9.949, 53.5438), file("%s/%s" format (mapDirectory, "Altona-50-Knoten.osm"))),
     (originalMap, (9.9362, 53.55131, 9.949, 53.5468), file("%s/%s" format (mapDirectory, "Altona-Kreis.osm"))),
-    (originalMap, (9.69, 53.58499, 9.912, 53.5464), file("%s/%s" format (mapDirectory, "Altona-Wedel.osm")))
+    (originalMap, (9.69, 53.5856, 9.892, 53.5464), file("%s/%s" format (mapDirectory, "Altona-Wedel.osm")))
   )
 
   val downloadMap = TaskKey[Unit]("download-map")
@@ -44,7 +44,7 @@ object AntScoutBuild extends Build {
             val arguments = Seq[String](
               "-q",
               "--read-pbf", "file=" + originalMap,
-              "--bounding-box", "left=" + left, "top=" + top, "right=" + right, "bottom=" + bottom, "completeWays=yes",
+              "--bounding-box", "left=" + left, "top=" + top, "right=" + right, "bottom=" + bottom,
               "--tag-filter", "accept-ways", "highway=motorway,motorway_link,trunk,trunk_link,primary,primary_link," +
                 "secondary,secondary_link,tertiary,tertiary_link,residential,living_street,unclassified",
               "--tag-filter", "reject-relations",
