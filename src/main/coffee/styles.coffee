@@ -4,7 +4,7 @@ define ->
     weight: 5
   )
   defaultSelectedWay = $.extend({}, defaultWayStyle,
-    weight: 10
+    weight: 8
   )
   styles =
     directionsDefaultStyle: $.extend({}, defaultWayStyle,
@@ -19,18 +19,12 @@ define ->
     outgoingWay: $.extend({}, defaultWayStyle,
       color: "#00ff00"
     )
-    selectedWay: $.extend({}, defaultSelectedWay,
-      color: "#0000a6"
-    )
-    selectedIncomingWay: $.extend({}, defaultSelectedWay,
-      color: "#a60000"
-    )
+    selectedIncomingWay: $.extend({}, defaultSelectedWay)
     selectedNode: $.extend({}, defaultStyle,
       radius: 15
     )
-    selectedOutgoingWay: $.extend({}, defaultSelectedWay,
-      color: "#00a600"
-    )
+    selectedOutgoingWay: $.extend({}, defaultSelectedWay)
+    selectedWay: $.extend({}, defaultSelectedWay)
     way: $.extend({}, defaultWayStyle,
       color: "#0000ff"
     )
