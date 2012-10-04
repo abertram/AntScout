@@ -9,7 +9,7 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
   cloudMadeLayer = L.tileLayer(cloudMadeUrl,
     attribution: cloudMadeAttribution
     apiKey: "396d772f0ece43f49d3801843fd86fbc"
-    styleId: 997
+    styleId: 998
   )
 
   destination = null
@@ -31,8 +31,21 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
   source = null
   sourceMarker = null
 
+  clearNodeData = () ->
+    $("#nodeId").html("")
+    $("#nodeLongitude").html("")
+    $("#nodeLatitude").html("")
+
+  clearWayData = () ->
+    $("#wayId").html("")
+    $("#wayLength").val("")
+    $("#wayMaxSpeed").val("")
+    $("#wayTripTime").val("")
+    $("#way-nodes").html("")
+
   deselectNode = () ->
     if selectedNode?
+      clearNodeData()
       incomingWaysLayer.clearLayers()
       outgoingWaysLayer.clearLayers()
       selectedNode.setRadius(styles.node.radius)
@@ -41,8 +54,14 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
 
   deselectWay = (style) ->
     if selectedWay?
+      clearWayData()
       selectedWay.setStyle(style)
       selectedWay = null
+
+  displayNodeData = (node) ->
+    $("#nodeId").html("<a href=\"http://www.openstreetmap.org/browse/node/#{ node.id }\">#{ node.id }</a>")
+    $("#nodeLongitude").html(node.longitude)
+    $("#nodeLatitude").html(node.latitude)
 
   retrieveNodes = () ->
     $.get "nodes",
@@ -71,9 +90,7 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
       nodePath.setRadius(styles.selectedNode.radius)
       nodePath.setStyle(styles.selectedNode)
       selectedNode = nodePath
-      $("#nodeId").html("<a href=\"http://www.openstreetmap.org/browse/node/#{ selectedNode.node.id }\">#{ selectedNode.node.id }</a>")
-      $("#nodeLongitude").html(selectedNode.node.longitude)
-      $("#nodeLatitude").html(selectedNode.node.latitude)
+      displayNodeData(selectedNode.node)
       retrieveNode(selectedNode.node.id)
 
   selectWay = (way, style, selectedStyle) ->
@@ -86,7 +103,7 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
 
   $(() ->
     map = L.map("map",
-      layers: [cloudMadeLayer, incomingWaysLayer, osmLayer, outgoingWaysLayer, waysLayer, directionsLayer, nodesLayer]
+      layers: [directionsLayer, nodesLayer, osmLayer, waysLayer]
     ).fitWorld()
     baseLayers =
       "CloudMade": cloudMadeLayer
@@ -134,8 +151,7 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
     $("##{ elementId }").prop("disabled", true)
 
   displayWayData = (way) ->
-    id = way.id
-    $("#wayId").html(id)
+    $("#wayId").html(way.id)
     $("#wayLength").val(way.length)
     $("#wayMaxSpeed").val(way.maxSpeed)
     $("#wayTripTime").val(way.tripTime)
