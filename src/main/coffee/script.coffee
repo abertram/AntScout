@@ -29,6 +29,7 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
   selectedNode = null
   selectedWay = null
   source = null
+  sourceAndDestinationLayer = L.layerGroup()
   sourceMarker = null
 
   clearNodeData = () ->
@@ -103,7 +104,7 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
 
   $(() ->
     map = L.map("map",
-      layers: [directionsLayer, nodesLayer, osmLayer, waysLayer]
+      layers: [directionsLayer, nodesLayer, osmLayer, sourceAndDestinationLayer, waysLayer]
     ).fitWorld()
     baseLayers =
       "CloudMade": cloudMadeLayer
@@ -114,6 +115,7 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
       "Ways": waysLayer
       "Directions": directionsLayer
       "Nodes": nodesLayer
+      "Source and destination": sourceAndDestinationLayer
     L.control.layers(baseLayers, overlayLayers).addTo(map)
     L.control.scale().addTo(map)
     retrieveNodes()
@@ -165,6 +167,7 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
     if directions? and directions.ways.length > 0
       $("#pathLength").html(directions.length)
       $("#pathTripTime").html(directions.tripTime)
+      directionsLayer.clearLayers()
       addWaysToLayer(directions.ways, directionsLayer)
 
   AntScout.drawPath = (path) ->
@@ -196,7 +199,7 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
         icon: L.icon(
           iconAnchor: [14, 43]
           iconSize: [28, 43]
-          iconUrl: "images/markers/green/B.png")).addTo(directionsLayer)
+          iconUrl: "images/markers/green/B.png")).addTo(sourceAndDestinationLayer)
     else
       destinationMarker.setLatLng([destination.latitude, destination.longitude])
       destinationMarker.update()
@@ -209,7 +212,7 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
         icon: L.icon(
           iconAnchor: [14, 43]
           iconSize: [28, 43]
-          iconUrl: "images/markers/green/A.png")).addTo(directionsLayer)
+          iconUrl: "images/markers/green/A.png")).addTo(sourceAndDestinationLayer)
     else
       sourceMarker.setLatLng([source.latitude, source.longitude])
       sourceMarker.update()
