@@ -52,10 +52,10 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
       selectedNode.setStyle(styles.node)
       selectedNode = null
 
-  deselectWay = (style) ->
+  deselectWay = () ->
     if selectedWay?
       clearWayData()
-      selectedWay.setStyle(style)
+      selectedWay.setStyle(selectedWay.style)
       selectedWay = null
 
   displayNodeData = (node) ->
@@ -93,12 +93,12 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
       displayNodeData(selectedNode.node)
       retrieveNode(selectedNode.node.id)
 
-  selectWay = (way, style, selectedStyle) ->
+  selectWay = (way) ->
     shouldSelect = !selectedWay? or way != selectedWay
-    deselectWay(style)
+    deselectWay()
     if shouldSelect
       selectedWay = way
-      selectedWay.setStyle(selectedStyle)
+      selectedWay.setStyle(selectedWay.selectedStyle)
       displayWayData(way.way)
 
   $(() ->
@@ -142,10 +142,12 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
 
   addWaysToLayer = (ways, layer, style, selectedStyle) ->
     for way in ways
-      polyline = new L.Polyline((for node in way.nodes
+      polyline = L.polyline((for node in way.nodes
         [node.latitude, node.longitude]), style)
+      polyline.selectedStyle = selectedStyle
+      polyline.style = style
       polyline.way = way
-      polyline.on("click", (e) -> selectWay(e.target, style, selectedStyle)).addTo(layer)
+      polyline.on("click", (e) -> selectWay(e.target)).addTo(layer)
 
   disable = (elementId) ->
     $("##{ elementId }").prop("disabled", true)
