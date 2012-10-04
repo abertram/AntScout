@@ -137,9 +137,6 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
       }).done (way) ->
         selectedWay.way = way
         displayWayData(way)
-    $(document).ajaxError((event, jqXHR, ajaxSettings, thrownError) ->
-      showErrorMessage(jqXHR.responseText)
-    )
   )
 
   addWaysToLayer = (ways, layer, style, selectedStyle) ->
