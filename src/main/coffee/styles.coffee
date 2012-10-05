@@ -7,8 +7,9 @@ define ->
     weight: 8
   )
   styles =
-    directionsDefaultStyle: $.extend({}, defaultWayStyle,
-      color: "#00cc00"
+    directions: $.extend({}, defaultWayStyle,
+      color: "#ff7400"
+      opacity: 0.7
     )
     incomingWay: $.extend({}, defaultWayStyle,
       color: "#ff0000"

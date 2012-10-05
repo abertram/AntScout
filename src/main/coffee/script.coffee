@@ -165,7 +165,7 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
     if directions? and directions.ways? and directions.ways.length > 0
       $("#pathLength").html(directions.length)
       $("#pathTripTime").html(directions.tripTime)
-      addWaysToLayer(directions.ways, directionsLayer)
+      addWaysToLayer(directions.ways, directionsLayer, styles.directions)
 
   AntScout.drawPath = (path) ->
     console.debug("Drawing path - path: " + JSON.stringify(path))
