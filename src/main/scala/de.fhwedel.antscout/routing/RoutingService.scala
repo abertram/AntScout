@@ -3,23 +3,17 @@ package routing
 
 import annotation.tailrec
 import collection.mutable
-import akka.util.duration._
-import akka.util.Timeout
 import antnet.AntWay
 import akka.actor.{ActorRef, ActorLogging, Actor}
 import net.liftweb.common.{Empty, Full, Box}
-import net.liftweb.http.NamedCometListener
-import comet.OpenLayers
+import net.liftweb.http.LiftSession
 
 class RoutingService extends Actor with ActorLogging {
 
   import RoutingService._
 
-  var destination: ActorRef = _
-  val _routingTable = mutable.Map[ActorRef, mutable.Map[ActorRef, AntWay]]()
-  var path: Box[Seq[AntWay]] = Empty
-  var source: ActorRef = _
-  implicit val timeout = Timeout(5 seconds)
+  var liftSession: Option[LiftSession] = None
+  val routingTable = mutable.Map[ActorRef, mutable.Map[ActorRef, AntWay]]()
 
   /**
    * Sucht einen Pfad von einem Quell- zu einem Ziel-Knoten.
@@ -29,9 +23,9 @@ class RoutingService extends Actor with ActorLogging {
     def findPathRecursive(source: ActorRef, path: Seq[AntWay]): Box[Seq[AntWay]] = {
       if (source == destination)
         return Full(path)
-      else if (path.size == 100 || !_routingTable(source).isDefinedAt(destination))
+      else if (path.size == 100 || !routingTable(source).isDefinedAt(destination))
         return Empty
-      val bestWay = _routingTable(source)(destination)
+      val bestWay = routingTable(source)(destination)
       val newSource = bestWay.endNode(source)
       findPathRecursive(newSource, bestWay +: path)
     }
@@ -49,25 +43,15 @@ class RoutingService extends Actor with ActorLogging {
 
   protected def receive = {
     case FindPath(source, destination) =>
-      this.source = source
-      this.destination = destination
-      path = findPath(source, destination)
-      sender ! path
+      sender ! findPath(source, destination)
     case Initialize =>
       init()
     case InitializeBestWays(source, ways) =>
-      _routingTable += (source -> ways)
+      routingTable += (source -> ways)
+    case liftSession: LiftSession =>
+      this.liftSession = Some(liftSession)
     case UpdateBestWay(source, destination, way) =>
-      _routingTable(source) += (destination -> way)
-      if ((path.isEmpty && source == this.source && destination == this.destination) || (path.isDefined &&
-          path.get.size > 1 && path.get.last.startAndEndNodes.contains(destination) && path.get.find(antWay => antWay
-          .startAndEndNodes.contains(source)).isDefined)) {
-        log.debug("Updatig best way from {} to {} - way: {}, sender: {}", source, destination, way, sender)
-        path = findPath(this.source, this.destination)
-        NamedCometListener.getDispatchersFor(Full("openLayers")) foreach { actor =>
-          actor.map(_ ! OpenLayers.DrawPath(path))
-        }
-      }
+      routingTable(source) += (destination -> way)
     case m: Any =>
       log.warning("Unknown message: %s" format m.toString)
   }

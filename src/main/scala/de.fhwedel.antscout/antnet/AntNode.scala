@@ -11,7 +11,7 @@ import map.Node
 import java.util.concurrent.TimeUnit
 import osm.{OsmNode, OsmMap}
 import net.liftweb.util.TimeHelpers
-import net.liftweb.http.NamedCometListener
+import net.liftweb.http.{S, LiftSession, NamedCometListener}
 import net.liftweb.common.Full
 
 class AntNode extends Actor with ActorLogging {
@@ -23,6 +23,7 @@ class AntNode extends Actor with ActorLogging {
    */
   val destinations = mutable.Set[ActorRef]()
   var lastProcessReceiveTime: Option[Long] = None
+  var liftSession: Option[LiftSession] = None
   // TODO pheromoneMatrix sollte vom Datentyp Option[PheromoneMatrix] sein.
   var pheromoneMatrix: PheromoneMatrix = _
   val statistics = new AntNodeStatistics()
@@ -221,9 +222,16 @@ class AntNode extends Actor with ActorLogging {
           .pheromones(destination), bestWayBeforeUpdate))
       pheromoneMatrix.updatePheromones(destination, way, reinforcement)
       for {
-        selectedSource <- selectedSource()
-        selectedDestination <- selectedDestination()
-        if (AntNode.nodeId(self) == selectedSource && AntNode.nodeId(destination) == selectedDestination)
+        liftSession <- liftSession
+        (selectedSource, selectedDestination) <- S.initIfUninitted(liftSession) {
+          for {
+            selectedSource <- Source
+            selectedDestination <- Destination
+            if (AntNode.nodeId(self) == selectedSource && AntNode.nodeId(destination) == selectedDestination)
+          } yield {
+            (selectedSource, selectedDestination)
+          }
+        }
       } yield {
         NamedCometListener.getDispatchersFor(Full("userInterface")) foreach { actor =>
           actor.map(_ ! PheromonesAndProbabilities(selectedSource, selectedDestination, pheromoneMatrix
@@ -257,6 +265,8 @@ class AntNode extends Actor with ActorLogging {
       lastProcessReceiveTime.map(statistics.idleTimes += System.currentTimeMillis - _)
       lastProcessReceiveTime = Some(System.currentTimeMillis)
       launchAnts(destinations)
+    case liftSession: LiftSession =>
+      this.liftSession = Some(liftSession)
     case ProcessStatistics =>
       lastProcessReceiveTime.map(statistics.idleTimes += System.currentTimeMillis - _)
       lastProcessReceiveTime = Some(System.currentTimeMillis)

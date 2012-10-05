@@ -52,7 +52,7 @@ class Boot extends Logger {
 
     LiftRules.htmlProperties.default.set((r: Req) => new Html5Properties(r.userAgent))
 
-    LiftRules.statelessDispatch.append(Rest)
+    LiftRules.dispatch.append(Rest)
 
     LiftRules.unloadHooks.append(() => {
       // System runterfahren

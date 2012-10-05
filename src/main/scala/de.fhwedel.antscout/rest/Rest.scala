@@ -7,7 +7,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonDSL._
 import osm.OsmMap
 import routing.RoutingService
-import net.liftweb.common.{Box, Logger}
+import net.liftweb.common.{Full, Box, Logger}
 import antnet.{AntNodeSupervisor, AntWay, AntMap}
 import akka.dispatch.Await
 import akka.util.Timeout
@@ -46,8 +46,8 @@ object Rest extends Logger with RestHelper {
           RoutingService.FindPath(source, destination))
         path <- Await.result(pathFuture, 5 seconds).asInstanceOf[Box[Seq[AntWay]]] ?~ "No path found" ~> 404
       } yield {
-        selectedSource send Some(sourceId)
-        selectedDestination send  Some(destinationId)
+        Source(Full(sourceId))
+        Destination(Full(destinationId))
         val (length, tripTime) = path.foldLeft(0.0, 0.0) {
           case ((lengthAcc, tripTimeAcc), way) => (way.length + lengthAcc, way.tripTime + tripTimeAcc)
         }

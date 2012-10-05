@@ -1,20 +1,19 @@
 package de.fhwedel.antscout
 
 import antnet._
-import net.liftweb.common.Logger
 import osm.OsmMap
 import routing.RoutingService
-import akka.actor.{FSM, Actor}
-import akka.actor
+import akka.actor.{Props, Actor, FSM}
+import net.liftweb.http.LiftSession
 
 sealed trait AntScoutMessage
 
-class AntScout extends Actor with FSM[AntScoutMessage, Unit] with Logger {
+class AntScout extends Actor with FSM[AntScoutMessage, Unit] {
 
   import AntScout._
 
-  context.actorOf(actor.Props[AntNodeSupervisor], AntNodeSupervisor.ActorName)
-  context.actorOf(actor.Props[RoutingService], RoutingService.ActorName)
+  context.actorOf(Props[AntNodeSupervisor], AntNodeSupervisor.ActorName)
+  context.actorOf(Props[RoutingService], RoutingService.ActorName)
 
   startWith(Uninitialized, Unit)
 
@@ -43,6 +42,12 @@ class AntScout extends Actor with FSM[AntScoutMessage, Unit] with Logger {
       stay()
   }
 
+  whenUnhandled {
+    case Event(liftSession: LiftSession, _) =>
+      context.children.foreach(_ ! liftSession)
+      stay
+  }
+
   initialize
 }
 
@@ -60,7 +65,7 @@ object AntScout {
   case object InitializingRoutingService extends AntScoutMessage
   case object RoutingServiceInitialized extends AntScoutMessage
 
-  system.actorOf(actor.Props[AntScout], AntScout.ActorName)
+  system.actorOf(Props[AntScout], AntScout.ActorName)
 
   def init() {
     system.actorFor(Iterable("user", ActorName)) ! Initialize

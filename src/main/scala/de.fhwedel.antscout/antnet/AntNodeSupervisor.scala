@@ -3,7 +3,7 @@ package antnet
 
 import akka.actor.{Props, ActorLogging, Actor}
 import pheromoneMatrix.ShortestPathsPheromoneMatrixInitializer
-import net.liftweb.http.NamedCometListener
+import net.liftweb.http.{LiftSession, NamedCometListener}
 import net.liftweb.common.Full
 
 /**
@@ -17,6 +17,7 @@ class AntNodeSupervisor extends Actor with ActorLogging {
 
   import AntNodeSupervisor._
 
+  var liftSession: Option[LiftSession] = None
   val statistics = new AntNodeSupervisorStatistics()
 
   def init() {
@@ -59,6 +60,9 @@ class AntNodeSupervisor extends Actor with ActorLogging {
       context.parent ! AntNodeSupervisor.Initialized(wayData)
     case InitializeNodes =>
       initNodes()
+    case liftSession: LiftSession =>
+      this.liftSession = Some(liftSession)
+      context.children.foreach(_ ! liftSession)
     case ProcessStatistics(createTime) =>
       log.debug("Time to receive ProcessStatistics: {} ms", System.currentTimeMillis - createTime)
       NamedCometListener.getDispatchersFor(Full("statistics")) foreach { actor =>
