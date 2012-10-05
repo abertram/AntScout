@@ -7,12 +7,14 @@ import net.liftweb.http.js.JE.Call
 import net.liftweb.http.js.JsCmds.SetHtml
 import net.liftweb.http.NamedCometActorTrait
 import xml.{NodeSeq, Text}
+import net.liftweb.util.TimeHelpers
 
 class Statistics extends Logger with NamedCometActorTrait {
 
   override def lowPriority = {
     case statistics: AntNodeSupervisor.Statistics =>
       partialUpdate(SetHtml("ant-age", Text("%.4f" format statistics.antAge)))
+      partialUpdate(SetHtml("last-update", Text("%tF %1$tT" format TimeHelpers.now)))
       partialUpdate(SetHtml("launched-ants-per-second", Text(statistics.launchedAnts.toString)))
       partialUpdate(SetHtml("total-launched-ants", Text(statistics.totalLaunchedAnts.toString)))
       partialUpdate(SetHtml("destination-reached-ants-per-second", Text("%d (%.2f%%)".format(statistics
