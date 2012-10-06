@@ -120,7 +120,6 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
     L.control.scale().addTo(map)
     retrieveNodes()
     retrieveWays()
-    $("#retrieveDirections").click -> retrieveDirections()
     $("#setNodeAsSource").click -> setNodeAsSource()
     $("#setNodeAsDestination").click -> setNodeAsDestination()
     $("#wayEditMaxSpeed, #waySaveMaxSpeed, #wayCancelEditMaxSpeed").click -> toggleWayEditMaxSpeedControls()
