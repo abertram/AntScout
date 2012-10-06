@@ -83,6 +83,7 @@ object AntNodeSupervisor {
   case class ProcessStatistics(createTime: Long)
   case class Statistics(
     antAge: Double,
+    antsIdleTime: Double,
     deadEndStreetReachedAnts: Int,
     destinationReachedAnts: Int,
     idleTimes: Map[String, (Long, Long, Long)],

@@ -13,6 +13,7 @@ import collection.mutable
 class AntNodeStatistics {
 
   val antAges = mutable.Buffer[Long]()
+  val antsIdleTimes = mutable.Buffer[Long]()
   private var deadEndStreetReachedAnts = 0
   private var destinationReachedAnts = 0
   val idleTimes = mutable.Buffer[Long]()
@@ -48,6 +49,8 @@ class AntNodeStatistics {
     totalMaxAgeExceededAnts += increment
   }
 
+  def antsIdleTime = if (antsIdleTimes.size > 0) antsIdleTimes.sum.toDouble / antsIdleTimes.size else  0.0
+
   /**
    * Bereitet die Statistik auf, sodass sie zur Weiterverarbeitung an [[de.fhwedel.antscout.antnet.AntNodeSupervisor]]
    * gesendet werden kann.
@@ -57,6 +60,7 @@ class AntNodeStatistics {
   def prepare = {
     AntNode.Statistics(
       antAge = if (antAges.size > 0) antAges.sum.toDouble / antAges.size / 10e3 else 0,
+      antsIdleTime = antsIdleTime,
       deadEndStreetReachedAnts = deadEndStreetReachedAnts,
       destinationReachedAnts = destinationReachedAnts,
       idleTimes = idleTimes,
@@ -89,6 +93,7 @@ class AntNodeStatistics {
    */
   def reset() {
     antAges.clear()
+    antsIdleTimes.clear()
     deadEndStreetReachedAnts = 0
     destinationReachedAnts = 0
     launchAntsDurations.clear()

@@ -14,6 +14,7 @@ class Statistics extends Logger with NamedCometActorTrait {
   override def lowPriority = {
     case statistics: AntNodeSupervisor.Statistics =>
       partialUpdate(SetHtml("ant-age", Text("%.4f" format statistics.antAge)))
+      partialUpdate(SetHtml("ants-idle-time", Text("%.4f" format statistics.antsIdleTime)))
       partialUpdate(SetHtml("last-update", Text("%tF %1$tT" format TimeHelpers.now)))
       partialUpdate(SetHtml("launched-ants-per-second", Text(statistics.launchedAnts.toString)))
       partialUpdate(SetHtml("total-launched-ants", Text(statistics.totalLaunchedAnts.toString)))

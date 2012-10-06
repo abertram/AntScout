@@ -125,7 +125,7 @@ class AntNode extends Actor with ActorLogging {
       val startTime = System.currentTimeMillis
       val (nextNode, ant1) = ant.nextNode(self, probabilities)
       statistics.selectNextNodeDurations += System.currentTimeMillis - startTime
-      nextNode ! ant1
+      nextNode ! (ant1, System.currentTimeMillis)
     }
     statistics.launchAntsDurations += System.currentTimeMillis - startTime
     statistics.incrementLaunchedAnts(destinations.size)
@@ -193,7 +193,7 @@ class AntNode extends Actor with ActorLogging {
         val startTime = System.currentTimeMillis
         val (nextNode, ant2) = ant1.nextNode(self, probabilities)
         statistics.selectNextNodeDurations += System.currentTimeMillis - startTime
-        nextNode ! ant2
+        nextNode ! (ant2, System.currentTimeMillis)
       }
       statistics.processedAnts += 1
     }
@@ -253,7 +253,8 @@ class AntNode extends Actor with ActorLogging {
   }
 
   protected def receive = {
-    case ant: Ant =>
+    case (ant: Ant, sendTime: Long) =>
+      statistics.antsIdleTimes += System.currentTimeMillis - sendTime
       lastProcessReceiveTime.map(statistics.idleTimes += System.currentTimeMillis - _)
       lastProcessReceiveTime = Some(System.currentTimeMillis)
       processAnt(ant)
@@ -321,6 +322,7 @@ object AntNode {
   case object ProcessStatistics
   case class Statistics(
     antAge: Double,
+    antsIdleTime: Double,
     deadEndStreetReachedAnts: Int,
     destinationReachedAnts: Int,
     idleTimes: mutable.Buffer[Long],
