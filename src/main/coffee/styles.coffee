@@ -20,6 +20,7 @@ define ->
     outgoingWay: $.extend({}, defaultWayStyle,
       color: "#00ff00"
     )
+    selectedDirections: $.extend({}, defaultSelectedWay)
     selectedIncomingWay: $.extend({}, defaultSelectedWay)
     selectedNode: $.extend({}, defaultStyle,
       radius: 15
