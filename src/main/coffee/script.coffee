@@ -14,7 +14,7 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
 
   destination = null
   destinationMarker = null
-  directionsLayer = new L.LayerGroup()
+  pathLayer = new L.LayerGroup()
   incomingWaysLayer = new L.LayerGroup()
   map = null
   nodes = null
@@ -104,7 +104,7 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
 
   $(() ->
     map = L.map("map",
-      layers: [directionsLayer, nodesLayer, osmLayer, sourceAndDestinationLayer, waysLayer]
+      layers: [pathLayer, nodesLayer, osmLayer, sourceAndDestinationLayer, waysLayer]
     ).fitWorld()
     baseLayers =
       "CloudMade": cloudMadeLayer
@@ -113,7 +113,7 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
       "Incoming ways": incomingWaysLayer
       "Outgoing ways": outgoingWaysLayer
       "Ways": waysLayer
-      "Directions": directionsLayer
+      "Path": pathLayer
       "Nodes": nodesLayer
       "Source and destination": sourceAndDestinationLayer
     L.control.layers(baseLayers, overlayLayers).addTo(map)
@@ -159,16 +159,16 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
       "<a href=\"http://www.openstreetmap.org/browse/node/#{ node.id }\">#{ node.id }</a>"
     $("#way-nodes").html("<ul><li>" + nodes.join("</li><li>") + "</li></ul>")
 
-  drawDirections = (directions) ->
-    directionsLayer.clearLayers()
-    if directions? and directions.ways? and directions.ways.length > 0
-      $("#pathLength").html(directions.length)
-      $("#pathTripTime").html(directions.tripTime)
-      addWaysToLayer(directions.ways, directionsLayer, styles.directions, styles.selectedDirections)
+  drawPath = (path) ->
+    pathLayer.clearLayers()
+    if path and path.ways? and path.ways.length > 0
+      $("#pathLength").html(path.length)
+      $("#pathTripTime").html(path.tripTime)
+      addWaysToLayer(path.ways, pathLayer, styles.path, styles.selectedPath)
 
   AntScout.drawPath = (path) ->
     console.debug("Drawing path - path: " + JSON.stringify(path))
-    drawDirections(path)
+    drawPath(path)
 
   enable = (elementId) ->
     $("##{ elementId }").prop("disabled", false)
@@ -181,12 +181,10 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
         outgoingWaysLayer.clearLayers()
         addWaysToLayer(nodeData.outgoingWays, outgoingWaysLayer, styles.outgoingWay, styles.selectedOutgoingWay)
 
-  retrieveDirections = (source, destination) ->
-    $.get "/directions", {
-      source: source.id
-      destination: destination.id
-    }, (directions) ->
-      drawDirections(directions)
+  retrievePath = (source, destination) ->
+    $.get "/path/#{ source.id }/#{ destination.id }",
+      (path) ->
+        drawPath(path)
 
   setNodeAsDestination = () ->
     destination = selectedNode.node
@@ -199,7 +197,7 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
     else
       destinationMarker.setLatLng([destination.latitude, destination.longitude])
       destinationMarker.update()
-    retrieveDirections(source, destination) if source? and destination?
+    retrievePath(source, destination) if source? and destination?
 
   setNodeAsSource = () ->
     source = selectedNode.node
@@ -212,7 +210,7 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
     else
       sourceMarker.setLatLng([source.latitude, source.longitude])
       sourceMarker.update()
-    retrieveDirections(source, destination) if source? and destination?
+    retrievePath(source, destination) if source? and destination?
 
   showErrorMessage = (message) ->
     $("#error > p").html(message)

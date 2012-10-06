@@ -8,11 +8,11 @@ import net.liftweb.json.JsonDSL._
 import osm.OsmMap
 import routing.RoutingService
 import net.liftweb.common.{Full, Box, Logger}
-import antnet.{AntNodeSupervisor, AntWay, AntMap}
+import antnet.{AntNode, AntWay, AntMap}
 import akka.dispatch.Await
 import akka.util.Timeout
 import net.liftweb.json.JsonAST.JArray
-import net.liftweb.http.{NamedCometListener, S}
+import net.liftweb.http.NamedCometListener
 import comet.OpenLayers
 
 object Rest extends Logger with RestHelper {
@@ -35,20 +35,14 @@ object Rest extends Logger with RestHelper {
       ("outgoingWays" -> outgoingWays.map(_.toJson))
     case Get(List("nodes"), _) =>
       AntMap.nodes.map(node => OsmMap.nodes(node.id).toJson): JArray
-    case Get(List("directions"), _) =>
+    case Get(List("path", source, destination), _) =>
+      Source(Full(source))
+      Destination(Full(destination))
+      val pathFuture = (system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) ?
+        RoutingService.FindPath(AntNode(source), AntNode(destination)))
       for {
-        sourceId <- S.param("source") ?~ "Source is missing" ~> 400
-        destinationId <- S.param("destination") ?~ "Destination is missing" ~> 400
-        source = system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName,
-          sourceId))
-        destination = system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName,
-          destinationId))
-        pathFuture = (system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) ?
-          RoutingService.FindPath(source, destination))
         path <- Await.result(pathFuture, 5 seconds).asInstanceOf[Box[Seq[AntWay]]] ?~ "No path found" ~> 404
       } yield {
-        Source(Full(sourceId))
-        Destination(Full(destinationId))
         val (length, tripTime) = path.foldLeft(0.0, 0.0) {
           case ((lengthAcc, tripTimeAcc), way) => (way.length + lengthAcc, way.tripTime + tripTimeAcc)
         }
