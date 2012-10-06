@@ -7,7 +7,6 @@ import akka.util.duration._
 import collection.mutable
 import pheromoneMatrix.PheromoneMatrix
 import routing.RoutingService
-import map.Node
 import java.util.concurrent.TimeUnit
 import osm.{OsmNode, OsmMap}
 import net.liftweb.util.TimeHelpers
@@ -223,19 +222,18 @@ class AntNode extends Actor with ActorLogging {
       pheromoneMatrix.updatePheromones(destination, way, reinforcement)
       for {
         liftSession <- liftSession
-        (selectedSource, selectedDestination) <- S.initIfUninitted(liftSession) {
-          for {
-            selectedSource <- Source
-            selectedDestination <- Destination
-            if (AntNode.nodeId(self) == selectedSource && AntNode.nodeId(destination) == selectedDestination)
-          } yield {
-            (selectedSource, selectedDestination)
-          }
-        }
       } yield {
-        NamedCometListener.getDispatchersFor(Full("userInterface")) foreach { actor =>
-          actor.map(_ ! PheromonesAndProbabilities(selectedSource, selectedDestination, pheromoneMatrix
-            .pheromones(destination).toSeq, pheromoneMatrix.probabilities(destination).toSeq))
+        S.initIfUninitted(liftSession) {
+          for {
+            node <- Node
+            selectedDestination <- Destination
+            if (AntNode.nodeId(self) == node && AntNode.nodeId(destination) == selectedDestination)
+          } yield {
+            NamedCometListener.getDispatchersFor(Full("userInterface")) foreach { actor =>
+              actor.map(_ ! PheromonesAndProbabilities(node, selectedDestination, pheromoneMatrix
+                .pheromones(destination).toSeq, pheromoneMatrix.probabilities(destination).toSeq))
+            }
+          }
         }
       }
       statistics.updateDataStructuresDurations += System.currentTimeMillis - startTime
@@ -310,6 +308,8 @@ class AntNode extends Actor with ActorLogging {
 }
 
 object AntNode {
+
+  import map.Node
 
   val ShouldLog = false
 

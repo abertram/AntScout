@@ -21,6 +21,7 @@ object Rest extends Logger with RestHelper {
 
   serve {
     case Get(List("node", id), _) =>
+      Node(Full(id))
       val incomingWays = AntMap.incomingWays.find {
         case (node, ways) => node.id == id
       } map {

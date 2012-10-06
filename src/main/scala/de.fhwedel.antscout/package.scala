@@ -18,6 +18,11 @@ package object antscout {
   object Destination extends SessionVar[Box[String]](Empty)
 
   /**
+   * Der aktuell vom Benutzer ausgewählte Knoten.
+   */
+  object Node extends SessionVar[Box[String]](Empty)
+
+  /**
    * Aktueller Pfad vom Quell- zum Ziel-Knoten.
    */
   object Path extends SessionVar[Box[Seq[AntWay]]](Empty)
