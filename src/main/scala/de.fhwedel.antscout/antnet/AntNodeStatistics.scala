@@ -2,6 +2,7 @@ package de.fhwedel.antscout
 package antnet
 
 import collection.mutable
+import akka.actor.ActorRef
 
 /**
  * Created by IntelliJ IDEA.
@@ -14,6 +15,7 @@ class AntNodeStatistics {
 
   val antAges = mutable.Buffer[Long]()
   val antsIdleTimes = mutable.Buffer[Long]()
+  val arrivedAnts = mutable.Map[ActorRef, Int]()
   private var deadEndStreetReachedAnts = 0
   private var destinationReachedAnts = 0
   val idleTimes = mutable.Buffer[Long]()

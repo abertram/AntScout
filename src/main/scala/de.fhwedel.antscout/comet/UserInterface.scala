@@ -6,11 +6,14 @@ import net.liftweb.common.Logger
 import net.liftweb.http.js.JE.Call
 import net.liftweb.http.js.JsCmds.SetHtml
 import net.liftweb.http.NamedCometActorTrait
+import xml.Text
 
 class UserInterface extends Logger with NamedCometActorTrait {
 
   override def lowPriority = {
-    case AntNode.PheromonesAndProbabilities(source, destination, pheromones, probabilities) =>
+    case AntNode.ArrivedAnts(arrivedAnts) =>
+      partialUpdate(SetHtml("arrived-ants", Text(arrivedAnts.toString)))
+    case AntNode.PheromonesAndProbabilities(pheromones, probabilities) =>
       partialUpdate(SetHtml("pheromones",
         <ol> {
           pheromones.sortBy {

@@ -158,6 +158,7 @@ class AntNode extends Actor with ActorLogging {
         val ant2 = ant1.updateNodes()
         if (ShouldLog)
           trace(ant2.source, ant2.destination, ant2.prepareLogEntries)
+        statistics.arrivedAnts += ant.source -> (statistics.arrivedAnts.getOrElse(ant.source, 0) + 1)
       } else if (ant.age > Settings.MaxAntAge) {
         // Ameise ist zu alt
         statistics.antAges += ant.age
@@ -200,6 +201,34 @@ class AntNode extends Actor with ActorLogging {
     statistics.processAntDurations += time
   }
 
+  /**
+   * Verarbeitet die Statistiken.
+   */
+  def processStatistics() {
+    context.parent ! statistics.prepare
+    for {
+      liftSession <- liftSession
+    } yield {
+      S.initIfUninitted(liftSession) {
+        for {
+          node <- Node
+          destination <- Destination
+        } yield {
+          NamedCometListener.getDispatchersFor(Full("userInterface")) foreach { actor => {
+            if (AntNode.nodeId(self) == node && AntNode.nodeId(self) != destination && pheromoneMatrix != null) {
+              actor.map(_ ! PheromonesAndProbabilities(pheromoneMatrix.pheromones(AntNode(destination)).toSeq,
+                pheromoneMatrix.probabilities(AntNode(destination)).toSeq))
+              }
+            }
+            if (AntNode.nodeId(self) == destination) {
+              actor.map(_ ! ArrivedAnts(statistics.arrivedAnts.getOrElse(AntNode(node), 0)))
+            }
+          }
+        }
+      }
+    }
+  }
+
   def updateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double) = {
     if (ShouldLog)
       trace(self, destination, ("Updating data structures, source: %s, destination: %s, way: %s, trip time: %s")
@@ -221,22 +250,6 @@ class AntNode extends Actor with ActorLogging {
         trace(self, destination, "Before update: pheromones: %s, best way: %s" format (pheromoneMatrix
           .pheromones(destination), bestWayBeforeUpdate))
       pheromoneMatrix.updatePheromones(destination, way, reinforcement)
-      for {
-        liftSession <- liftSession
-      } yield {
-        S.initIfUninitted(liftSession) {
-          for {
-            node <- Node
-            selectedDestination <- Destination
-            if (AntNode.nodeId(self) == node && AntNode.nodeId(destination) == selectedDestination)
-          } yield {
-            NamedCometListener.getDispatchersFor(Full("userInterface")) foreach { actor =>
-              actor.map(_ ! PheromonesAndProbabilities(node, selectedDestination, pheromoneMatrix
-                .pheromones(destination).toSeq, pheromoneMatrix.probabilities(destination).toSeq))
-            }
-          }
-        }
-      }
       statistics.updateDataStructuresDurations += System.currentTimeMillis - startTime
       val bestWayAfterUpdate = bestWay(destination)
       if (ShouldLog)
@@ -270,7 +283,7 @@ class AntNode extends Actor with ActorLogging {
     case ProcessStatistics =>
       lastProcessReceiveTime.map(statistics.idleTimes += System.currentTimeMillis - _)
       lastProcessReceiveTime = Some(System.currentTimeMillis)
-      context.parent ! statistics.prepare
+      processStatistics()
       statistics.reset()
     case UpdateDataStructures(destination, way, tripTime) =>
       lastProcessReceiveTime.map(statistics.idleTimes += System.currentTimeMillis - _)
@@ -314,12 +327,12 @@ object AntNode {
 
   val ShouldLog = false
 
+  case class ArrivedAnts(arrivedAnts: Int)
   case object DeadEndStreet
   case class Enter(destination: ActorRef)
   case class Initialize(destinations: Set[ActorRef], pheromones: Map[ActorRef, Map[AntWay, Double]])
   case class LaunchAnts(destinations: Set[ActorRef])
-  case class PheromonesAndProbabilities(source: String, destination: String, pheromones: Seq[(AntWay, Double)],
-    probabilities: Seq[(AntWay, Double)])
+  case class PheromonesAndProbabilities(pheromones: Seq[(AntWay, Double)], probabilities: Seq[(AntWay, Double)])
   case object ProcessStatistics
   case class Statistics(
     antAge: Double,
