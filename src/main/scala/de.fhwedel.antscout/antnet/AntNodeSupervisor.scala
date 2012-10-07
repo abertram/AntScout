@@ -39,7 +39,7 @@ class AntNodeSupervisor extends Actor with ActorLogging {
     }
     val pheromoneMatrixInitializer = ShortestPathsPheromoneMatrixInitializer(AntMap.nodes, AntMap.sources, AntMap
       .destinations)
-    sources.foreach { source =>
+    context.children.foreach { source =>
       // Pheromone rausfiltern, die unerreichbare Ziele enthalten
       val pheromones = pheromoneMatrixInitializer.pheromones(source).flatMap {
         case (destination, pheromones) =>

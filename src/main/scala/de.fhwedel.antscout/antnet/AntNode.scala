@@ -84,22 +84,23 @@ class AntNode extends Actor with ActorLogging {
   def initialize(destinations: Set[ActorRef], pheromones: Map[ActorRef, Map[AntWay, Double]]) {
     traceBySource("Initializing")
     this.destinations ++= mutable.Set(destinations.toSeq: _*)
-    assert(this.destinations.nonEmpty)
     assert(!this.destinations.contains(self))
-    val outgoingWays = AntMap.outgoingWays(AntNode.toNode(self).get)
-    pheromoneMatrix = PheromoneMatrix(destinations, outgoingWays)
-    val tripTimes = outgoingWays.map(outgoingWay => (outgoingWay -> outgoingWay.tripTime)).toMap
-    pheromoneMatrix.initialize(self, pheromones, tripTimes)
-    val bestWays = mutable.Map[ActorRef, AntWay]()
-    traceBySource("Calculating best ways")
-    destinations.foreach(destination => bestWays += (destination -> bestWay(destination)))
-    traceBySource("Best ways calculated, result: %s, sending to the routing service" format bestWays)
-    system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) !
-      RoutingService.InitializeBestWays(self, bestWays)
-    trafficModel = Some(TrafficModel(destinations, Settings.Varsigma, Settings.Wmax))
+    if (destinations.nonEmpty) {
+      val outgoingWays = AntMap.outgoingWays(AntNode.toNode(self).get)
+      pheromoneMatrix = PheromoneMatrix(destinations, outgoingWays)
+      val tripTimes = outgoingWays.map(outgoingWay => (outgoingWay -> outgoingWay.tripTime)).toMap
+      pheromoneMatrix.initialize(self, pheromones, tripTimes)
+      val bestWays = mutable.Map[ActorRef, AntWay]()
+      traceBySource("Calculating best ways")
+      destinations.foreach(destination => bestWays += (destination -> bestWay(destination)))
+      traceBySource("Best ways calculated, result: %s, sending to the routing service" format bestWays)
+      system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) !
+        RoutingService.InitializeBestWays(self, bestWays)
+      trafficModel = Some(TrafficModel(destinations, Settings.Varsigma, Settings.Wmax))
+      createAntsLaunchSchedulers(destinations)
+    }
     cancellables += context.system.scheduler.schedule(Settings.ProcessStatisticsDelay, Settings.ProcessStatisticsDelay,
       self, ProcessStatistics)
-    createAntsLaunchSchedulers(destinations)
     traceBySource("Initialized")
   }
 

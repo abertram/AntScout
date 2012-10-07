@@ -8,20 +8,24 @@ import map.Node
 /**
  * Initialisiert die Pheromon-Tabelle, indem für jedes Knoten-Paar der kürzeste Pfad gesucht wird.
  *
+ * @param nodes Alle Knoten.
  * @param sources Quellen
  * @param destinations Ziele
  */
-class ShortestPathsPheromoneMatrixInitializer(sources: Set[Node], destinations: Set[Node])
-    extends PheromoneMatrixInitializer(sources, destinations) with Logger {
+class ShortestPathsPheromoneMatrixInitializer(nodes: Set[Node], sources: Set[Node], destinations: Set[Node])
+    extends PheromoneMatrixInitializer(nodes, sources, destinations) with Logger {
 
+  /**
+   * Initialisiert die Pheromon-Matrix.
+   *
+   * @return Initialisierte Pheromon-Matrix.
+   */
   def initPheromones = {
     val bestWayPheromone = Settings.BestWayPheromone
     val (distanceMatrix, intermediateMatrix) = AntMap.calculateShortestPaths(AntMap.adjacencyMatrix, AntMap
       .predecessorMatrix)
-    sources.map { source =>
-      AntNode(source) -> destinations.filter(_ != source).map { destination =>
-//        if (source.id == "" && destination.id == "")
-//          true == true
+    nodes.map { source =>
+      AntNode(source) -> (destinations - source).map { destination =>
         AntNode(destination) -> (AntMap.path(source, destination, distanceMatrix, intermediateMatrix) match {
           case None => None
           case Some(path) =>
@@ -45,5 +49,5 @@ class ShortestPathsPheromoneMatrixInitializer(sources: Set[Node], destinations: 
 object ShortestPathsPheromoneMatrixInitializer {
 
   def apply(nodes: Set[Node], sources: Set[Node], destinations: Set[Node]) =
-    new ShortestPathsPheromoneMatrixInitializer(sources, destinations)
+    new ShortestPathsPheromoneMatrixInitializer(nodes, sources, destinations)
 }

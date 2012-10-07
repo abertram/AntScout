@@ -8,10 +8,11 @@ import map.Node
 /**
  * Basis für die Berechnung der initialen Werte der Pheromone.
  *
- * @param sources Quellen
- * @param destinations Ziele
+ * @param nodes Alle Knoten.
+ * @param sources Quellen.
+ * @param destinations Ziele.
  */
-abstract class PheromoneMatrixInitializer(sources: Set[Node], destinations: Set[Node]) {
+abstract class PheromoneMatrixInitializer(nodes: Set[Node], sources: Set[Node], destinations: Set[Node]) {
 
   val pheromones: Map[ActorRef, Map[ActorRef, Option[Map[AntWay, Double]]]] = initPheromones
 
