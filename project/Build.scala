@@ -18,7 +18,7 @@ object AntScoutBuild extends Build {
    * 3. Speicherort und Dateiname der erzeugten Karte.
    */
   val preprocessedMaps = Seq(
-    (originalMap, (9.886, 53.587, 9.93, 53.545), file("%s/%s" format (mapDirectory,
+    (originalMap, (9.8865, 53.5683, 9.93, 53.545), file("%s/%s" format (mapDirectory,
       "Bahrenfeld-Gross-Flottbek-Othmarschen-Ottensen.osm"))),
     (originalMap, (9.926, 53.5518, 9.9559, 53.54), file("%s/%s" format (mapDirectory, "Altona-50-Knoten.osm"))),
     (originalMap, (9.9362, 53.55131, 9.949, 53.5468), file("%s/%s" format (mapDirectory, "Altona-Kreis.osm"))),
