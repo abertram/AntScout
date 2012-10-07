@@ -12,7 +12,8 @@ class AntScout extends Actor with FSM[AntScoutMessage, Unit] {
 
   import AntScout._
 
-  context.actorOf(Props[AntNodeSupervisor], AntNodeSupervisor.ActorName)
+  context.actorOf(Props[AntNodeSupervisor].withDispatcher("ant-node-supervisor-dispatcher"),
+    AntNodeSupervisor.ActorName)
   context.actorOf(Props[RoutingService], RoutingService.ActorName)
 
   startWith(Uninitialized, Unit)
