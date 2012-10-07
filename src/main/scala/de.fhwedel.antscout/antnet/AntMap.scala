@@ -150,16 +150,18 @@ object AntMap extends Logger {
         }
       }
     }
-    info("Computing ant ways")
+    info("Computing ant ways data")
     val (time, ways) = TimeHelpers.calcTime(computeAntWayDataRec(0, nodeWaysMapping, Map[OsmNode, Set[AntWayData]](), Set[AntWayData]()))
-    info("%d ant ways computed in %d ms".format(ways.size, time))
+    info("%d ant ways data computed, took %d ms".format(ways.size, time))
     ways
   }
 
   def computeAntWays(wayData: Set[AntWayData]) {
+    info("Computing ant ways")
     _ways = (1 to wayData.size).zip(wayData).map {
       case (id, wd) => AntWay(id.toString, wd.nodes, wd.maxSpeed, wd.isInstanceOf[AntOneWayData])
     }.toSet
+    info("Ant ways computed")
     assert(_ways.size == wayData.size)
     assert(_ways.map(_.id).toSet.size == _ways.size, "%s ids, %s ways".format(_ways.map(_.id).toSet.size, _ways.size))
   }
@@ -171,7 +173,6 @@ object AntMap extends Logger {
    */
   def computeIncomingAndOutgoingWays() {
     assert(_ways != null)
-    info("Computing incoming and outgoing ways")
     @tailrec
     def computeIncomingAndOutgoingWaysRec(ways: Set[AntWay], incomingWays: Map[Node, Set[AntWay]],
         outgoingWays: Map[Node, Set[AntWay]]): (Map[Node, Set[AntWay]], Map[Node, Set[AntWay]]) = {
@@ -215,16 +216,20 @@ object AntMap extends Logger {
         computeIncomingAndOutgoingWaysRec(ways.tail, incomingWays ++ newIncomingWays, outgoingWays ++ newOutgoingWays)
       }
     }
+    info("Computing incoming and outgoing ways")
     val (incomingWays, outgoingWays) = computeIncomingAndOutgoingWaysRec(_ways.toSet, Map[Node, Set[AntWay]](),
       Map[Node, Set[AntWay]]())
+    info("Incoming and outgoing ways computed")
     _incomingWays = incomingWays
     _outgoingWays = outgoingWays
   }
 
   def computeNodes(wayData: Set[AntWayData]) {
+    info("Computing nodes")
     wayData.foreach { wd =>
       _nodes += wd.nodes.head.asInstanceOf[Node] += wd.nodes.last.asInstanceOf[Node]
     }
+    info("%d nodes computed" format _nodes.size)
   }
 
   /**
@@ -248,7 +253,7 @@ object AntMap extends Logger {
         }
       }
     }
-    info("%d sources and %d destinations computed in %d ms".format(sources.size, destinations.size, time))
+    info("%d sources and %d destinations computed, took %d ms".format(sources.size, destinations.size, time))
     _sources = sources.toSet
     _destinations = destinations.toSet
   }
