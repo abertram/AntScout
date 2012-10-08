@@ -44,7 +44,9 @@ class Ant(val source: ActorRef, val destination: ActorRef, val memory: AntMemory
   def nextNode(node: ActorRef, probabilities: Map[AntWay, Double]) = {
     val (memory1, logEntries1) = removeCycle(node)
     val notVisitedWays = probabilities.filter { case (way, _) => !memory.containsWay(way) }
-    val (way, logEntries2) = if (notVisitedWays.nonEmpty)
+    val (way, logEntries2) = if (notVisitedWays.size == 1)
+      (notVisitedWays.head._1, if (ShouldLog) "" else "Just one outgoing way exists, selecting")
+    else if (notVisitedWays.nonEmpty)
       (StatisticsUtils.selectByProbability(notVisitedWays), if (ShouldLog) "Selecting way by probability" else "")
     else
       (StatisticsUtils.selectRandom(probabilities.keys.toSeq), if (ShouldLog) "Selecting random way" else "")

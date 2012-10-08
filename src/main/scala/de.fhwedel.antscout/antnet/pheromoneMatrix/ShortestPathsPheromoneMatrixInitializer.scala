@@ -29,16 +29,20 @@ class ShortestPathsPheromoneMatrixInitializer(nodes: Set[Node], sources: Set[Nod
         AntNode(destination) -> (AntMap.path(source, destination, distanceMatrix, intermediateMatrix) match {
           case None => None
           case Some(path) =>
-            Some {
-              val outgoingWays = AntMap.outgoingWays(source)
-              val bestOutgoingWay = outgoingWays.find { way =>
-                way.endNode(source) == path(1)
+            val outgoingWays = AntMap.outgoingWays(source)
+            if (outgoingWays.size == 1)
+              Some(Map(outgoingWays.head -> 1.0))
+            else {
+              for {
+                bestOutgoingWay <- outgoingWays.find(_.endNode(source) == path(1))
+              } yield {
+                outgoingWays.map { way =>
+                  way -> (if (way == bestOutgoingWay)
+                    bestWayPheromone
+                  else
+                    ((1 - bestWayPheromone) / (outgoingWays.size - 1)))
+                }.toMap
               }
-              assert(bestOutgoingWay.isDefined)
-              outgoingWays.map { way =>
-                way -> (if (way == bestOutgoingWay.get) bestWayPheromone else ((1 - bestWayPheromone) / (outgoingWays
-                  .size - 1)))
-              }.toMap
             }
         })
       }.toMap
