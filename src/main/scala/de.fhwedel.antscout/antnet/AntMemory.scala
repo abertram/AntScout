@@ -4,14 +4,19 @@ package antnet
 import net.liftweb.common.Logger
 import akka.actor.ActorRef
 
+/**
+ * Ameisen-Gedächtnis.
+ *
+ * @param items Ameisen-Gedächtnis-Elemente.
+ */
 class AntMemory(val items: Seq[AntMemoryItem]) extends Logger {
 
   def containsNode(node: ActorRef) = items.find(_.node == node).isDefined
 
   def containsWay(way: AntWay) = items.find(_.way == way).isDefined
 
-  def memorize(node: ActorRef, way: AntWay, tripTime: Double) =
-    new AntMemory(AntMemoryItem(node, way, tripTime) +: items)
+  def memorize(node: ActorRef, way: AntWay, tripTime: Double, shouldUpdate: Boolean) =
+    new AntMemory(AntMemoryItem(node, way, tripTime, shouldUpdate) +: items)
 
   def removeCycle(node: ActorRef) = {
 //    debug("Removing cycle of #%s".format(node id))
