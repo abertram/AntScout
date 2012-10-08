@@ -22,17 +22,21 @@ class RoutingService extends Actor with ActorLogging {
   def findPath(source: ActorRef, destination: ActorRef): Box[Seq[AntWay]] = {
     @tailrec
     def findPathRecursive(source: ActorRef, path: Seq[AntWay]): Box[Seq[AntWay]] = {
-      log.debug("Searching path from {} to {}", source, destination)
+      if (log.isDebugEnabled)
+        log.debug("Searching path from {} to {}", source, destination)
       if (source == destination)
         return Full(path)
       else if (path.size == 100 || !routingTable(source).isDefinedAt(destination)) {
-        log.debug("Path size: {}", path.size)
+        if (log.isDebugEnabled)
+          log.debug("Path size: {}", path.size)
         return Empty
       }
       val bestWay = routingTable(source)(destination)
-      log.debug("Best way: {}", bestWay)
+      if (log.isDebugEnabled)
+        log.debug("Best way: {}", bestWay)
       if (path.contains(bestWay)) {
-        log.debug("Cycle detected, path: {}", bestWay +: path)
+        if (log.isDebugEnabled)
+          log.debug("Cycle detected, path: {}", bestWay +: path)
         return Full(path)
       }
       val newSource = bestWay.endNode(source)
@@ -92,8 +96,10 @@ class RoutingService extends Actor with ActorLogging {
             .contains(source))
           if shouldUpdate
         } yield {
-          log.debug("Updating best way: source: {}, destination: {}, way: {}", source, destination, way)
-          log.debug("Routing table before update: {}", routingTable(source)(destination))
+          if (log.isDebugEnabled) {
+            log.debug("Updating best way: source: {}, destination: {}, way: {}", source, destination, way)
+            log.debug("Routing table before update: {}", routingTable(source)(destination))
+          }
         }
       }
     }
@@ -120,8 +126,10 @@ class RoutingService extends Actor with ActorLogging {
           val shouldUpdate = AntNode.nodeId(destination) == selectedDestination && path.exists(_.startAndEndNodes
             .contains(source))
           if (shouldUpdate) {
-            log.debug("Routing table after update: {}", routingTable(source)(destination))
-            log.debug("Updating path")
+            if (log.isDebugEnabled) {
+              log.debug("Routing table after update: {}", routingTable(source)(destination))
+              log.debug("Updating path")
+            }
             val path = for {
               path <- findPath(AntNode(selectedSource), AntNode(selectedDestination))
             } yield {
