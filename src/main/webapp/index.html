@@ -19,6 +19,7 @@
         <li class="active"><a href="#map-tab" data-toggle="tab">Map</a></li>
         <li><a href="#statistics-tab" data-toggle="tab">Statistics</a></li>
       </ul>
+      Start
     </div>
   </div>
 </div>
@@ -39,11 +40,21 @@
             <table class="table table-bordered table-condensed table-striped">
               <tr>
                 <td>Length</td>
-                <td><span id="pathLength"></span> m</td>
+                <td>
+                  <div class="input-append">
+                    <span id="pathLength" class="input-small uneditable-input"></span>
+                    <span class="add-on">m</span>
+                  </div>
+                </td>
               </tr>
               <tr>
                 <td>Trip time</td>
-                <td><span id="pathTripTime"></span> s</td>
+                <td>
+                  <div class="input-append">
+                    <span id="pathTripTime" class="input-small uneditable-input"></span>
+                    <span class="add-on">s</span>
+                  </div>
+                </td>
               </tr>
             </table>
           </div>
@@ -111,7 +122,8 @@
                 <td>Length</td>
                 <td>
                   <div class="input-append">
-                    <input id="wayLength" class="input-small" disabled type="text"><span class="add-on">m</span>
+                    <span id="wayLength" class="input-small uneditable-input"></span>
+                    <span class="add-on">m</span>
                   </div>
                 </td>
               </tr>
@@ -119,7 +131,9 @@
                 <td>Max speed</td>
                 <td>
                   <div class="input-append">
-                    <input id="wayMaxSpeed" class="input-small" disabled type="text"><span class="add-on">m/s</span>
+                    <span id="wayMaxSpeed" class="input-small uneditable-input"></span>
+                    <input id="wayMaxSpeedInput" class="input-small" style="display: none" type="text">
+                    <span class="add-on">m/s</span>
                   </div>
                   <div class="btn-group">
                     <button id="wayEditMaxSpeed" class="btn" type="button"><i class="icon-edit"></i></button>
@@ -132,7 +146,8 @@
                 <td>Trip time</td>
                 <td>
                   <div class="input-append">
-                    <input id="wayTripTime" class="input-small" disabled type="text"><span class="add-on">s</span>
+                    <span id="wayTripTime" class="input-small uneditable-input"></span>
+                    <span class="add-on">s</span>
                   </div>
                 </td>
               </tr>

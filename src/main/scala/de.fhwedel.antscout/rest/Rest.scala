@@ -47,8 +47,17 @@ object Rest extends Logger with RestHelper {
         val (length, tripTime) = path.foldLeft(0.0, 0.0) {
           case ((lengthAcc, tripTimeAcc), way) => (way.length + lengthAcc, way.tripTime + tripTimeAcc)
         }
-        ("length" -> "%.2f".format(length)) ~
-        ("tripTime" -> "%.2f".format(tripTime)) ~
+        ("length" -> "%.4f".format(length)) ~
+        ("lengths" ->
+          JArray(List(("unit" -> "km") ~
+          ("value" -> "%.4f".format(length / 1000))))) ~
+        ("tripTime" -> "%.4f".format(tripTime)) ~
+        ("tripTimes" ->
+          JArray(List(
+            ("unit" -> "min") ~
+            ("value" -> "%.4f".format(tripTime / 60)),
+            ("unit" -> "h") ~
+            ("value" -> "%.4f".format(tripTime / 3600))))) ~
         ("ways" -> path.map(_.toJson))
       }
     case Get(List("osmnodes"), _) => {

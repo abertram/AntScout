@@ -125,7 +125,7 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
     $("#wayEditMaxSpeed, #waySaveMaxSpeed, #wayCancelEditMaxSpeed").click -> toggleWayEditMaxSpeedControls()
     $("#wayEditMaxSpeed").click -> $("#wayMaxSpeed").select()
     $("#waySaveMaxSpeed").click ->
-      maxSpeed = parseFloat($("#wayMaxSpeed").val().replace(",", "."))
+      maxSpeed = parseFloat($("#wayMaxSpeedInput").val().replace(",", "."))
       $.ajax({
         contentType: "application/json"
         type: "PUT"
@@ -134,8 +134,20 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
           maxSpeed: maxSpeed
         )
       }).done (way) ->
-        selectedWay.way = way
+        # in allen Weg-Layern den entsprechenden Weg aktualisieren
+        _.each([incomingWaysLayer, outgoingWaysLayer, pathLayer, waysLayer], (layerGroup) ->
+          layerGroup.eachLayer((layer) ->
+            if layer.way.id is way.id
+              layer.way = way
+          )
+        )
+        # selektierten Weg aktualisieren
+        selectWay.way = way
+        # Daten des aktualisierten Weges anzeigen
         displayWayData(way)
+    $("#pathLength, #pathTripTime, #wayLength, #wayMaxSpeed, #wayMaxSpeedInput, #wayTripTime").each(() ->
+      $(this).tooltip({trigger: 'hover'})
+    )
   )
 
   addWaysToLayer = (ways, layer, style, selectedStyle) ->
@@ -152,9 +164,15 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
 
   displayWayData = (way) ->
     $("#wayId").html(way.id)
-    $("#wayLength").val(way.length)
-    $("#wayMaxSpeed").val(way.maxSpeed)
-    $("#wayTripTime").val(way.tripTime)
+    lengths = for length in way.lengths
+      "#{ length.value } #{ length.unit }"
+    $("#wayLength").attr("data-original-title", lengths.join("<br>")).html(way.length)
+    maxSpeeds = for maxSpeed in way.maxSpeeds
+      "#{ maxSpeed.value } #{ maxSpeed.unit }"
+    $("#wayMaxSpeed").attr("data-original-title", maxSpeeds.join("<br>")).html(way.maxSpeed)
+    tripTimes = for tripTime in way.tripTimes
+      "#{ tripTime.value } #{ tripTime.unit }"
+    $("#wayTripTime").attr("data-original-title", tripTimes.join("<br>")).html(way.tripTime)
     nodes = for node in way.nodes
       "<a href=\"http://www.openstreetmap.org/browse/node/#{ node.id }\">#{ node.id }</a>"
     $("#way-nodes").html("<ul><li>" + nodes.join("</li><li>") + "</li></ul>")
@@ -162,8 +180,12 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
   drawPath = (path) ->
     pathLayer.clearLayers()
     if path and path.ways? and path.ways.length > 0
-      $("#pathLength").html(path.length)
-      $("#pathTripTime").html(path.tripTime)
+      lengths = for length in path.lengths
+        "#{ length.value } #{ length.unit }"
+      $("#pathLength").attr("data-original-title", lengths.join("<br>")).html(path.length)
+      tripTimes = for tripTime in path.tripTimes
+        "#{ tripTime.value } #{ tripTime.unit }"
+      $("#pathTripTime").attr("data-original-title", tripTimes.join("<br>")).html(path.tripTime)
       addWaysToLayer(path.ways, pathLayer, styles.path, styles.selectedPath)
 
   AntScout.drawPath = (path) ->
@@ -224,7 +246,16 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
       disable elementId
 
   toggleWayEditMaxSpeedControls = () ->
-    toggleDisabledProperty("wayMaxSpeed")
+    if $("#wayMaxSpeed").is(":visible")
+      $("#wayMaxSpeed").hide()
+      $("#wayMaxSpeedInput")
+        .attr("data-original-title", $("#wayMaxSpeed").attr("data-original-title"))
+        .show()
+        .val($("#wayMaxSpeed").html())
+        .select()
+    else
+      $("#wayMaxSpeedInput").hide()
+      $("#wayMaxSpeed").show()
     toggleDisabledProperty("wayEditMaxSpeed")
     toggleDisabledProperty("waySaveMaxSpeed")
     toggleDisabledProperty("wayCancelEditMaxSpeed")
