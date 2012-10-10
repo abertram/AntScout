@@ -73,41 +73,50 @@
                 <td id="nodeLatitude"></td>
               </tr>
             </table>
-            <div class="accordion" id="node-accordion">
+            <div id="debug-accordion" class="accordion">
               <div class="accordion-group">
                 <div class="accordion-heading">
-                  <a class="accordion-toggle" data-toggle="collapse" href="#arrived-ants-accordion-body">
-                    Arrived ants
-                  </a>
+                  <a class="accordion-toggle" data-toggle="collapse" href="#debug-accordion-body">Debug</a>
                 </div>
-                <div id="arrived-ants-accordion-body" class="accordion-body collapse">
-                  <div id="arrived-ants" class="accordion-inner"></div>
-                </div>
-              </div>
-              <div class="accordion-group">
-                <div class="accordion-heading">
-                  <a class="accordion-toggle" data-toggle="collapse" href="#pheromones-accordion-body">
-                    Pheromones
-                  </a>
-                </div>
-                <div id="pheromones-accordion-body" class="accordion-body collapse">
-                  <div id="pheromones" class="accordion-inner"></div>
-                </div>
-              </div>
-              <div class="accordion-group">
-                <div class="accordion-heading">
-                  <a class="accordion-toggle" data-toggle="collapse" href="#probabilities-accordion-body">
-                    Probabilities
-                  </a>
-                </div>
-                <div id="probabilities-accordion-body" class="accordion-body collapse">
-                  <div id="probabilities" class="accordion-inner"></div>
+                <div id="debug-accordion-body" class="accordion-body collapse">
+                  <div class="accordion" id="node-accordion">
+                    <div class="accordion-group">
+                      <div class="accordion-heading">
+                        <a class="accordion-toggle" data-toggle="collapse" href="#arrived-ants-accordion-body">
+                          Arrived ants
+                        </a>
+                      </div>
+                      <div id="arrived-ants-accordion-body" class="accordion-body collapse">
+                        <div id="arrived-ants" class="accordion-inner"></div>
+                      </div>
+                    </div>
+                    <div class="accordion-group">
+                      <div class="accordion-heading">
+                        <a class="accordion-toggle" data-toggle="collapse" href="#pheromones-accordion-body">
+                          Pheromones
+                        </a>
+                      </div>
+                      <div id="pheromones-accordion-body" class="accordion-body collapse">
+                        <div id="pheromones" class="accordion-inner"></div>
+                      </div>
+                    </div>
+                    <div class="accordion-group">
+                      <div class="accordion-heading">
+                        <a class="accordion-toggle" data-toggle="collapse" href="#probabilities-accordion-body">
+                          Probabilities
+                        </a>
+                      </div>
+                      <div id="probabilities-accordion-body" class="accordion-body collapse">
+                        <div id="probabilities" class="accordion-inner"></div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
             <div class="btn-group">
-              <a class="btn" id="setNodeAsSource"><i class="icon-home"></i> As source</a>
-              <a class="btn" id="setNodeAsDestination"><i class="icon-flag"></i> As destination</a>
+              <a class="btn btn-block" id="setNodeAsSource"><i class="icon-home"></i> As source</a>
+              <a class="btn btn-block" id="setNodeAsDestination"><i class="icon-flag"></i> As destination</a>
             </div>
           </div>
           <div class="well well-small">
