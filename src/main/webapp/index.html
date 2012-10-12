@@ -58,6 +58,18 @@
             </table>
           </div>
           <div class="well well-small">
+            <div class="btn-group pull-right">
+              <button class="btn" id="setNodeAsSource" title="Set node as source">
+                <i class="icon-home"></i>
+              </button>
+              <button class="btn" id="setNodeAsDestination"
+                  title="Set node as destination">
+                <i class="icon-flag"></i>
+              </button>
+              <button id="show-node-additional-data" class="btn" data-toggle="button">
+                <i class="icon-zoom-in"></i>
+              </button>
+            </div>
             <h2>Node</h2>
             <table class="table table-bordered table-condensed table-striped">
               <tr>
@@ -73,51 +85,40 @@
                 <td id="nodeLatitude"></td>
               </tr>
             </table>
-            <div id="debug-accordion" class="accordion">
-              <div class="accordion-group">
-                <div class="accordion-heading">
-                  <a class="accordion-toggle" data-toggle="collapse" href="#debug-accordion-body">Debug</a>
-                </div>
-                <div id="debug-accordion-body" class="accordion-body collapse">
-                  <div class="accordion" id="node-accordion">
-                    <div class="accordion-group">
-                      <div class="accordion-heading">
-                        <a class="accordion-toggle" data-toggle="collapse" href="#arrived-ants-accordion-body">
-                          Arrived ants
-                        </a>
-                      </div>
-                      <div id="arrived-ants-accordion-body" class="accordion-body collapse">
-                        <div id="arrived-ants" class="accordion-inner"></div>
-                      </div>
-                    </div>
-                    <div class="accordion-group">
-                      <div class="accordion-heading">
-                        <a class="accordion-toggle" data-toggle="collapse" href="#pheromones-accordion-body">
-                          Pheromones
-                        </a>
-                      </div>
-                      <div id="pheromones-accordion-body" class="accordion-body collapse">
-                        <div id="pheromones" class="accordion-inner"></div>
-                      </div>
-                    </div>
-                    <div class="accordion-group">
-                      <div class="accordion-heading">
-                        <a class="accordion-toggle" data-toggle="collapse" href="#probabilities-accordion-body">
-                          Probabilities
-                        </a>
-                      </div>
-                      <div id="probabilities-accordion-body" class="accordion-body collapse">
-                        <div id="probabilities" class="accordion-inner"></div>
-                      </div>
-                    </div>
+            <div id="node-additional-data" class="accordion-body collapse">
+              <div class="accordion" id="node-accordion">
+                <div class="accordion-group">
+                  <div class="accordion-heading">
+                    <a class="accordion-toggle" data-toggle="collapse" href="#arrived-ants-accordion-body">
+                      Arrived ants
+                    </a>
                   </div>
-                  <button id="trace" class="btn btn-block" data-toggle="button" type="button">Trace</button>
+                  <div id="arrived-ants-accordion-body" class="accordion-body collapse">
+                    <div id="arrived-ants" class="accordion-inner"></div>
+                  </div>
+                </div>
+                <div class="accordion-group">
+                  <div class="accordion-heading">
+                    <a class="accordion-toggle" data-toggle="collapse" href="#pheromones-accordion-body">
+                      Pheromones
+                    </a>
+                  </div>
+                  <div id="pheromones-accordion-body" class="accordion-body collapse">
+                    <div id="pheromones" class="accordion-inner"></div>
+                  </div>
+                </div>
+                <div class="accordion-group">
+                  <div class="accordion-heading">
+                    <a class="accordion-toggle" data-toggle="collapse" href="#probabilities-accordion-body">
+                      Probabilities
+                    </a>
+                  </div>
+                  <div id="probabilities-accordion-body" class="accordion-body collapse">
+                    <div id="probabilities" class="accordion-inner"></div>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div class="btn-group">
-              <a class="btn btn-block" id="setNodeAsSource"><i class="icon-home"></i> As source</a>
-              <a class="btn btn-block" id="setNodeAsDestination"><i class="icon-flag"></i> As destination</a>
+              <button id="trace" class="btn btn-block" data-toggle="button" type="button">Trace</button>
             </div>
           </div>
           <div class="well well-small">
