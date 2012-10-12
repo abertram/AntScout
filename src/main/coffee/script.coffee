@@ -148,6 +148,20 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
     $("#pathLength, #pathTripTime, #wayLength, #wayMaxSpeed, #wayMaxSpeedInput, #wayTripTime").each(() ->
       $(this).tooltip({trigger: 'hover'})
     )
+    $("#trace").click ->
+      $this = $(this)
+      if !$this.hasClass("active")
+        $.ajax({
+          contentType: "application/json"
+          type: "PUT"
+          url: "debug/trace"
+        })
+      else
+        $.ajax({
+          contentType: "application/json"
+          type: "DELETE"
+          url: "debug/trace"
+        })
   )
 
   addWaysToLayer = (ways, layer, style, selectedStyle) ->

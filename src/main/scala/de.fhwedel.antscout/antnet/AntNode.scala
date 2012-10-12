@@ -110,31 +110,38 @@ class AntNode extends Actor with ActorLogging {
    * @param destinations Ziele der Ameisen.
    */
   def launchAnts(destinations: Set[ActorRef]) {
-//    if (ShouldLog) {
-//      for (traceDestinationId <- TraceDestinationId if destinations.contains(AntNode(traceDestinationId))) {
-//        traceBySource("Launching ants, destinations: %s" format destinations)
-//      }
-//    }
-    val startTime = System.currentTimeMillis
-    for (destination <- destinations) {
-      val ant = if (Ant.ShouldLog)
-        Ant(self, destination, Ant.logEntry("Visiting node %s".format(AntNode.nodeId(self))))
-      else
-        Ant(self, destination)
-      val probabilities = pheromoneMatrix.probabilities(destination).toMap
-      val startTime = System.currentTimeMillis
-      val (nextNode, ant1) = ant.nextNode(self, probabilities)
-      statistics.selectNextNodeDurations += System.currentTimeMillis - startTime
-      nextNode ! (ant1, System.currentTimeMillis)
+    for {
+      liftSession <- liftSession
+    } yield {
+      S.initIfUninitted(liftSession) {
+        val startTime = System.currentTimeMillis
+        for (destination <- destinations) {
+          val ant = (for {
+            isTraceEnabled <- IsTraceEnabled
+            if isTraceEnabled
+            node <- Node
+            traceDestination <- Destination
+            if AntNode.nodeId(self) == node && AntNode.nodeId(destination) == traceDestination
+          } yield {
+            Ant(self, destination, Ant.logEntry("Visiting node %s".format(AntNode.nodeId(self))), true)
+          }) getOrElse(Ant(self, destination, false))
+          val probabilities = pheromoneMatrix.probabilities(destination).toMap
+          val startTime = System.currentTimeMillis
+          val (nextNode, ant1) = ant.nextNode(self, probabilities)
+          statistics.selectNextNodeDurations += System.currentTimeMillis - startTime
+          nextNode ! (ant1, System.currentTimeMillis)
+        }
+        statistics.launchAntsDurations += System.currentTimeMillis - startTime
+        statistics.incrementLaunchedAnts(destinations.size)
+      }
     }
-    statistics.launchAntsDurations += System.currentTimeMillis - startTime
-    statistics.incrementLaunchedAnts(destinations.size)
   }
 
   /**
    * Event-Handler, der nach dem Stoppen des Aktors augeführt wird.
    */
   override def postStop() {
+    // alle schedule-Aktionen stoppen
     for (cancellable <- cancellables)
       cancellable.cancel()
   }
@@ -149,27 +156,27 @@ class AntNode extends Actor with ActorLogging {
       if (self == ant.destination) {
         // Ziel erreicht
         statistics.antAges += ant.age
-        val ant1 = if (Ant.ShouldLog)
+        val ant1 = if (ant.isTraceEnabled)
           ant.log(Seq("Destination reached, visited %d nodes, took %d milliseconds" format (ant.memory.size, ant.age),
-            "Memory: %s" format ant.memory.items.reverse.mkString("\n\t\t", "\t\t", ""), "Updating nodes"))
+            "Memory: %s" format ant.memory.items.reverse.mkString("\n\t\t", "\n\t\t", ""), "Updating nodes"))
         else
           ant
         statistics.incrementDestinationReachedAnts()
         val ant2 = ant1.updateNodes()
-        if (ShouldLog)
-          trace(ant2.source, ant2.destination, ant2.prepareLogEntries)
+        if (ant2.isTraceEnabled)
+          log.debug("{}", ant2.prepareLogEntries)
         statistics.arrivedAnts += ant.source -> (statistics.arrivedAnts.getOrElse(ant.source, 0) + 1)
       } else if (ant.age > Settings.MaxAntAge) {
         // Ameise ist zu alt
         statistics.antAges += ant.age
-        val ant1 = if (Ant.ShouldLog)
+        val ant1 = if (ant.isTraceEnabled)
           ant.log("Lifetime expired, visited %d nodes, took %s milliseconds, removing ant" format (ant.memory.size,
             ant.age))
         else
           ant
         statistics.incrementMaxAgeExceededAnts()
-        if (ShouldLog)
-          trace(ant1.source, ant1.destination, ant1.prepareLogEntries)
+        if (ant1.isTraceEnabled)
+          log.debug("{}", ant1.prepareLogEntries)
       } else if (!(pheromoneMatrix != null && pheromoneMatrix.probabilities.isDefinedAt(ant.destination))) {
         // Wenn die Pheromon-Matrix undefiniert ist, dann ist der Knoten kein gültiger Quell-Knoten (enthält keine
         // ausgehenden Wege.
@@ -177,16 +184,16 @@ class AntNode extends Actor with ActorLogging {
         // Knoten nicht erreichbar.
         // In beiden Fällen wird die Ameise aus dem System entfernt.
         statistics.antAges += ant.age
-        val ant1 = if (Ant.ShouldLog)
+        val ant1 = if (ant.isTraceEnabled)
           ant.log("Dead end street reached, visited %d nodes, took %d milliseconds, removing ant" format (ant.memory
             .size, ant.age))
         else
           ant
         statistics.incrementDeadEndStreetReachedAnts()
-        if (ShouldLog)
-          trace(ant1.source, ant1.destination, ant1.prepareLogEntries)
+        if (ant1.isTraceEnabled)
+          log.debug("{}", ant1.prepareLogEntries)
       } else {
-        val ant1 = if (Ant.ShouldLog)
+        val ant1 = if (ant.isTraceEnabled)
           ant.log("Visiting node %s".format(AntNode.nodeId(self)))
         else
           ant
@@ -230,9 +237,8 @@ class AntNode extends Actor with ActorLogging {
   }
 
   def updateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double) = {
-    if (ShouldLog)
-      trace(self, destination, ("Updating data structures, source: %s, destination: %s, way: %s, trip time: %s")
-        .format(self, destination, way, tripTime))
+    trace(self, destination, ("Updating data structures, source: %s, destination: %s, way: %s, trip time: %s")
+      .format(self, destination, way, tripTime))
     assert(trafficModel.isDefined, "Traffic model is undefined, node: %s, destination: %s, way: %s".format(self,
       destination, way))
     for (trafficModel <- this.trafficModel) {
@@ -243,21 +249,17 @@ class AntNode extends Actor with ActorLogging {
       val node = AntMap.nodes.find(_.id == nodeId).get
       val outgoingWays = AntMap.outgoingWays(node)
       val reinforcement = trafficModel.reinforcement(destination, tripTime, outgoingWays.size)
-      if (ShouldLog)
-        trace(self, destination, "Updating pheromones: way: %s, reinforcement: %s" format (way, reinforcement))
+      trace(self, destination, "Updating pheromones: way: %s, reinforcement: %s" format (way, reinforcement))
       val bestWayBeforeUpdate = bestWay(destination)
-      if (ShouldLog)
-        trace(self, destination, "Before update: pheromones: %s, best way: %s" format (pheromoneMatrix
-          .pheromones(destination), bestWayBeforeUpdate))
+      trace(self, destination, "Before update: pheromones: %s, best way: %s" format (pheromoneMatrix
+        .pheromones(destination), bestWayBeforeUpdate))
       pheromoneMatrix.updatePheromones(destination, way, reinforcement)
       statistics.updateDataStructuresDurations += System.currentTimeMillis - startTime
       val bestWayAfterUpdate = bestWay(destination)
-      if (ShouldLog)
-        trace(self, destination, "After update: pheromones: %s, best way: %s" format (pheromoneMatrix
-          .pheromones(destination), bestWayAfterUpdate))
+      trace(self, destination, "After update: pheromones: %s, best way: %s" format (pheromoneMatrix
+        .pheromones(destination), bestWayAfterUpdate))
       if (bestWayAfterUpdate != bestWayBeforeUpdate) {
-        if (ShouldLog)
-          trace(self, destination, "Sending best way to routing service: %s" format bestWayAfterUpdate)
+        trace(self, destination, "Sending best way to routing service: %s" format bestWayAfterUpdate)
         system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) !
           RoutingService.UpdateBestWay(self, destination, bestWayAfterUpdate)
       }
@@ -295,37 +297,47 @@ class AntNode extends Actor with ActorLogging {
       log.warning("Unknown message: {}", m)
   }
 
-  def trace(source: ActorRef, destination: ActorRef, message: String) {
+  def trace(source: => ActorRef, destination: => ActorRef, message: => String) {
     for {
-      traceSourceId <- TraceSourceId
-      traceDestinationId <- TraceDestinationId
-      if (AntNode.nodeId(source).matches(traceSourceId) && AntNode.nodeId(destination).matches(traceDestinationId))
-    } yield
-      log.info("{}", message)
+      liftSession <- liftSession
+    } yield {
+      S.initIfUninitted(liftSession) {
+        for {
+          isTraceEnabled <- IsTraceEnabled
+          if isTraceEnabled
+          traceSource <- Node
+          traceDestination <- Destination
+          if (AntNode.nodeId(source) == traceSource && AntNode.nodeId(destination) == traceDestination)
+        } yield
+          log.debug("{}", message)
+      }
+    }
   }
 
-  def traceByDestination(destination: ActorRef, message: String) {
+  def traceByDestination(destination: => ActorRef, message: => String) {
     for {
-      traceDestinationId <- TraceDestinationId
-      if (AntNode.nodeId(destination).matches(traceDestinationId))
+      isTraceEnabled <- IsTraceEnabled
+      if isTraceEnabled
+      traceDestination <- Destination
+      if (AntNode.nodeId(destination) == traceDestination)
     } yield
-      log.info("{}", message)
+      log.debug("{}", message)
   }
 
-  def traceBySource(message: String, source: ActorRef = self) {
+  def traceBySource(message: => String, source: => ActorRef = self) {
     for {
-      traceSourceId <- TraceSourceId
-      if (AntNode.nodeId(source).matches(traceSourceId))
+      isTraceEnabled <- IsTraceEnabled
+      if isTraceEnabled
+      traceSource <- Source
+      if (AntNode.nodeId(source).matches(traceSource))
     } yield
-      log.info("{}", message)
+      log.debug("{}", message)
   }
 }
 
 object AntNode {
 
   import map.Node
-
-  val ShouldLog = false
 
   case class ArrivedAnts(arrivedAnts: Int)
   case object DeadEndStreet

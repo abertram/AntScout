@@ -5,6 +5,9 @@ import net.liftweb.common.{Box, Empty}
 import net.liftweb.http.SessionVar
 import akka.actor.ActorSystem
 
+/**
+ * Hier ist alles zu finden, was im gesamten Projekt benötigt wird.
+ */
 package object antscout {
 
   /**
@@ -32,7 +35,8 @@ package object antscout {
    */
   object Source extends SessionVar[Box[String]](Empty)
 
-  // IDs eines Quell- und eines Ziel-Knoten für Debug-Zwecke
-  object TraceSourceId extends SessionVar[Box[String]](Empty)
-  object TraceDestinationId extends SessionVar[Box[String]](Empty)
+  /**
+   * Flag, ob die Applikation sehr detaillierte Log-Ausgaben erzeugen soll.
+   */
+  object IsTraceEnabled extends SessionVar[Box[Boolean]](Empty)
 }

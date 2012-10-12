@@ -7,7 +7,7 @@ import http._
 import sitemap._
 import Loc._
 import de.fhwedel.antscout.AntScout
-import de.fhwedel.antscout.rest.Rest
+import de.fhwedel.antscout.rest.{DebugRest, Rest}
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -53,6 +53,7 @@ class Boot extends Logger {
     LiftRules.htmlProperties.default.set((r: Req) => new Html5Properties(r.userAgent))
 
     LiftRules.dispatch.append(Rest)
+    LiftRules.dispatch.append(DebugRest)
 
     LiftRules.unloadHooks.append(() => {
       // System runterfahren

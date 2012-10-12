@@ -15,13 +15,15 @@ import utils.StatisticsUtils
  * @param memory Gedächtnis.
  * @param logEntries Log-Einträge.
  * @param startTime Startzeit.
+ * @param isTraceEnabled Flag, ob die Ameise ihre Aktionen protokollieren soll.
  */
 class Ant(val source: ActorRef, val destination: ActorRef, val memory: AntMemory, val logEntries: Seq[String],
-    startTime: Long) {
+    startTime: Long, val isTraceEnabled: Boolean) {
 
   import Ant._
 
-  assert(source != destination, "Source equals destination, this shouldn't happen!")
+  // für Debug-Zwecke
+//  assert(source != destination, "Source equals destination, this shouldn't happen!")
 
   /**
    * Berechnet das Alter der Ameise.
@@ -39,9 +41,10 @@ class Ant(val source: ActorRef, val destination: ActorRef, val memory: AntMemory
   def containsCycle(node: ActorRef) = memory.containsNode(node)
 
   def log(entries: Seq[String]) = new Ant(source, destination, memory, entries.reverse.map(logEntry(_)) ++ logEntries,
-    startTime)
+    startTime, isTraceEnabled)
 
-  def log(entry: String) = new Ant(source, destination, memory, logEntry(entry) +: logEntries, startTime)
+  def log(entry: String) = new Ant(source, destination, memory, logEntry(entry) +: logEntries, startTime,
+    isTraceEnabled)
 
   def prepareLogEntries = logEntries.reverse.mkString("\n\t")
 
@@ -59,24 +62,24 @@ class Ant(val source: ActorRef, val destination: ActorRef, val memory: AntMemory
     val notVisitedWays = probabilities.filter { case (way, _) => !memory.containsWay(way) }
     val (way, logEntries2) = if (notVisitedWays.size == 1)
       // bei einem übrig gebliebenen Weg muss nicht gerechnet werden
-      (notVisitedWays.head._1, if (ShouldLog) "" else "Just one not visited way exists, selecting")
+      (notVisitedWays.head._1, if (isTraceEnabled) "Just one not visited way exists, selecting" else "")
     else if (notVisitedWays.nonEmpty)
       // bei mehreren Wegen wird der Weg anhand der Wahrscheinlichkeiten bestimmt
-      (StatisticsUtils.selectByProbability(notVisitedWays), if (ShouldLog) "Selecting way by probability" else "")
+      (StatisticsUtils.selectByProbability(notVisitedWays), if (isTraceEnabled) "Selecting way by probability" else "")
     else
       // zufällig einen Weg bestimmen, falls alle Wege schonmal besucht wurden
-      (StatisticsUtils.selectRandom(probabilities.keys.toSeq), if (ShouldLog) "Selecting random way" else "")
+      (StatisticsUtils.selectRandom(probabilities.keys.toSeq), if (isTraceEnabled) "Selecting random way" else "")
     // nächsten Knoten und die Reisezeit berechnen
     val (nextNode, tripTime) = way.cross(node)
     // berechnete Daten merken
     val memory2 = memory1.memorize(node, way, tripTime, probabilities.size > 1)
     // Log-Ausgaben generieren
-    val logEntries3 = if (ShouldLog) Seq("Selecting next node") ++ logEntries1 ++
+    val logEntries3 = if (isTraceEnabled) Seq("Selecting next node") ++ logEntries1 ++
       Seq("Outgoing ways: %s".format(probabilities.keys), "Not visited ways: %s".format(notVisitedWays.mkString(", ")),
       logEntries2, "Selected way: %s".format(way))
     else
       Seq.empty
-    (nextNode, new Ant(source, destination, memory2, logEntries3.reverse ++ logEntries, startTime))
+    (nextNode, new Ant(source, destination, memory2, logEntries3.reverse ++ logEntries, startTime, isTraceEnabled))
   }
 
   /**
@@ -88,7 +91,7 @@ class Ant(val source: ActorRef, val destination: ActorRef, val memory: AntMemory
   def removeCycle(node: ActorRef) =
     if (containsCycle(node)) {
       val memory1 = memory.removeCycle(node)
-      (memory1, if (ShouldLog)
+      (memory1, if (isTraceEnabled)
         Seq("Cycle detected, removing", "Memory before removing cycle: %s".format(memory),
         "Memory after removing cycle: %s".format(memory1))
       else
@@ -112,7 +115,7 @@ class Ant(val source: ActorRef, val destination: ActorRef, val memory: AntMemory
         val updateDataStructures = AntNode.UpdateDataStructures(destination, way, tripTimeSum)
         if (shouldUpdate)
           node ! updateDataStructures
-        (tripTimeSum, if (ShouldLog) {
+        (tripTimeSum, if (isTraceEnabled) {
           (if (shouldUpdate)
             "Updating %s: %s".format(node, updateDataStructures)
           else
@@ -120,25 +123,24 @@ class Ant(val source: ActorRef, val destination: ActorRef, val memory: AntMemory
         } else Seq())
       }
     }
-    new Ant(source, destination, memory, logEntries1 ++ logEntries, startTime)
+    new Ant(source, destination, memory, logEntries1 ++ logEntries, startTime, isTraceEnabled)
   }
 }
 
 object Ant {
 
-  val ShouldLog = false
+  def apply(source: ActorRef, destination: ActorRef, isTraceEnabled: Boolean) =
+    new Ant(source, destination, AntMemory(), if (isTraceEnabled) Seq(logEntry("%s -> %s"
+      .format(AntNode.nodeId(source), AntNode.nodeId(destination)))) else Seq.empty, System.currentTimeMillis,
+      isTraceEnabled)
 
-  def apply(source: ActorRef, destination: ActorRef) = new Ant(source, destination, AntMemory(), if (ShouldLog)
-    Seq(logEntry("%s -> %s".format(AntNode.nodeId(source), AntNode.nodeId(destination)))) else Seq.empty,
-    System.currentTimeMillis)
+  def apply(source: ActorRef, destination: ActorRef, logEntries: Seq[String], isTraceEnabled: Boolean) =
+    new Ant(source, destination, AntMemory(), if (isTraceEnabled) logEntries.reverse ++ Seq(logEntry("%s -> %s".format
+      (AntNode.nodeId(source), AntNode.nodeId(destination)))) else Seq.empty, System.currentTimeMillis, isTraceEnabled)
 
-  def apply(source: ActorRef, destination: ActorRef, logEntries: Seq[String]) =
-    new Ant(source, destination, AntMemory(), if (ShouldLog) logEntries.reverse ++ Seq(logEntry("%s -> %s".format
-      (AntNode.nodeId(source), AntNode.nodeId(destination)))) else Seq.empty, System.currentTimeMillis)
-
-  def apply(source: ActorRef, destination: ActorRef, logEntry: String) =
-    new Ant(source, destination, AntMemory(), if (ShouldLog) logEntry +: Seq(this.logEntry("%s -> %s".format(AntNode
-      .nodeId(source), AntNode.nodeId(destination)))) else Seq.empty, System.currentTimeMillis)
+  def apply(source: ActorRef, destination: ActorRef, logEntry: String, isTraceEnabled: Boolean) =
+    new Ant(source, destination, AntMemory(), if (isTraceEnabled) logEntry +: Seq(this.logEntry("%s -> %s".format(AntNode
+      .nodeId(source), AntNode.nodeId(destination)))) else Seq.empty, System.currentTimeMillis, isTraceEnabled)
 
   def logEntry(entry: String) = "%tH:%1$tM:%1$tS:%1$tL: %s" format (TimeHelpers.now, entry)
 }
