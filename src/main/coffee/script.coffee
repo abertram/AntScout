@@ -39,9 +39,9 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
 
   clearWayData = () ->
     $("#wayId").html("")
-    $("#wayLength").val("")
-    $("#wayMaxSpeed").val("")
-    $("#wayTripTime").val("")
+    $("#wayLength").html("")
+    $("#wayMaxSpeed").html("")
+    $("#wayTripTime").html("")
     $("#way-nodes").html("")
 
   deselectNode = () ->
