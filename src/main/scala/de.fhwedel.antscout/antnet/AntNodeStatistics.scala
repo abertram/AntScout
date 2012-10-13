@@ -5,45 +5,55 @@ import collection.mutable
 import akka.actor.ActorRef
 
 /**
- * Created by IntelliJ IDEA.
- * User: alex
- * Date: 18.09.12
- * Time: 12:49
+ * Ant-Knoten-Statistiken.
  */
-
 class AntNodeStatistics {
 
   val antAges = mutable.Buffer[Long]()
   val antsIdleTimes = mutable.Buffer[Long]()
-  val arrivedAnts = mutable.Map[ActorRef, Int]()
+  /**
+   * Anzahl angekommener Ameisen pro Quelle.
+   */
+  private val _arrivedAnts = mutable.Map[ActorRef, Int]()
+  private var arrivedAntsPerSecond = 0
   private var deadEndStreetReachedAnts = 0
-  private var destinationReachedAnts = 0
   val idleTimes = mutable.Buffer[Long]()
   var launchAntsDurations = mutable.Buffer[Long]()
-  private var launchedAnts = 0
+  /**
+   * Anzahl erzeugter Ameisen pro Ziel.
+   */
+  private val _launchedAnts = mutable.Map[ActorRef, Int]()
+  var launchedAntsPerSecond = 0
   private var maxAgeExceededAnts = 0
+  /**
+   * Anzahl der Ameisen, die diesen Knoten auf dem Weg zu ihrem Ziel passiert haben. Ziel-Knoten sind die Schlüssel
+   * dieser Map.
+   */
+  val passedAnts = mutable.Map[ActorRef, Int]()
   var processAntDurations = mutable.Buffer[Long]()
   var processedAnts = 0
   var selectNextNodeDurations = mutable.Buffer[Long]()
   private var totalDeadEndStreetReachedAnts = 0
-  private var totalDestinationReachedAnts = 0
-  private var totalLaunchedAnts = 0
   private var totalMaxAgeExceededAnts = 0
   var updateDataStructuresDurations = mutable.Buffer[Long]()
+
+  def antsIdleTime = if (antsIdleTimes.size > 0) antsIdleTimes.sum.toDouble / antsIdleTimes.size else 0.0
+
+  def arrivedAnts = _arrivedAnts
 
   def incrementDeadEndStreetReachedAnts(increment: Int = 1) {
     deadEndStreetReachedAnts += increment
     totalDeadEndStreetReachedAnts += increment
   }
 
-  def incrementDestinationReachedAnts(increment: Int = 1) {
-    destinationReachedAnts += increment
-    totalDestinationReachedAnts += increment
+  def incrementArrivedAnts(source: ActorRef, increment: Int = 1) {
+    _arrivedAnts += source -> (_arrivedAnts.getOrElse(source, 0) + increment)
+    arrivedAntsPerSecond += increment
   }
 
-  def incrementLaunchedAnts(increment: Int = 1) {
-    launchedAnts += increment
-    totalLaunchedAnts += increment
+  def incrementLaunchedAnts(destination: ActorRef, increment: Int = 1) {
+    _launchedAnts += destination -> (_launchedAnts.getOrElse(destination, 0) + increment)
+    launchedAntsPerSecond += increment
   }
 
   def incrementMaxAgeExceededAnts(increment: Int = 1) {
@@ -51,7 +61,7 @@ class AntNodeStatistics {
     totalMaxAgeExceededAnts += increment
   }
 
-  def antsIdleTime = if (antsIdleTimes.size > 0) antsIdleTimes.sum.toDouble / antsIdleTimes.size else  0.0
+  def launchedAnts = _launchedAnts
 
   /**
    * Bereitet die Statistik auf, sodass sie zur Weiterverarbeitung an [[de.fhwedel.antscout.antnet.AntNodeSupervisor]]
@@ -63,14 +73,14 @@ class AntNodeStatistics {
     AntNode.Statistics(
       antAge = if (antAges.size > 0) antAges.sum.toDouble / antAges.size / 10e3 else 0,
       antsIdleTime = antsIdleTime,
+      arrivedAnts = arrivedAntsPerSecond,
       deadEndStreetReachedAnts = deadEndStreetReachedAnts,
-      destinationReachedAnts = destinationReachedAnts,
       idleTimes = idleTimes,
       launchAntsDuration = if (launchAntsDurations.size > 0)
         launchAntsDurations.sum.toDouble / launchAntsDurations.size
       else
         0,
-      launchedAnts = launchedAnts,
+      launchedAnts = launchedAntsPerSecond,
       maxAgeExceededAnts = maxAgeExceededAnts,
       processAntDuration = if (processAntDurations.size > 0) processAntDurations.sum.toDouble / processAntDurations
         .size else 0,
@@ -80,8 +90,8 @@ class AntNodeStatistics {
       else
         0,
       totalDeadEndStreetReachedAnts = totalDeadEndStreetReachedAnts,
-      totalDestinationReachedAnts = totalDestinationReachedAnts,
-      totalLaunchedAnts = totalLaunchedAnts,
+      totalArrivedAnts = _arrivedAnts.values.sum,
+      totalLaunchedAnts = _launchedAnts.values.sum,
       totalMaxAgeExceededAnts = totalMaxAgeExceededAnts,
       updateDataStructuresDuration = if (updateDataStructuresDurations.size > 0)
         updateDataStructuresDurations.sum / updateDataStructuresDurations.size
@@ -97,9 +107,9 @@ class AntNodeStatistics {
     antAges.clear()
     antsIdleTimes.clear()
     deadEndStreetReachedAnts = 0
-    destinationReachedAnts = 0
+    arrivedAntsPerSecond = 0
     launchAntsDurations.clear()
-    launchedAnts = 0
+    launchedAntsPerSecond = 0
     maxAgeExceededAnts = 0
     processAntDurations.clear()
     processedAnts = 0

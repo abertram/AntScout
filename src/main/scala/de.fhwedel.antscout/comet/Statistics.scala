@@ -18,10 +18,10 @@ class Statistics extends Logger with NamedCometActorTrait {
       partialUpdate(SetHtml("last-update", Text("%tF %1$tT" format TimeHelpers.now)))
       partialUpdate(SetHtml("launched-ants-per-second", Text(statistics.launchedAnts.toString)))
       partialUpdate(SetHtml("total-launched-ants", Text(statistics.totalLaunchedAnts.toString)))
-      partialUpdate(SetHtml("destination-reached-ants-per-second", Text("%d (%.2f%%)".format(statistics
-        .destinationReachedAnts, statistics.destinationReachedAnts.toFloat / statistics.launchedAnts * 100))))
-      partialUpdate(SetHtml("total-destination-reached-ants", Text("%d (%.2f%%)".format(statistics
-        .totalDestinationReachedAnts, statistics.totalDestinationReachedAnts.toFloat / statistics.totalLaunchedAnts
+      partialUpdate(SetHtml("arrived-ants-per-second", Text("%d (%.2f%%)".format(statistics
+        .arrivedAnts, statistics.arrivedAnts.toFloat / statistics.launchedAnts * 100))))
+      partialUpdate(SetHtml("total-arrived-ants", Text("%d (%.2f%%)".format(statistics
+        .totalArrivedAnts, statistics.totalArrivedAnts.toFloat / statistics.totalLaunchedAnts
         * 100))))
       partialUpdate(SetHtml("dead-end-street-reached-ants-per-second", Text("%d (%.2f%%)".format(statistics
         .deadEndStreetReachedAnts, statistics.deadEndStreetReachedAnts.toFloat / statistics.launchedAnts * 100))))

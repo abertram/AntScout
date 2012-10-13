@@ -71,7 +71,8 @@ class Ant(val source: ActorRef, val destination: ActorRef, val memory: AntMemory
       (StatisticsUtils.selectRandom(probabilities.keys.toSeq), if (isTraceEnabled) "Selecting random way" else "")
     // nächsten Knoten und die Reisezeit berechnen
     val (nextNode, tripTime) = way.cross(node)
-    // berechnete Daten merken
+    // Berechnete Daten merken und Flag setzen, ob die Datenstrukturen dieses Knotens aktualisert werden sollen.
+    // Das ist nicht notwendig, wenn der Knoten nur einen ausgehenden Weg hat.
     val memory2 = memory1.memorize(node, way, tripTime, probabilities.size > 1)
     // Log-Ausgaben generieren
     val logEntries3 = if (isTraceEnabled) Seq("Selecting next node") ++ logEntries1 ++

@@ -13,27 +13,29 @@ class UserInterface extends Logger with NamedCometActorTrait {
   override def lowPriority = {
     case AntNode.ArrivedAnts(arrivedAnts) =>
       partialUpdate(SetHtml("arrived-ants", Text(arrivedAnts.toString)))
+    case AntNode.LaunchedAnts(launchedAnts) =>
+      partialUpdate(SetHtml("launched-ants", Text(launchedAnts.toString)))
+    case AntNode.PassedAnts(passedAnts) =>
+      partialUpdate(SetHtml("passed-ants", Text(passedAnts.toString)))
     case AntNode.PheromonesAndProbabilities(pheromones, probabilities) =>
-      partialUpdate(SetHtml("pheromones",
-        <ol> {
+      val (bestWay, _) = probabilities.maxBy { case (_, probability) => probability }
+      partialUpdate(SetHtml("pheromones-and-probabilities",
+        <thead>
+          <th>#</th>
+          <th>Pheromone</th>
+          <th>Probability</th>
+        </thead> ++ {
           pheromones.sortBy {
-            case (_, pheromone) =>
-              pheromone
-          }.reverse.map {
+            case (way, _) => way.id
+          }.map {
             case (way, pheromone) =>
-              <li> { "%s: %.4f" format (way.id, pheromone) } </li>
+              <tr class={ if (way == bestWay) "success" else "" }>
+                <td> { way.id } </td>
+                <td> { "%.4f" format pheromone } </td>
+                <td> { "%.4f" format probabilities(way) } </td>
+              </tr>
           }
-        } </ol>))
-      partialUpdate(SetHtml("probabilities",
-        <ol> {
-          probabilities.sortBy {
-            case (_, probability) =>
-              probability
-          }.reverse.map {
-            case (way, probability) =>
-              <li> { "%s: %.4f" format (way.id, probability) } </li>
-          }
-        } </ol>))
+        }))
     case m: Any =>
       warn("Unknown message: %s" format m)
   }

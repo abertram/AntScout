@@ -130,9 +130,9 @@ class AntNode extends Actor with ActorLogging {
           val (nextNode, ant1) = ant.nextNode(self, probabilities)
           statistics.selectNextNodeDurations += System.currentTimeMillis - startTime
           nextNode ! (ant1, System.currentTimeMillis)
+          statistics.incrementLaunchedAnts(destination)
         }
         statistics.launchAntsDurations += System.currentTimeMillis - startTime
-        statistics.incrementLaunchedAnts(destinations.size)
       }
     }
   }
@@ -161,11 +161,10 @@ class AntNode extends Actor with ActorLogging {
             "Memory: %s" format ant.memory.items.reverse.mkString("\n\t\t", "\n\t\t", ""), "Updating nodes"))
         else
           ant
-        statistics.incrementDestinationReachedAnts()
         val ant2 = ant1.updateNodes()
         if (ant2.isTraceEnabled)
           log.debug("{}", ant2.prepareLogEntries)
-        statistics.arrivedAnts += ant.source -> (statistics.arrivedAnts.getOrElse(ant.source, 0) + 1)
+        statistics.incrementArrivedAnts(ant.source)
       } else if (ant.age > Settings.MaxAntAge) {
         // Ameise ist zu alt
         statistics.antAges += ant.age
@@ -212,37 +211,49 @@ class AntNode extends Actor with ActorLogging {
    * Verarbeitet die Statistiken.
    */
   def processStatistics() {
+    // Statistik aufbereiten und an den Supervisor senden
     context.parent ! statistics.prepare
     for {
       liftSession <- liftSession
     } yield {
       S.initIfUninitted(liftSession) {
         for {
+          source <- Source
           node <- Node
           destination <- Destination
         } yield {
-          NamedCometListener.getDispatchersFor(Full("userInterface")) foreach { actor => {
-            if (AntNode.nodeId(self) == node && AntNode.nodeId(self) != destination && pheromoneMatrix != null) {
+          NamedCometListener.getDispatchersFor(Full("userInterface")) foreach { actor =>
+            if (AntNode.nodeId(self) == destination)
+              actor.map(_ ! ArrivedAnts(statistics.arrivedAnts.getOrElse(AntNode(source), 0)))
+            if (AntNode.nodeId(self) == source)
+              actor.map(_ ! LaunchedAnts(statistics.launchedAnts.getOrElse(AntNode(destination), 0)))
+            if (AntNode.nodeId(self) == node)
+              actor.map(_ ! PassedAnts(statistics.passedAnts.getOrElse(AntNode(destination), 0)))
+            if (AntNode.nodeId(self) == node && AntNode.nodeId(self) != destination && pheromoneMatrix != null)
               actor.map(_ ! PheromonesAndProbabilities(pheromoneMatrix.pheromones(AntNode(destination)).toSeq,
-                pheromoneMatrix.probabilities(AntNode(destination)).toSeq))
-              }
-            }
-            if (AntNode.nodeId(self) == destination) {
-              actor.map(_ ! ArrivedAnts(statistics.arrivedAnts.getOrElse(AntNode(node), 0)))
-            }
+                pheromoneMatrix.probabilities(AntNode(destination)).toMap))
           }
         }
       }
     }
   }
 
+  /**
+   * Aktualisiert die Datenstrukturen dieses Knotens.
+   *
+   * @param destination Ziel-Knoten, dessen Daten aktualisiert werden sollen.
+   * @param way Weg, den die Ameise gewählt hat, um das Ziel zu erreichen.
+   * @param tripTime Reisezeit von diesem Knoten aus zum Ziel.
+   */
   def updateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double) = {
     trace(self, destination, ("Updating data structures, source: %s, destination: %s, way: %s, trip time: %s")
       .format(self, destination, way, tripTime))
-    assert(trafficModel.isDefined, "Traffic model is undefined, node: %s, destination: %s, way: %s".format(self,
-      destination, way))
+    // für Debug-Zwecke
+//    assert(trafficModel.isDefined, "Traffic model is undefined, node: %s, destination: %s, way: %s".format(self,
+//      destination, way))
     for (trafficModel <- this.trafficModel) {
-      assert(trafficModel.samples.isDefinedAt(destination), "Node: %s, destination: %s".format(self, destination))
+      // für Debug-Zwecke
+//      assert(trafficModel.samples.isDefinedAt(destination), "Node: %s, destination: %s".format(self, destination))
       val startTime = System.currentTimeMillis
       trafficModel.addSample(destination, tripTime)
       val nodeId = self.path.elements.last
@@ -263,9 +274,14 @@ class AntNode extends Actor with ActorLogging {
         system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) !
           RoutingService.UpdateBestWay(self, destination, bestWayAfterUpdate)
       }
+      // Anzahl der Ameisen erhöhen, die diesen Knoten auf dem Weg zum Ziel passiert haben.
+      statistics.passedAnts += destination -> (statistics.passedAnts.getOrElse(destination, 0) + 1)
     }
   }
 
+  /**
+   * Verarbeitet eine empfangene Nachricht.
+   */
   protected def receive = {
     case (ant: Ant, sendTime: Long) =>
       statistics.antsIdleTimes += System.currentTimeMillis - sendTime
@@ -281,6 +297,7 @@ class AntNode extends Actor with ActorLogging {
       lastProcessReceiveTime = Some(System.currentTimeMillis)
       launchAnts(destinations)
     case liftSession: LiftSession =>
+      lastProcessReceiveTime.map(statistics.idleTimes += System.currentTimeMillis - _)
       this.liftSession = Some(liftSession)
     case ProcessStatistics =>
       lastProcessReceiveTime.map(statistics.idleTimes += System.currentTimeMillis - _)
@@ -344,13 +361,15 @@ object AntNode {
   case class Enter(destination: ActorRef)
   case class Initialize(destinations: Set[ActorRef], pheromones: Map[ActorRef, Map[AntWay, Double]])
   case class LaunchAnts(destinations: Set[ActorRef])
-  case class PheromonesAndProbabilities(pheromones: Seq[(AntWay, Double)], probabilities: Seq[(AntWay, Double)])
+  case class LaunchedAnts(arrivedAnts: Int)
+  case class PassedAnts(arrivedAnts: Int)
+  case class PheromonesAndProbabilities(pheromones: Seq[(AntWay, Double)], probabilities: Map[AntWay, Double])
   case object ProcessStatistics
   case class Statistics(
     antAge: Double,
     antsIdleTime: Double,
+    arrivedAnts: Int,
     deadEndStreetReachedAnts: Int,
-    destinationReachedAnts: Int,
     idleTimes: mutable.Buffer[Long],
     launchAntsDuration: Double,
     launchedAnts: Int,
@@ -358,8 +377,8 @@ object AntNode {
     processAntDuration: Double,
     processedAnts: Int,
     selectNextNodeDuration: Double,
+    totalArrivedAnts: Int,
     totalDeadEndStreetReachedAnts: Int,
-    totalDestinationReachedAnts: Int,
     totalLaunchedAnts: Int,
     totalMaxAgeExceededAnts: Int,
     updateDataStructuresDuration: Double)

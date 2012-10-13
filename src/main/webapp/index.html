@@ -35,6 +35,9 @@
         </div>
         <div class="span2">
           <div class="well well-small">
+            <button id="show-path-additional-data" class="btn pull-right" data-toggle="button">
+              <i class="icon-zoom-in"></i>
+            </button>
             <h2>Path</h2>
             <table class="table table-bordered table-condensed table-striped">
               <tr>
@@ -56,6 +59,18 @@
                 </td>
               </tr>
             </table>
+            <div id="path-additional-data" class="accordion-body collapse">
+              <table class="table table-bordered table-condensed table-striped">
+                <tr>
+                  <td>Launched ants</td>
+                  <td id="launched-ants"></td>
+                </tr>
+                <tr>
+                  <td>Arrived ants</td>
+                  <td id="arrived-ants"></td>
+                </tr>
+              </table>
+            </div>
           </div>
           <div class="well well-small">
             <div class="btn-group pull-right">
@@ -86,38 +101,19 @@
               </tr>
             </table>
             <div id="node-additional-data" class="accordion-body collapse">
-              <div class="accordion" id="node-accordion">
-                <div class="accordion-group">
-                  <div class="accordion-heading">
-                    <a class="accordion-toggle" data-toggle="collapse" href="#arrived-ants-accordion-body">
-                      Arrived ants
-                    </a>
-                  </div>
-                  <div id="arrived-ants-accordion-body" class="accordion-body collapse">
-                    <div id="arrived-ants" class="accordion-inner"></div>
-                  </div>
-                </div>
-                <div class="accordion-group">
-                  <div class="accordion-heading">
-                    <a class="accordion-toggle" data-toggle="collapse" href="#pheromones-accordion-body">
-                      Pheromones
-                    </a>
-                  </div>
-                  <div id="pheromones-accordion-body" class="accordion-body collapse">
-                    <div id="pheromones" class="accordion-inner"></div>
-                  </div>
-                </div>
-                <div class="accordion-group">
-                  <div class="accordion-heading">
-                    <a class="accordion-toggle" data-toggle="collapse" href="#probabilities-accordion-body">
-                      Probabilities
-                    </a>
-                  </div>
-                  <div id="probabilities-accordion-body" class="accordion-body collapse">
-                    <div id="probabilities" class="accordion-inner"></div>
-                  </div>
-                </div>
-              </div>
+              <table id="pheromones-and-probabilities" class="table table-bordered table-condensed table-striped">
+                <thead>
+                  <th>#</th>
+                  <th>Pheromone</th>
+                  <th>Probability</th>
+                </thead>
+              </table>
+              <table class="table table-bordered table-condensed table-striped">
+                <tr>
+                  <td>Passed ants</td>
+                  <td id="passed-ants"></td>
+                </tr>
+              </table>
               <button id="trace" class="btn btn-block" data-toggle="button" type="button">Trace</button>
             </div>
           </div>
@@ -194,9 +190,9 @@
               <td id="total-launched-ants"></td>
             </tr>
             <tr>
-              <td>Destination reached</td>
-              <td id="destination-reached-ants-per-second"></td>
-              <td id="total-destination-reached-ants"></td>
+              <td>Arrived</td>
+              <td id="arrived-ants-per-second"></td>
+              <td id="total-arrived-ants"></td>
             </tr>
             <tr>
               <td>Dead end street reached</td>

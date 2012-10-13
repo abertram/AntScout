@@ -5,43 +5,40 @@ import akka.actor.ActorRef
 import collection.mutable
 
 /**
- * Created by IntelliJ IDEA.
- * User: alex
- * Date: 18.09.12
- * Time: 13:07
+ * Ant-Knoten-Supervisor-Statistiken.
  */
-
 class AntNodeSupervisorStatistics {
 
+  /**
+   * Ant-Knoten-Statistiken pro Ant-Knoten.
+   */
   val antNodeStatistics = mutable.Map[ActorRef, AntNode.Statistics]()
+  /**
+   * Anzahl verarbeiteter Ameisen.
+   */
   var processedAnts = 0
 
-  def meanBy(f: AntNode.Statistics => Double) = antNodeStatistics.values.map(f).sum / antNodeStatistics.size
-
-  def meanBy(f: AntNode.Statistics => Int) = antNodeStatistics.values.map(f).sum / antNodeStatistics.size
-
   def prepare = {
-    val (antAge, antsIdleTime, idleTimes) = if (antNodeStatistics.isEmpty)
+    val (antAge, antsIdleTime, arrivedAnts, idleTimes, totalArrivedAnts) = if (antNodeStatistics.isEmpty)
       (0.0,
         0.0,
-        antNodeStatistics.map { case (node, statistics) => AntNode.nodeId(node) -> (0L, 0L, 0L) }.toMap
+        0,
+        antNodeStatistics.map { case (node, statistics) => AntNode.nodeId(node) -> (0L, 0L, 0L) }.toMap,
+        0
       )
     else {
       (antNodeStatistics.values.map(_.antAge).sum / antNodeStatistics.size,
         antNodeStatistics.values.map(_.antsIdleTime).sum / antNodeStatistics.size,
+        antNodeStatistics.values.map(_.arrivedAnts).sum / antNodeStatistics.size / Settings.ProcessStatisticsDelay
+          .toSeconds.toInt,
         antNodeStatistics.map { case (node, statistics) => AntNode.nodeId(node) -> (statistics.idleTimes
           .min, statistics.idleTimes.sum / statistics.idleTimes.size,
-          statistics.idleTimes.max) }.toMap)
+          statistics.idleTimes.max) }.toMap,
+        antNodeStatistics.values.map(_.totalArrivedAnts).sum)
     }
     val deadEndStreetReachedAnts = if (antNodeStatistics.size > 0) {
       antNodeStatistics.map {
         case (_, statistics) => statistics.deadEndStreetReachedAnts
-      }.sum / antNodeStatistics.size / Settings.ProcessStatisticsDelay.toSeconds.toInt
-    } else
-      0
-    val destinationReachedAnts = if (antNodeStatistics.size > 0) {
-      antNodeStatistics.map {
-        case (_, statistics) => statistics.destinationReachedAnts
       }.sum / antNodeStatistics.size / Settings.ProcessStatisticsDelay.toSeconds.toInt
     } else
       0
@@ -84,9 +81,6 @@ class AntNodeSupervisorStatistics {
     val totalDeadEndStreetReachedAnts = antNodeStatistics.map {
       case (_, statistics) => statistics.totalDeadEndStreetReachedAnts
     }.sum
-    val totalDestinationReachedAnts = antNodeStatistics.map {
-      case (_, statistics) => statistics.totalDestinationReachedAnts
-    }.sum
     val totalLaunchedAnts = antNodeStatistics.map {
       case (_, statistics) => statistics.totalLaunchedAnts
     }.sum
@@ -101,8 +95,8 @@ class AntNodeSupervisorStatistics {
       0
     AntNodeSupervisor.Statistics(
       antsIdleTime = antsIdleTime,
+      arrivedAnts = arrivedAnts,
       deadEndStreetReachedAnts = deadEndStreetReachedAnts,
-      destinationReachedAnts = destinationReachedAnts,
       idleTimes = idleTimes,
       launchAntsDuration = launchAntsDuration,
       launchedAnts = launchedAnts,
@@ -112,13 +106,10 @@ class AntNodeSupervisorStatistics {
       processedAnts = processedAnts,
       selectNextNodeDuration = selectNextNodeDuration,
       totalDeadEndStreetReachedAnts = totalDeadEndStreetReachedAnts,
-      totalDestinationReachedAnts = totalDestinationReachedAnts,
+      totalArrivedAnts = totalArrivedAnts,
       totalLaunchedAnts = totalLaunchedAnts,
       totalMaxAgeExceededAnts = totalMaxAgeExceededAnts,
       updateDataStructuresDuration = updateDataStructuresDuration
     )
-//    log.debug("Average tasks per second: {}", 1 / ((antNodeStatistics.map {
-//      case (antNode, (_, antAge)) => antAge
-//    }.sum / antNodeStatistics.size) * 10e-3))
   }
 }

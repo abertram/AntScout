@@ -163,6 +163,7 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
           url: "debug/trace"
         })
     $("#show-node-additional-data").click -> $("#node-additional-data").collapse("toggle")
+    $("#show-path-additional-data").click -> $("#path-additional-data").collapse("toggle")
   )
 
   addWaysToLayer = (ways, layer, style, selectedStyle) ->

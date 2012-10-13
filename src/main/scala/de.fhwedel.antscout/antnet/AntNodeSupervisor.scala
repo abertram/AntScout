@@ -84,8 +84,8 @@ object AntNodeSupervisor {
   case class Statistics(
     antAge: Double,
     antsIdleTime: Double,
+    arrivedAnts: Int,
     deadEndStreetReachedAnts: Int,
-    destinationReachedAnts: Int,
     idleTimes: Map[String, (Long, Long, Long)],
     launchAntsDuration: Double,
     launchedAnts: Int,
@@ -93,8 +93,8 @@ object AntNodeSupervisor {
     processAntDuration: Double,
     processedAnts: Int,
     selectNextNodeDuration: Double,
+    totalArrivedAnts: Int,
     totalDeadEndStreetReachedAnts: Int,
-    totalDestinationReachedAnts: Int,
     totalLaunchedAnts: Int,
     totalMaxAgeExceededAnts: Int,
     updateDataStructuresDuration: Double
