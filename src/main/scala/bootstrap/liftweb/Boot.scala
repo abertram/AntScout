@@ -4,8 +4,6 @@ import net.liftweb._
 
 import common._
 import http._
-import sitemap._
-import Loc._
 import de.fhwedel.antscout.AntScout
 import de.fhwedel.antscout.rest.{DebugRest, Rest}
 
@@ -21,20 +19,6 @@ class Boot extends Logger {
 
     // AntScout-Initialisierung anstoßen
     AntScout.init()
-
-    // Build SiteMap
-    val entries = List(
-      Menu.i("Home") / "index", // the simple way to declare a menu
-
-      // more complex because this menu allows anything in the
-      // /static path to be visible
-      Menu(Loc("Static", Link(List("static"), true, "/static/index"),
-        "Static Content"))
-    )
-
-    // set the sitemap.  Note if you don't want access control for
-    // each page, just comment this line out.
-    LiftRules.setSiteMap(SiteMap(entries: _*))
 
     // Use jQuery
     LiftRules.jsArtifacts = net.liftweb.http.js.jquery.JQueryArtifacts

@@ -12,7 +12,7 @@ import map.Node
  * @param sources Quellen
  * @param destinations Ziele
  */
-class ShortestPathsPheromoneMatrixInitializer(nodes: Set[Node], sources: Set[Node], destinations: Set[Node])
+class ShortestPathsPheromoneMatrixInitializer(nodes: collection.Set[Node], sources: Set[Node], destinations: Set[Node])
     extends PheromoneMatrixInitializer(nodes, sources, destinations) with Logger {
 
   /**
@@ -52,6 +52,6 @@ class ShortestPathsPheromoneMatrixInitializer(nodes: Set[Node], sources: Set[Nod
 
 object ShortestPathsPheromoneMatrixInitializer {
 
-  def apply(nodes: Set[Node], sources: Set[Node], destinations: Set[Node]) =
+  def apply(nodes: collection.Set[Node], sources: Set[Node], destinations: Set[Node]) =
     new ShortestPathsPheromoneMatrixInitializer(nodes, sources, destinations)
 }

@@ -11,38 +11,34 @@ import collection.mutable.ListBuffer
 import map.Node
 
 /**
- * Created by IntelliJ IDEA.
- * User: alex
- * Date: 02.12.11
- * Time: 12:07
+ * Repräsentiert einen Graphen, auf dem der AntNet-Algortihmus operiert.
  */
-
 object AntMap extends Logger {
 
   val DefaultRelevantHighways = ""
 
   /**
-   * Ziele
+   * Ziele.
    */
   private var _destinations: Set[Node] = _
   /**
-   * Eingehende Wege pro Knoten
+   * Eingehende Wege pro Knoten.
    */
   private var _incomingWays: Map[Node, Set[AntWay]] = _
   /**
-   * Knoten
+   * Knoten.
    */
   private val _nodes = mutable.Set[Node]()
   /**
-   * Ausgehende Wege pro Knoten
+   * Ausgehende Wege pro Knoten.
    */
   private var _outgoingWays: Map[Node, Set[AntWay]] = _
   /**
-   * Ziele
+   * Quellen.
    */
   private var _sources: Set[Node] = _
   /**
-   * Wege
+   * Wege.
    */
   private var _ways: Set[AntWay] = _
 
@@ -428,7 +424,10 @@ object AntMap extends Logger {
       }.mkString("\n", "\n", "")
   }
 
-  def nodes = _nodes.toSet
+  /**
+   * Getter für die Ant-Knoten.
+   */
+  def nodes: collection.Set[Node] = _nodes
 
   def outgoingWays = _outgoingWays
 

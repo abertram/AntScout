@@ -17,7 +17,7 @@ object StatisticsUtils {
    * @tparam T Typ des auszuwählenden Objektes
    * @return Das ausgewählte Objekt
    */
-  def selectByProbability[T](probabilities: Map[T, Double]) = {
+  def selectByProbability[T](probabilities: collection.Map[T, Double]) = {
     require(probabilities.nonEmpty)
     val probabilitiesSum = probabilities.map { case (t, probability) => probability } sum
     val cumulatedProbabilities = probabilities.view.scanLeft((probabilities.head._1, 0.0)) {

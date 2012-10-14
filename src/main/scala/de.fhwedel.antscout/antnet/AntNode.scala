@@ -13,6 +13,9 @@ import net.liftweb.util.TimeHelpers
 import net.liftweb.http.{S, LiftSession, NamedCometListener}
 import net.liftweb.common.Full
 
+/**
+ * Repräsentiert einen Knoten aus dem Graphen, auf dem der AntNet-Algorithmus operiert.
+ */
 class AntNode extends Actor with ActorLogging {
 
   import AntNode._
@@ -30,7 +33,14 @@ class AntNode extends Actor with ActorLogging {
   val cancellables = mutable.Set[Cancellable]()
   var trafficModel: Option[TrafficModel] = None
 
+  /**
+   * Berechnet anhand der Wahrscheinlichkeiten den aktuell besten ausgehenden Weg bezüglich eines Ziels.
+   *
+   * @param destination Ziel-Knoten, zu dem der ausgehende Weg berechnet werden soll.
+   * @return Ein Tupel (way, probabiltiy), das den aktuell besten ausgehenden Weg zum Ziel-Knoten repräsentiert.
+   */
   def bestWay(destination: ActorRef) = {
+    // TODO Prüfen, ob nicht eine andere Datenstruktur verwendet werden kann, damit nicht ständig sortiert werden muss.
     val (bestWay, _) = pheromoneMatrix.probabilities(destination).toSeq.sortBy {
       case (way, probability) => probability
     }.last
@@ -76,6 +86,19 @@ class AntNode extends Actor with ActorLogging {
   }
 
   /**
+   * Leitet eine Ameise an den nächsten Knoten weiter.
+   *
+   * @param ant Ameise, die weitergeleitet werden soll.
+   */
+  def forwardAnt(ant: Ant) {
+    val probabilities = pheromoneMatrix.probabilities(ant.destination)
+    val startTime = System.currentTimeMillis
+    val (nextNode, ant1) = ant.nextNode(self, probabilities)
+    statistics.selectNextNodeDurations += System.currentTimeMillis - startTime
+    nextNode ! (ant1, System.currentTimeMillis)
+  }
+
+  /**
    * Initialisiert diesen Knoten.
    *
    * @param destinations Erreichbare Ziele.
@@ -104,37 +127,48 @@ class AntNode extends Actor with ActorLogging {
     traceBySource("Initialized")
   }
 
+
+
   /**
    * Erzeugt die Ameisen.
    *
    * @param destinations Ziele der Ameisen.
    */
   def launchAnts(destinations: Set[ActorRef]) {
-    for {
-      liftSession <- liftSession
-    } yield {
-      S.initIfUninitted(liftSession) {
-        val startTime = System.currentTimeMillis
-        for (destination <- destinations) {
-          val ant = (for {
-            isTraceEnabled <- IsTraceEnabled
-            if isTraceEnabled
-            node <- Node
-            traceDestination <- Destination
-            if AntNode.nodeId(self) == node && AntNode.nodeId(destination) == traceDestination
-          } yield {
-            Ant(self, destination, Ant.logEntry("Visiting node %s".format(AntNode.nodeId(self))), true)
-          }) getOrElse(Ant(self, destination, false))
-          val probabilities = pheromoneMatrix.probabilities(destination).toMap
-          val startTime = System.currentTimeMillis
-          val (nextNode, ant1) = ant.nextNode(self, probabilities)
-          statistics.selectNextNodeDurations += System.currentTimeMillis - startTime
-          nextNode ! (ant1, System.currentTimeMillis)
-          statistics.incrementLaunchedAnts(destination)
+    val startTime = System.currentTimeMillis
+    val ants = if (Settings.IsTraceEnabled) {
+      // Wenn Tracing eingeschaltet ist, wird anhand der Session immer geprüft, ob die erzeugte Ameise detaillierte
+      // Log-Ausgaben erzeugen soll.
+      for {
+        liftSession <- liftSession
+        ants = S.initIfUninitted(liftSession) {
+          destinations.map { destination =>
+            (for {
+              isTraceEnabled <- IsTraceEnabled
+              if isTraceEnabled
+              node <- Node
+              traceDestination <- Destination
+              if AntNode.nodeId(self) == node && AntNode.nodeId(destination) == traceDestination
+            } yield {
+              Ant(self, destination, Ant.logEntry("Visiting node %s".format(AntNode.nodeId(self))), true)
+            }) getOrElse(Ant(self, destination, false))
+          }
         }
-        statistics.launchAntsDurations += System.currentTimeMillis - startTime
+      } yield
+        ants
+    } else {
+      // sonst Ameisen ohne Log-Ausgaben erzeugen
+      Some(destinations.map(destination => Ant(self, destination, false)))
+    }
+    for {
+      ants <- ants
+    } yield {
+      ants.map { ant =>
+        forwardAnt(ant)
+        statistics.incrementLaunchedAnts(ant.destination)
       }
     }
+    statistics.launchAntsDurations += System.currentTimeMillis - startTime
   }
 
   /**
@@ -196,11 +230,7 @@ class AntNode extends Actor with ActorLogging {
           ant.log("Visiting node %s".format(AntNode.nodeId(self)))
         else
           ant
-        val probabilities = pheromoneMatrix.probabilities(ant1.destination).toMap
-        val startTime = System.currentTimeMillis
-        val (nextNode, ant2) = ant1.nextNode(self, probabilities)
-        statistics.selectNextNodeDurations += System.currentTimeMillis - startTime
-        nextNode ! (ant2, System.currentTimeMillis)
+        forwardAnt(ant1)
       }
       statistics.processedAnts += 1
     }
@@ -213,25 +243,27 @@ class AntNode extends Actor with ActorLogging {
   def processStatistics() {
     // Statistik aufbereiten und an den Supervisor senden
     context.parent ! statistics.prepare
-    for {
-      liftSession <- liftSession
-    } yield {
-      S.initIfUninitted(liftSession) {
-        for {
-          source <- Source
-          node <- Node
-          destination <- Destination
-        } yield {
-          NamedCometListener.getDispatchersFor(Full("userInterface")) foreach { actor =>
-            if (AntNode.nodeId(self) == destination)
-              actor.map(_ ! ArrivedAnts(statistics.arrivedAnts.getOrElse(AntNode(source), 0)))
-            if (AntNode.nodeId(self) == source)
-              actor.map(_ ! LaunchedAnts(statistics.launchedAnts.getOrElse(AntNode(destination), 0)))
-            if (AntNode.nodeId(self) == node)
-              actor.map(_ ! PassedAnts(statistics.passedAnts.getOrElse(AntNode(destination), 0)))
-            if (AntNode.nodeId(self) == node && AntNode.nodeId(self) != destination && pheromoneMatrix != null)
-              actor.map(_ ! PheromonesAndProbabilities(pheromoneMatrix.pheromones(AntNode(destination)).toSeq,
-                pheromoneMatrix.probabilities(AntNode(destination)).toMap))
+    if (Settings.IsTraceEnabled) {
+      for {
+        liftSession <- liftSession
+      } yield {
+        S.initIfUninitted(liftSession) {
+          for {
+            source <- Source
+            node <- Node
+            destination <- Destination
+          } yield {
+            NamedCometListener.getDispatchersFor(Full("userInterface")) foreach { actor =>
+              if (AntNode.nodeId(self) == destination)
+                actor.map(_ ! ArrivedAnts(statistics.arrivedAnts.getOrElse(AntNode(source), 0)))
+              if (AntNode.nodeId(self) == source)
+                actor.map(_ ! LaunchedAnts(statistics.launchedAnts.getOrElse(AntNode(destination), 0)))
+              if (AntNode.nodeId(self) == node)
+                actor.map(_ ! PassedAnts(statistics.passedAnts.getOrElse(AntNode(destination), 0)))
+              if (AntNode.nodeId(self) == node && AntNode.nodeId(self) != destination && pheromoneMatrix != null)
+                actor.map(_ ! PheromonesAndProbabilities(pheromoneMatrix.pheromones(AntNode(destination)).toSeq,
+                  pheromoneMatrix.probabilities(AntNode(destination)).toMap))
+            }
           }
         }
       }
@@ -315,40 +347,46 @@ class AntNode extends Actor with ActorLogging {
   }
 
   def trace(source: => ActorRef, destination: => ActorRef, message: => String) {
-    for {
-      liftSession <- liftSession
-    } yield {
-      S.initIfUninitted(liftSession) {
-        for {
-          isTraceEnabled <- IsTraceEnabled
-          if isTraceEnabled
-          traceSource <- Node
-          traceDestination <- Destination
-          if (AntNode.nodeId(source) == traceSource && AntNode.nodeId(destination) == traceDestination)
-        } yield
-          log.debug("{}", message)
+    if (Settings.IsTraceEnabled) {
+      for {
+        liftSession <- liftSession
+      } yield {
+        S.initIfUninitted(liftSession) {
+          for {
+            isTraceEnabled <- IsTraceEnabled
+            if isTraceEnabled
+            traceSource <- Node
+            traceDestination <- Destination
+            if (AntNode.nodeId(source) == traceSource && AntNode.nodeId(destination) == traceDestination)
+          } yield
+            log.debug("{}", message)
+        }
       }
     }
   }
 
   def traceByDestination(destination: => ActorRef, message: => String) {
-    for {
-      isTraceEnabled <- IsTraceEnabled
-      if isTraceEnabled
-      traceDestination <- Destination
-      if (AntNode.nodeId(destination) == traceDestination)
-    } yield
-      log.debug("{}", message)
+    if (Settings.IsTraceEnabled) {
+      for {
+        isTraceEnabled <- IsTraceEnabled
+        if isTraceEnabled
+        traceDestination <- Destination
+        if (AntNode.nodeId(destination) == traceDestination)
+      } yield
+        log.debug("{}", message)
+    }
   }
 
   def traceBySource(message: => String, source: => ActorRef = self) {
-    for {
-      isTraceEnabled <- IsTraceEnabled
-      if isTraceEnabled
-      traceSource <- Source
-      if (AntNode.nodeId(source).matches(traceSource))
-    } yield
-      log.debug("{}", message)
+    if (Settings.IsTraceEnabled) {
+      for {
+        isTraceEnabled <- IsTraceEnabled
+        if isTraceEnabled
+        traceSource <- Source
+        if (AntNode.nodeId(source).matches(traceSource))
+      } yield
+        log.debug("{}", message)
+    }
   }
 }
 

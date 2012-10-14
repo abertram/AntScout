@@ -55,7 +55,7 @@ class Ant(val source: ActorRef, val destination: ActorRef, val memory: AntMemory
    * @param probabilities Wahrscheinlichkeiten des aktuellen Knoten.
    * @return Der nächste zu besuchende Knoten und die aktualisierte Ameise.
    */
-  def nextNode(node: ActorRef, probabilities: Map[AntWay, Double]) = {
+  def nextNode(node: ActorRef, probabilities: collection.Map[AntWay, Double]) = {
     // Kreise entfernen
     val (memory1, logEntries1) = removeCycle(node)
     // noch nicht besuchte Wege berechnen

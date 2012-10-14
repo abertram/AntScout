@@ -28,7 +28,7 @@ if "%_JAVA_OPTS%"=="" set _JAVA_OPTS=-Xmx512M -XX:MaxPermSize=256m -XX:ReservedC
 
 :run
 
-"%_JAVACMD%" %_JAVA_OPTS% %SBT_OPTS% -cp "%SBT_HOME%jansi.jar;%SBT_HOME%sbt-launch.jar;%SBT_HOME%classes" SbtJansiLaunch %*
+"%_JAVACMD%" -Drun.mode=production %_JAVA_OPTS% %SBT_OPTS% -cp "%SBT_HOME%jansi.jar;%SBT_HOME%sbt-launch.jar; %SBT_HOME%classes" SbtJansiLaunch %*
 if ERRORLEVEL 1 goto error
 goto end
 

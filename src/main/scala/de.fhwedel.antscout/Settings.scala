@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit
  */
 object Settings {
 
-  val config = ConfigFactory.load
+  private val config = ConfigFactory.load
 
   import config._
 
@@ -76,6 +76,13 @@ object Settings {
    * Schwellwert für den Vergleich von zwei Double-Werten.
    */
   val Epsilon = getDouble("ant-scout.epsilon")
+
+  /**
+   * Flag, ob detaillierte (Log-)Ausgaben erzeugt werden sollen.
+   *
+   * Senkt die Performance und sollte nur zur Fehlersuche eingeschaltet werden!
+   */
+  val IsTraceEnabled = getBoolean("ant-scout.trace-is-enabled")
 
   /**
    * Karte, die verwendet werden soll.
