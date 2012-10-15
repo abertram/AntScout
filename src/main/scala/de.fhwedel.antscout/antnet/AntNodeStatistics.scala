@@ -17,7 +17,6 @@ class AntNodeStatistics {
   private val _arrivedAnts = mutable.Map[ActorRef, Int]()
   private var arrivedAntsPerSecond = 0
   private var deadEndStreetReachedAnts = 0
-  val idleTimes = mutable.Buffer[Long]()
   var launchAntsDurations = mutable.Buffer[Long]()
   /**
    * Anzahl erzeugter Ameisen pro Ziel.
@@ -75,7 +74,6 @@ class AntNodeStatistics {
       antsIdleTime = antsIdleTime,
       arrivedAnts = arrivedAntsPerSecond,
       deadEndStreetReachedAnts = deadEndStreetReachedAnts,
-      idleTimes = idleTimes,
       launchAntsDuration = if (launchAntsDurations.size > 0)
         launchAntsDurations.sum.toDouble / launchAntsDurations.size
       else

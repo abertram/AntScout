@@ -19,11 +19,10 @@ class AntNodeSupervisorStatistics {
   var processedAnts = 0
 
   def prepare = {
-    val (antAge, antsIdleTime, arrivedAnts, idleTimes, totalArrivedAnts) = if (antNodeStatistics.isEmpty)
+    val (antAge, antsIdleTime, arrivedAnts, totalArrivedAnts) = if (antNodeStatistics.isEmpty)
       (0.0,
         0.0,
         0,
-        antNodeStatistics.map { case (node, statistics) => AntNode.nodeId(node) -> (0L, 0L, 0L) }.toMap,
         0
       )
     else {
@@ -31,9 +30,6 @@ class AntNodeSupervisorStatistics {
         antNodeStatistics.values.map(_.antsIdleTime).sum / antNodeStatistics.size,
         antNodeStatistics.values.map(_.arrivedAnts).sum / antNodeStatistics.size / Settings.ProcessStatisticsDelay
           .toSeconds.toInt,
-        antNodeStatistics.map { case (node, statistics) => AntNode.nodeId(node) -> (statistics.idleTimes
-          .min, statistics.idleTimes.sum / statistics.idleTimes.size,
-          statistics.idleTimes.max) }.toMap,
         antNodeStatistics.values.map(_.totalArrivedAnts).sum)
     }
     val deadEndStreetReachedAnts = if (antNodeStatistics.size > 0) {
@@ -97,7 +93,6 @@ class AntNodeSupervisorStatistics {
       antsIdleTime = antsIdleTime,
       arrivedAnts = arrivedAnts,
       deadEndStreetReachedAnts = deadEndStreetReachedAnts,
-      idleTimes = idleTimes,
       launchAntsDuration = launchAntsDuration,
       launchedAnts = launchedAnts,
       maxAgeExceededAnts = maxAgeExceededAnts,

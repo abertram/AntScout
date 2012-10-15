@@ -1,39 +1,43 @@
 package de.fhwedel.antscout
 package antnet
 
-import akka.actor.{Props, ActorLogging, Actor}
+import akka.actor.{Cancellable, Props, ActorLogging, Actor}
 import pheromoneMatrix.ShortestPathsPheromoneMatrixInitializer
 import net.liftweb.http.{LiftSession, NamedCometListener}
 import net.liftweb.common.Full
-
-/**
- * Created by IntelliJ IDEA.
- * User: alex
- * Date: 27.07.12
- * Time: 16:18
- */
+import collection.mutable
 
 class AntNodeSupervisor extends Actor with ActorLogging {
 
   import AntNodeSupervisor._
 
+  val cancellables = mutable.Set[Cancellable]()
   var liftSession: Option[LiftSession] = None
   val statistics = new AntNodeSupervisorStatistics()
 
   def init() {
     log.info("Initializing")
     AntMap.nodes foreach { node => context.actorOf(Props[AntNode].withDispatcher("ant-node-dispatcher"), node.id) }
-    context.system.scheduler.schedule(Settings.ProcessStatisticsDelay, Settings.ProcessStatisticsDelay) {
-      self ! ProcessStatistics(System.currentTimeMillis)
+    if (Settings.IsStatisticsEnabled) {
+      cancellables += context.system.scheduler.schedule(Settings.ProcessStatisticsDelay,
+          Settings.ProcessStatisticsDelay) {
+        self ! ProcessStatistics(System.currentTimeMillis)
+      }
     }
     log.info("Initialized")
   }
 
+  /**
+   * Event-Handler, der nach dem Stoppen des Aktors augeführt wird.
+   */
+  override def postStop() {
+    // alle schedule-Aktionen stoppen
+    for (cancellable <- cancellables)
+      cancellable.cancel()
+  }
+
   def initNodes() {
     log.info("Initializing nodes")
-    val sources = AntMap.sources map { source =>
-      context.actorFor(source.id)
-    }
     val destinations = AntMap.destinations map { destination =>
       context.actorFor(destination.id)
     }
@@ -64,12 +68,11 @@ class AntNodeSupervisor extends Actor with ActorLogging {
       this.liftSession = Some(liftSession)
       context.children.foreach(_ ! liftSession)
     case ProcessStatistics(createTime) =>
-      log.debug("Time to receive ProcessStatistics: {} ms", System.currentTimeMillis - createTime)
+      if (log.isDebugEnabled)
+        log.debug("Time to receive ProcessStatistics: {} ms", System.currentTimeMillis - createTime)
       NamedCometListener.getDispatchersFor(Full("statistics")) foreach { actor =>
         actor.map(_ ! statistics.prepare)
       }
-    case m: Any =>
-      log.warning("Unknown message: {}", m)
   }
 }
 
@@ -86,7 +89,6 @@ object AntNodeSupervisor {
     antsIdleTime: Double,
     arrivedAnts: Int,
     deadEndStreetReachedAnts: Int,
-    idleTimes: Map[String, (Long, Long, Long)],
     launchAntsDuration: Double,
     launchedAnts: Int,
     maxAgeExceededAnts: Int,

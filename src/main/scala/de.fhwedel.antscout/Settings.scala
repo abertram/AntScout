@@ -85,6 +85,11 @@ object Settings {
   val IsTraceEnabled = getBoolean("ant-scout.trace-is-enabled")
 
   /**
+   * Flag, das angibt, ob Statistiken eingeschaltet sind.
+   */
+  lazy val IsStatisticsEnabled = ProcessStatisticsDelay > Duration.Zero
+
+  /**
    * Karte, die verwendet werden soll.
    */
   val Map = getString("ant-scout.map")

@@ -6,7 +6,7 @@ import net.liftweb.common.Logger
 import net.liftweb.http.js.JE.Call
 import net.liftweb.http.js.JsCmds.SetHtml
 import net.liftweb.http.NamedCometActorTrait
-import xml.{NodeSeq, Text}
+import xml.Text
 import net.liftweb.util.TimeHelpers
 
 class Statistics extends Logger with NamedCometActorTrait {
@@ -27,9 +27,6 @@ class Statistics extends Logger with NamedCometActorTrait {
         .deadEndStreetReachedAnts, statistics.deadEndStreetReachedAnts.toFloat / statistics.launchedAnts * 100))))
       partialUpdate(SetHtml("processed-ants", Text(statistics.processedAnts.toString)))
       partialUpdate(SetHtml("process-ant-duration", Text("%.4f" format statistics.processAntDuration)))
-      partialUpdate(SetHtml("idle-times", statistics.idleTimes.map {
-        case (node, (min, mean, max)) => <div>{"%s: min: %d, mean: %d, max: %d".format(node, min, mean, max)}</div>
-      }.toSeq: NodeSeq))
       partialUpdate(SetHtml("total-dead-end-street-reached-ants", Text("%d (%.2f%%)".format(statistics
         .totalDeadEndStreetReachedAnts, statistics.totalDeadEndStreetReachedAnts.toFloat / statistics.totalLaunchedAnts
         * 100))))

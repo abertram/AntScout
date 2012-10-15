@@ -20,17 +20,16 @@ class AntNode extends Actor with ActorLogging {
 
   import AntNode._
 
+  val cancellables = mutable.Set[Cancellable]()
   /**
    * Ziele, die von diesem Knoten aus erreichbar sind.
    */
   val destinations = mutable.Set[ActorRef]()
-  var lastProcessReceiveTime: Option[Long] = None
   var liftSession: Option[LiftSession] = None
   // TODO pheromoneMatrix sollte vom Datentyp Option[PheromoneMatrix] sein.
   var pheromoneMatrix: PheromoneMatrix = _
   val statistics = new AntNodeStatistics()
   implicit val timeout = Timeout(5 seconds)
-  val cancellables = mutable.Set[Cancellable]()
   var trafficModel: Option[TrafficModel] = None
 
   /**
@@ -94,7 +93,9 @@ class AntNode extends Actor with ActorLogging {
     val probabilities = pheromoneMatrix.probabilities(ant.destination)
     val startTime = System.currentTimeMillis
     val (nextNode, ant1) = ant.nextNode(self, probabilities)
-    statistics.selectNextNodeDurations += System.currentTimeMillis - startTime
+    if (Settings.IsStatisticsEnabled) {
+      statistics.selectNextNodeDurations += System.currentTimeMillis - startTime
+    }
     nextNode ! (ant1, System.currentTimeMillis)
   }
 
@@ -105,7 +106,8 @@ class AntNode extends Actor with ActorLogging {
    * @param pheromones Pheromon-Matrix, mit der die Pheromon-Matrix des Knotens initialisiert werden soll.
    */
   def initialize(destinations: Set[ActorRef], pheromones: Map[ActorRef, Map[AntWay, Double]]) {
-    traceBySource("Initializing")
+    if (log.isDebugEnabled)
+      log.debug("Initializing {}", self)
     this.destinations ++= mutable.Set(destinations.toSeq: _*)
     assert(!this.destinations.contains(self))
     if (destinations.nonEmpty) {
@@ -122,9 +124,12 @@ class AntNode extends Actor with ActorLogging {
       trafficModel = Some(TrafficModel(destinations, Settings.Varsigma, Settings.Wmax))
       createAntsLaunchSchedulers(destinations)
     }
-    cancellables += context.system.scheduler.schedule(Settings.ProcessStatisticsDelay, Settings.ProcessStatisticsDelay,
-      self, ProcessStatistics)
-    traceBySource("Initialized")
+    if (Settings.IsStatisticsEnabled) {
+      cancellables += context.system.scheduler.schedule(Settings.ProcessStatisticsDelay,
+        Settings.ProcessStatisticsDelay, self, ProcessStatistics)
+    }
+    if (log.isDebugEnabled)
+      log.debug("{} initialized", self)
   }
 
 
@@ -165,10 +170,14 @@ class AntNode extends Actor with ActorLogging {
     } yield {
       ants.map { ant =>
         forwardAnt(ant)
-        statistics.incrementLaunchedAnts(ant.destination)
+        if (Settings.IsStatisticsEnabled) {
+          statistics.incrementLaunchedAnts(ant.destination)
+        }
       }
     }
-    statistics.launchAntsDurations += System.currentTimeMillis - startTime
+    if (Settings.IsStatisticsEnabled) {
+      statistics.launchAntsDurations += System.currentTimeMillis - startTime
+    }
   }
 
   /**
@@ -189,7 +198,9 @@ class AntNode extends Actor with ActorLogging {
     val (time, _) = TimeHelpers.calcTime {
       if (self == ant.destination) {
         // Ziel erreicht
-        statistics.antAges += ant.age
+        if (Settings.IsStatisticsEnabled) {
+          statistics.antAges += ant.age
+        }
         val ant1 = if (ant.isTraceEnabled)
           ant.log(Seq("Destination reached, visited %d nodes, took %d milliseconds" format (ant.memory.size, ant.age),
             "Memory: %s" format ant.memory.items.reverse.mkString("\n\t\t", "\n\t\t", ""), "Updating nodes"))
@@ -198,16 +209,22 @@ class AntNode extends Actor with ActorLogging {
         val ant2 = ant1.updateNodes()
         if (ant2.isTraceEnabled)
           log.debug("{}", ant2.prepareLogEntries)
-        statistics.incrementArrivedAnts(ant.source)
+        if (Settings.IsStatisticsEnabled) {
+          statistics.incrementArrivedAnts(ant.source)
+        }
       } else if (ant.age > Settings.MaxAntAge) {
         // Ameise ist zu alt
-        statistics.antAges += ant.age
+        if (Settings.IsStatisticsEnabled) {
+          statistics.antAges += ant.age
+        }
         val ant1 = if (ant.isTraceEnabled)
           ant.log("Lifetime expired, visited %d nodes, took %s milliseconds, removing ant" format (ant.memory.size,
             ant.age))
         else
           ant
-        statistics.incrementMaxAgeExceededAnts()
+        if (Settings.IsStatisticsEnabled) {
+          statistics.incrementMaxAgeExceededAnts()
+        }
         if (ant1.isTraceEnabled)
           log.debug("{}", ant1.prepareLogEntries)
       } else if (!(pheromoneMatrix != null && pheromoneMatrix.probabilities.isDefinedAt(ant.destination))) {
@@ -216,13 +233,17 @@ class AntNode extends Actor with ActorLogging {
         // Wenn die Wahrscheinlichkeiten für einen Ziel-Knoten undefiniert sind, dann ist der Ziel-Knoten von diesem
         // Knoten nicht erreichbar.
         // In beiden Fällen wird die Ameise aus dem System entfernt.
-        statistics.antAges += ant.age
+        if (Settings.IsStatisticsEnabled) {
+          statistics.antAges += ant.age
+        }
         val ant1 = if (ant.isTraceEnabled)
           ant.log("Dead end street reached, visited %d nodes, took %d milliseconds, removing ant" format (ant.memory
             .size, ant.age))
         else
           ant
-        statistics.incrementDeadEndStreetReachedAnts()
+        if (Settings.IsStatisticsEnabled) {
+          statistics.incrementDeadEndStreetReachedAnts()
+        }
         if (ant1.isTraceEnabled)
           log.debug("{}", ant1.prepareLogEntries)
       } else {
@@ -232,9 +253,13 @@ class AntNode extends Actor with ActorLogging {
           ant
         forwardAnt(ant1)
       }
-      statistics.processedAnts += 1
+      if (Settings.IsStatisticsEnabled) {
+        statistics.processedAnts += 1
+      }
     }
-    statistics.processAntDurations += time
+    if (Settings.IsStatisticsEnabled) {
+      statistics.processAntDurations += time
+    }
   }
 
   /**
@@ -297,7 +322,9 @@ class AntNode extends Actor with ActorLogging {
       trace(self, destination, "Before update: pheromones: %s, best way: %s" format (pheromoneMatrix
         .pheromones(destination), bestWayBeforeUpdate))
       pheromoneMatrix.updatePheromones(destination, way, reinforcement)
-      statistics.updateDataStructuresDurations += System.currentTimeMillis - startTime
+      if (Settings.IsStatisticsEnabled) {
+        statistics.updateDataStructuresDurations += System.currentTimeMillis - startTime
+      }
       val bestWayAfterUpdate = bestWay(destination)
       trace(self, destination, "After update: pheromones: %s, best way: %s" format (pheromoneMatrix
         .pheromones(destination), bestWayAfterUpdate))
@@ -306,8 +333,10 @@ class AntNode extends Actor with ActorLogging {
         system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) !
           RoutingService.UpdateBestWay(self, destination, bestWayAfterUpdate)
       }
-      // Anzahl der Ameisen erhöhen, die diesen Knoten auf dem Weg zum Ziel passiert haben.
-      statistics.passedAnts += destination -> (statistics.passedAnts.getOrElse(destination, 0) + 1)
+      if (Settings.IsStatisticsEnabled) {
+        // Anzahl der Ameisen erhöhen, die diesen Knoten auf dem Weg zum Ziel passiert haben.
+        statistics.passedAnts += destination -> (statistics.passedAnts.getOrElse(destination, 0) + 1)
+      }
     }
   }
 
@@ -316,34 +345,21 @@ class AntNode extends Actor with ActorLogging {
    */
   protected def receive = {
     case (ant: Ant, sendTime: Long) =>
-      statistics.antsIdleTimes += System.currentTimeMillis - sendTime
-      lastProcessReceiveTime.map(statistics.idleTimes += System.currentTimeMillis - _)
-      lastProcessReceiveTime = Some(System.currentTimeMillis)
+      if (Settings.IsStatisticsEnabled) {
+        statistics.antsIdleTimes += System.currentTimeMillis - sendTime
+      }
       processAnt(ant)
     case Initialize(destinations, pheromones) =>
-      lastProcessReceiveTime.map(statistics.idleTimes += System.currentTimeMillis - _)
-      lastProcessReceiveTime = Some(System.currentTimeMillis)
       initialize(destinations, pheromones)
     case LaunchAnts(destinations) =>
-      lastProcessReceiveTime.map(statistics.idleTimes += System.currentTimeMillis - _)
-      lastProcessReceiveTime = Some(System.currentTimeMillis)
       launchAnts(destinations)
     case liftSession: LiftSession =>
-      lastProcessReceiveTime.map(statistics.idleTimes += System.currentTimeMillis - _)
       this.liftSession = Some(liftSession)
     case ProcessStatistics =>
-      lastProcessReceiveTime.map(statistics.idleTimes += System.currentTimeMillis - _)
-      lastProcessReceiveTime = Some(System.currentTimeMillis)
       processStatistics()
       statistics.reset()
     case UpdateDataStructures(destination, way, tripTime) =>
-      lastProcessReceiveTime.map(statistics.idleTimes += System.currentTimeMillis - _)
-      lastProcessReceiveTime = Some(System.currentTimeMillis)
       updateDataStructures(destination, way, tripTime)
-    case m: Any =>
-      lastProcessReceiveTime.map(statistics.idleTimes += System.currentTimeMillis - _)
-      lastProcessReceiveTime = Some(System.currentTimeMillis)
-      log.warning("Unknown message: {}", m)
   }
 
   def trace(source: => ActorRef, destination: => ActorRef, message: => String) {
@@ -408,7 +424,6 @@ object AntNode {
     antsIdleTime: Double,
     arrivedAnts: Int,
     deadEndStreetReachedAnts: Int,
-    idleTimes: mutable.Buffer[Long],
     launchAntsDuration: Double,
     launchedAnts: Int,
     maxAgeExceededAnts: Int,
