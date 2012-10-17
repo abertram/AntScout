@@ -1,12 +1,17 @@
 \documentclass[a4paper,10pt]{scrreprt}
 \usepackage[utf8]{inputenc}
 
-\title{}
-\author{}
+\title{AntScout-Dokumentation}
+\author{Alexander Bertram}
 
 \begin{document}
 
 \maketitle
+
+\chapter{Typografische Konventionen}
+\label{chap:typografische-konventionen}
+
+Konsolen-Kommandos, URLs oder Quellcode-Ausschnitte im Fließtext werden in einer \texttt{Nicht-Proportionalschrift} dargestellt.
 
 \chapter{Allgemeine Problemstellung}
 \label{chap:allgemeine-problemstellung}
@@ -20,8 +25,53 @@
 \section{Installation}
 \label{sec:installation}
 
+\textsc{AntScout} benötigt keine Installation.
+Das Archiv muss lediglich auf die lokale Festplatte extrahiert werden.
+Dabei wird der Ordner ``AntScout'' erstellt, der alles beinhaltet, was für den Start der Anwendung nötig ist.
+
 \section{Programmstart}
 \label{sec:programmstart}
+
+\subsection{Voraussetzungen}
+\label{sec:voraussetzungen}
+
+\begin{itemize}
+  \item Eine bestehende Internet-Verbindung.
+  \item Eine möglichst aktuelle Java-Version von Oracle.
+  \item Der lokale Port \texttt{8080} darf nicht durch eine bereits laufende Anwendung blockiert sein.
+\end{itemize}
+
+\subsection{Start}
+\label{sec:programmstart-start}
+
+\begin{enumerate}
+  \item Konsole (auch Eingabeaufforderung oder Kommandozeile genannt) öffnen
+  \item In das erstellte Verzeichnis ``AntScout'' wechseln
+  \item \texttt{sbt}
+  \item \texttt{container:start}
+  \item \texttt{http://localhost:8080} oder \texttt{http://127.0.0.1:8080} im Browser aufrufen
+\end{enumerate}
+
+\subsection{Hinweise}
+\label{sec:programmstart-hinweise}
+
+\begin{itemize}
+  \item Nach dem Start von \texttt{sbt} werden alle benötigten Bibliotheken heruntergeladen.
+    Je nach Internet-Verbindung kann dieser Vorgang mehrere Minuten dauern.
+  \item Nach der Eingabe von \texttt{container:start} werden die benötigten Karten heruntergeladen und vorverarbeitet.
+    Dieser Vorgang kann auch je nach Internet-Verbindung und Computer-Leistung mehrere Minuten dauern.
+  \item Es sollte nach Möglichkeit ein möglichst moderner Browser, der HTML5 unterstützt, verwendet werden.
+\end{itemize}
+
+\section{Programmende}
+\label{sec:programmende}
+
+\begin{enumerate}
+  \item \texttt{container:stop}
+  \item \texttt{exit}
+\end{enumerate}
+
+oder einfach die Konsole schliessen.
 
 \section{Bedienungsanleitung}
 \label{sec:bedienungsanleitung}
