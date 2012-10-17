@@ -24,11 +24,11 @@ if "%_JAVACMD%"=="" set _JAVACMD=java
 
 rem We use the value of the JAVA_OPTS environment variable if defined
 set _JAVA_OPTS=%JAVA_OPTS%
-if "%_JAVA_OPTS%"=="" set _JAVA_OPTS=-Xmx512M -XX:MaxPermSize=256m -XX:ReservedCodeCacheSize=128m -Dsbt.log.format=true
+if "%_JAVA_OPTS%"=="" set _JAVA_OPTS=-Drun.mode=production -Dsbt.log.format=true -server -Xms2048m -Xmx2048m -XX:MaxPermSize=512m -XX:ReservedCodeCacheSize=256m -XX:+UseAdaptiveSizePolicy -XX:+UseParallelGC -XX:+UseParallelOldGC
 
 :run
 
-"%_JAVACMD%" -Drun.mode=production %_JAVA_OPTS% %SBT_OPTS% -cp "%SBT_HOME%jansi.jar;%SBT_HOME%sbt-launch.jar; %SBT_HOME%classes" SbtJansiLaunch %*
+"%_JAVACMD%" %_JAVA_OPTS% %SBT_OPTS% -cp "%SBT_HOME%jansi.jar;%SBT_HOME%sbt-launch.jar;%SBT_HOME%classes" SbtJansiLaunch %*
 if ERRORLEVEL 1 goto error
 goto end
 
