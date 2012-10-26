@@ -1,5 +1,20 @@
 \documentclass[a4paper,10pt]{scrreprt}
+
 \usepackage[utf8]{inputenc}
+\usepackage{listings}
+\usepackage{scrhack}
+
+% Listings konfigurieren
+\lstset{
+  aboveskip = \floatsep,
+  captionpos = b,
+  basicstyle = \ttfamily\small,
+  breaklines = true,
+  frame = single,
+  numbers = left,
+  numberstyle = \tiny,
+  showstringspaces = false
+}
 
 \title{AntScout-Dokumentation}
 \author{Alexander Bertram}
@@ -75,6 +90,55 @@ oder einfach die Konsole schliessen.
 
 \section{Bedienungsanleitung}
 \label{sec:bedienungsanleitung}
+
+\subsection{Konfiguration}
+\label{sec:konfiguration}
+
+\textbf{Achtung!}
+Hier sollten nur fortgeschrittene Benutzer etwas ändern.
+Es besteht die Gefahr einer ungültigen Konfiguration.
+Dann gibt \textit{AntScout} beim Starten eine Fehlermeldung aus und startet nicht mehr richtig.
+
+Im Verzeichnis \texttt{AntScout/src/main/resources} befindet sich die Datei \texttt{reference.conf}.
+Dort sind die Einstellungen für \textit{AntScout} zu finden.
+Die Datei ist eine Text-Datei und kann mit einem Text-Editor bearbeitet werden.
+
+Die Konfiguration ist in mehrere Ebenen unterteilt, wobei \texttt{ant-scout} die oberste Ebene darstellt.
+Jede ebene ist in geschweifte Klammern eingeschlossen.
+
+Jeder Parameter ist durch einen Namen und einen Wert definiert.
+
+\begin{lstlisting}
+name = wert
+\end{lstlisting}
+
+Jede Änderung der Konfiguration wird erst nach einem Neustart der Applikation wirksam.
+
+\subsubsection{Karte}
+\label{sec:karte}
+
+Der Parameter \texttt{map} steuert, welche Karte verwendet werden soll.
+Es sind mehrere Karten in verschiedenen Größen vordefiniert.
+Die Zeile, die die aktuell verwendete Karte enthält, ist die einzige, die nicht mit einem \#-Zeichen beginnt.
+Dieser Zeile muss ein \#-Zeichen vorangestellt werden, damit sie nicht mehr verwendet wird.
+Vor der Zeile, die die gewünschte Karte enthält, muss das \#-Zeichen entfernt werden.
+
+\begin{lstlisting}
+# Karte, die verwendet werden soll.
+# 104 Knoten, 99 Quellen und 100 Ziele
+# map = maps/Bahrenfeld-Gross-Flottbek-Othmarschen-Ottensen.osm
+# 85 Knoten, 83 Quellen und 83 Ziele
+# map = maps/Blankenese-Wedel.osm
+# 47 Knoten, 43 Quellen und 45 Ziele
+map = maps/Altona-50-Knoten.osm
+# 14 Knoten, 12 Quellen und Ziele
+# map = maps/Altona-Kreis.osm
+# 142 Knoten, 138 Quellen und Ziele
+# map = maps/Altona-Wedel.osm
+# 57 Knoten, 57 Quellen und 56 Ziele
+# map = maps/Wedel.osm
+\end{lstlisting}
+
 
 \section{Fehlermeldungen}
 \label{sec:fehlermeldungen}
