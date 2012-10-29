@@ -83,25 +83,25 @@ class AntWay(id: String, override val nodes: Seq[Node], val startNode: ActorRef,
    */
   override def toJson = {
     super.toJson ~
-    // Länge in Metern
-    ("length" -> "%.4f".format(length)) ~
+    // Länge in km
+    ("length" -> "%.4f".format(length / 1000)) ~
     // Länge in weiteren Einheiten
     ("lengths" ->
-      JArray(List(("unit" -> "km") ~
-      ("value" -> "%.4f".format(length / 1000))))) ~
-    // maximal erlaubte Geschwindigkeit
-    ("maxSpeed" -> "%.4f".format(maxSpeed)) ~
+      JArray(List(("unit" -> "m") ~
+      ("value" -> "%.4f".format(length))))) ~
+    // maximal erlaubte Geschwindigkeit in km/h
+    ("maxSpeed" -> "%.4f".format(maxSpeed * 3.6)) ~
     // maximal erlaubte Geschwindigkeit in weiteren Einheiten
     ("maxSpeeds" ->
-      JArray(List(("unit" -> "km/h") ~
-      ("value" -> "%.4f".format(maxSpeed * 3.6))))) ~
-    // Reisezeit
-    ("tripTime" -> "%.4f".format(tripTime)) ~
+      JArray(List(("unit" -> "m/s") ~
+      ("value" -> "%.4f".format(maxSpeed))))) ~
+    // Reisezeit in Minuten
+    ("tripTime" -> "%.4f".format(tripTime / 60)) ~
     // Reisezeit in weiteren Einheiten
     ("tripTimes" ->
       JArray(List(
-        ("unit" -> "min") ~
-        ("value" -> "%.4f".format(tripTime / 60)),
+        ("unit" -> "s") ~
+        ("value" -> "%.4f".format(tripTime)),
         ("unit" -> "h") ~
         ("value" -> "%.4f".format(tripTime / 3600)))))
   }
@@ -128,12 +128,17 @@ class AntWay(id: String, override val nodes: Seq[Node], val startNode: ActorRef,
    * @param update Aktualisierungs-Parameter.
    */
   def update(update: AntWay.Update) = {
-    maxSpeed = update.maxSpeed
+    maxSpeed = update.maxSpeed / 3.6
   }
 }
 
 object AntWay extends Logger {
 
+  /**
+   * Update-Daten für einen Weg.
+   *
+   * @param maxSpeed Maximale Geschwindigkeit in km/h.
+   */
   case class Update(maxSpeed: Double)
 
   def apply(id: String, startNode: ActorRef, endNode: ActorRef, length: Double, maxSpeed: Double) = {
