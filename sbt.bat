@@ -24,7 +24,7 @@ if "%_JAVACMD%"=="" set _JAVACMD=java
 
 rem We use the value of the JAVA_OPTS environment variable if defined
 set _JAVA_OPTS=%JAVA_OPTS%
-if "%_JAVA_OPTS%"=="" set _JAVA_OPTS=-Drun.mode=production -Dsbt.log.format=true -server -Xms2048m -Xmx2048m -XX:MaxPermSize=512m -XX:ReservedCodeCacheSize=256m -XX:+UseAdaptiveSizePolicy -XX:+UseParallelGC -XX:+UseParallelOldGC
+if "%_JAVA_OPTS%"=="" set _JAVA_OPTS=-Drun.mode=production -Dsbt.log.format=true -Xms1024m -Xmx1024m -XX:MaxPermSize=256m -XX:ReservedCodeCacheSize=128m -XX:+UseAdaptiveSizePolicy -XX:+UseParallelGC -XX:+UseParallelOldGC
 
 :run
 
