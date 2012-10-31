@@ -1,8 +1,8 @@
 var SLIDE_CONFIG = {
   // Slide settings
   settings: {
-    title: 'Title Goes Here<br>Up To Two Lines',
-    subtitle: 'Subtitle Goes Here',
+    title: 'AntScout',
+    subtitle: 'Navigieren auf OpenStreetMap wie die Ameisen',
     useBuilds: true, // Default: true. False will turn off slide animation builds.
     usePrettify: true, // Default: true
     enableSlideAreas: true, // Default: true. False turns off the click areas on either slide of the slides.
@@ -18,12 +18,12 @@ var SLIDE_CONFIG = {
 
   // Author information
   presenters: [{
-    name: 'Firstname Lastname',
-    company: 'Job Title, Google',
-    gplus: 'http://plus.google.com/1234567890',
-    twitter: '@yourhandle',
-    www: 'http://www.you.com',
-    github: 'http://github.com/you'
+    name: 'Alexander Bertram',
+    company: 'Master-Student der Informatik, Fachhochschule Wedel',
+//    gplus: 'http://plus.google.com/1234567890',
+//    twitter: '@yourhandle',
+//    www: 'http://www.you.com',
+//    github: 'http://github.com/you'
   }/*, {
     name: 'Second Name',
     company: 'Job Title, Google',
