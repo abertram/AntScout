@@ -1,0 +1,331 @@
+<!--
+Google IO 2012 HTML5 Slide Template
+
+Authors: Eric Bidelman <ebidel@gmail.com>
+         Luke Mahe <lukem@google.com>
+
+URL: https://code.google.com/p/io-2012-slides
+-->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AntScout</title>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="chrome=1">
+  <!--<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">-->
+  <!--<meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+  <!--This one seems to work all the time, but really small on ipad-->
+  <!--<meta name="viewport" content="initial-scale=0.4">-->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="stylesheet" media="all" href="theme/css/default.css">
+  <link rel="stylesheet" media="all" href="theme/css/app.css">
+  <link rel="stylesheet" media="only screen and (max-device-width: 480px)" href="theme/css/phone.css">
+  <base target="_blank">
+  <!-- This amazingness opens all links in a new tab. -->
+  <script data-main="js/slides" src="js/require-1.0.8.min.js"></script>
+</head>
+<body style="opacity: 0">
+
+<slides class="layout-widescreen">
+
+  <slide class="title-slide segue nobackground">
+    <aside class="gdbar"><img src="images/FH-Wedel-Logo-128.png"></aside>
+    <!-- The content of this hgroup is replaced programmatically through the slide_config.json. -->
+    <hgroup>
+      <h1 data-config-title><!-- populated from slide_config.json --></h1>
+      <h2 data-config-subtitle><!-- populated from slide_config.json --></h2>
+      <p data-config-presenter><!-- populated from slide_config.json --></p>
+    </hgroup>
+  </slide>
+
+  <slide>
+    <hgroup>
+      <h2>Agenda</h2>
+    </hgroup>
+    <article>
+      <ul>
+        <li>Motivation</li>
+        <li>Ziel</li>
+        <li>Grundlagen</li>
+        <li>Vorführung</li>
+        <li>Probleme und Lösung</li>
+        <li>Aktueller Stand</li>
+        <li>Ausblick</li>
+      </ul>
+    </article>
+  </slide>
+
+  <slide class="nobackground segue">
+    <hgroup>
+      <h2>Motivation</h2>
+    </hgroup>
+  </slide>
+
+  <slide>
+    <article>
+      <ul class="build fade">
+        <li>Statisches Routing ist kein Problem</li>
+        <li>Dynamisches Routing ist problematisch</li>
+        <li class="red">
+          <span>Probleme</span>
+          <ul>
+            <li>Aktuelle Verkehrsinformationen (noch) nicht vorhanden</li>
+            <li>Berechnung on-board</li>
+            <li>Veränderungen der Verkehrssituation jederzeit und überall möglich</li>
+            <li>Kartenmaterial vorverabeitet</li>
+            <li>Erneute Vorverarbeitung für dynamisches Routing notwendig</li>
+          </ul>
+        </li>
+        <li class="green">
+          <span>Lösung</span>
+          <ul>
+            <li>Berechnung auslagern</li>
+            <li>Abfrage vor jeder Kreuzung</li>
+            <li>Natur als Vorbild</li>
+            <li>Ameisenalgorithmen</li>
+          </ul>
+        </li>
+      </ul>
+    </article>
+  </slide>
+
+  <slide>
+    <hgroup>
+      <h2>Ziel</h2>
+    </hgroup>
+    <article>
+      <ul>
+        <li>Einsatz auf realen Strassen-Karten</li>
+        <li>Software-Prototyp</li>
+        <li>Parameter-Experimente</li>
+      </ul>
+    </article>
+  </slide>
+
+  <slide class="nobackground segue">
+    <hgroup>
+      <h2>Grundlagen</h2>
+    </hgroup>
+    <article>
+    </article>
+  </slide>
+
+  <slide>
+    <hgroup>
+      <h2>Routing</h2>
+    </hgroup>
+    <article>
+      <ul>
+        <li>Dijkstra zu langsam</li>
+        <li>Bidirektionale Dijkstra, A*</li>
+        <li>Beschleunigung durch Karten-Vorverarbeitung</li>
+      </ul>
+    </article>
+  </slide>
+
+  <slide>
+    <hgroup>
+      <h2>Natürliche Ameisen</h2>
+    </hgroup>
+    <article>
+      <ul>
+        <li>Ameise als Individuum nicht intelligent</li>
+        <li>Ameisen-Kolonie weist kollektive Intelligenz auf</li>
+        <li>Entdeckung kürzester Wege</li>
+        <li>Berücksichtigung der Dynamik</li>
+        <li>Kommunikation über Pheromone</li>
+        <li>Probabilistische Weg-Entscheidung</li>
+        <li>Hohe Pheromon-Konzentration, viele Ameisen</li>
+        <li>Kurzer Weg, schneller Anstieg der Pheromon-Konzentration</li>
+        <li>Je kürzer der Weg desto mehr Ameisen</li>
+        <li>Pheromon-Verdunstung</li>
+      </ul>
+    </article>
+  </slide>
+
+  <slide>
+    <hgroup>
+      <h2>Umsetzung</h2>
+    </hgroup>
+    <article>
+      <ul>
+        <li>Direkte Umsetzung nicht möglich</li>
+        <li>Grund: Zyklen, negative Auswirkung auf das Gesamtergebnis</li>
+        <li>
+          <span>Aufteilung in zwei Schritte</span>
+          <ul>
+            <li>Suche nach einer Lösung</li>
+            <li>Aktualisierung der Pheromone</li>
+          </ul>
+        </li>
+      </ul>
+    </article>
+  </slide>
+
+  <slide>
+    <hgroup>
+      <h2>AntNet</h2>
+    </hgroup>
+    <article>
+      <ul>
+        <li>Erzeugung von Ameisen in bestimmten Zeitintervallen</li>
+        <li>Ameisen agieren parallel und unabhängig</li>
+        <li>Jede Ameise sucht nach einem Pfad vom Quell- zum Ziel-Knoten</li>
+        <li>Weg-Entscheidung an jedem Zwischen-Knoten</li>
+        <li>Sammeln und speichern von Informationen über den zurückgelegten Weg</li>
+        <li>Am Ziel angekommen Aktualisierung der Knoten-Informationen basierend auf dem Gedächtnis</li>
+        <li>Entfernen der Ameise</li>
+      </ul>
+    </article>
+  </slide>
+
+  <slide>
+    <hgroup>
+      <h2>Knoten-Informationen</h2>
+    </hgroup>
+    <article>
+      <ul>
+        <li>
+          <span>Pheromon-Matrix</span>
+          <ul>
+            <li>Eine Zeile pro Kante</li>
+            <li>Eine Spalte pro Ziel-Knoten</li>
+          </ul>
+        </li>
+        <li>
+          <span>Lokales statistisches Modell</span>
+          <ul>
+            <li>Verkehrssituation aus Sicht des Knotens</li>
+            <li>Mittelwert, Varianz</li>
+            <li>Beste Reisezeit innerhalb eines Zeitfensters</li>
+          </ul>
+        </li>
+      </ul>
+    </article>
+  </slide>
+
+  <slide>
+    <hgroup>
+      <h2>AntNet</h2>
+      <h3>Weg-Entscheidung</h3>
+    </hgroup>
+    <article>
+        <ul>
+          <li>Probabilistisch</li>
+          <li>
+            <span>Berechnung der Wahrscheinlichkeit aus den Pheromonen und weiteren Faktoren</span>
+            <ul>
+              <li>...</li>
+            </ul>
+          </li>
+        </ul>
+    </article>
+  </slide>
+
+  <slide>
+    <hgroup>
+      <h2>AntNet</h2>
+      <h3>Aktualisierung der Knoten-Informationen</h3>
+    </hgroup>
+    <article>
+      <ul>
+        <li>
+          <span>Aktualisierung des lokalen statistischen Modells</span>
+          <ul>
+            <li>Neuer Mittelwert</li>
+            <li>Neue Varianz</li>
+          </ul>
+        </li>
+        <li>
+          <span>Aktualisierung der Pheromon-Matrix</span>
+          <ul>
+            <li>Verstärkung der Pheromon-Konzentration für besuchte Kanten, Verringerung für andere</li>
+            <li>Berechnung der Verstärkung aus Reisezeit und Parametern des lokalen statistischen Modells</li>
+          </ul>
+        </li>
+      </ul>
+    </article>
+  </slide>
+
+  <slide class="nobackground segue">
+    <hgroup>
+      <h2>Vorführung</h2>
+    </hgroup>
+  </slide>
+
+  <slide class="nobackground segue">
+    <hgroup>
+      <h2>Probleme</h2>
+    </hgroup>
+  </slide>
+
+  <slide>
+    <hgroup>
+      <h2>Probleme</h2>
+    </hgroup>
+    <article>
+      <ul>
+        <li>Implementierung der Ameisen</li>
+        <li>Anzahl erzeugter Ameisen</li>
+      </ul>
+    </article>
+  </slide>
+
+  <slide class="nobackground segue">
+    <hgroup>
+      <h2>Aktueller Stand</h2>
+    </hgroup>
+  </slide>
+
+  <slide class="nobackground segue">
+    <hgroup>
+      <h2>Ausblick</h2>
+    </hgroup>
+  </slide>
+
+  <slide>
+    <hgroup>
+      <h2></h2>
+    </hgroup>
+    <article>
+
+    </article>
+  </slide>
+
+  <slide class="nobackground segue">
+    <hgroup>
+      <h2>Vielen Dank!</h2>
+    </hgroup>
+  </slide>
+
+  <slide class="nobackground segue">
+    <hgroup>
+      <h2>Fragen?</h2>
+    </hgroup>
+  </slide>
+
+  <slide class="backdrop"></slide>
+
+</slides>
+
+<script>
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-XXXXXXXX-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function () {
+    var ga = document.createElement('script');
+    ga.type = 'text/javascript';
+    ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0];
+    s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+<!--[if IE]>
+<script src="http://ajax.googleapis.com/ajax/libs/chrome-frame/1/CFInstall.min.js"></script>
+<script>CFInstall.check({mode:'overlay'});</script>
+<![endif]-->
+</body>
+</html>
