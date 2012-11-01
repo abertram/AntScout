@@ -19,7 +19,7 @@ var SLIDE_CONFIG = {
   // Author information
   presenters: [{
     name: 'Alexander Bertram',
-    company: 'Master-Student der Informatik, Fachhochschule Wedel',
+    company: 'Fachhochschule Wedel',
 //    gplus: 'http://plus.google.com/1234567890',
 //    twitter: '@yourhandle',
 //    www: 'http://www.you.com',
