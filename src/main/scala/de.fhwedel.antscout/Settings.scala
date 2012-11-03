@@ -25,11 +25,6 @@ object Settings {
   val Alpha = getDouble("ant-scout.ant-net.alpha")
 
   /**
-   * Anzahl der Ameisen, die pro Knoten erzeugt werden.
-   */
-  val AntCountPerSource = getInt("ant-scout.ant-count-per-source")
-
-  /**
    * Die von einem Knoten aus erreichbaren Ziele werden in Gruppen unterteilt. Dieser Parameter (Angabe in Metern)
    * entscheidet, in welchen Abständen eine neue Gruppe erzeugt wird.
    */
