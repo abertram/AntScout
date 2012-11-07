@@ -51,8 +51,8 @@ URL: https://code.google.com/p/io-2012-slides
         <li>Motivation</li>
         <li>Ziel</li>
         <li>Grundlagen</li>
-        <li>Vorführung</li>
-        <li>Probleme und Lösung</li>
+        <li><b>Vorführung</b></li>
+        <li>Probleme</li>
         <li>Aktueller Stand</li>
         <li>Ausblick</li>
       </ul>
@@ -67,6 +67,9 @@ URL: https://code.google.com/p/io-2012-slides
   </slide>
 
   <slide>
+    <hgroup>
+      <h2>Motivation</h2>
+    </hgroup>
     <article>
       <ul class="build fade">
         <li>Statisches Routing ist kein Problem</li>
@@ -81,13 +84,24 @@ URL: https://code.google.com/p/io-2012-slides
             <li>Erneute Vorverarbeitung für dynamisches Routing notwendig</li>
           </ul>
         </li>
+      </ul>
+    </article>
+  </slide>
+
+  <slide>
+    <hgroup>
+      <h2>Motivation</h2>
+    </hgroup>
+    <article>
+      <ul>
         <li class="green">
           <span>Lösung</span>
           <ul>
             <li>Berechnung auslagern</li>
+            <li>Berechnung bereits vor der Abfrage möglich</li>
             <li>Abfrage vor jeder Kreuzung</li>
             <li>Natur als Vorbild</li>
-            <li>Ameisenalgorithmen</li>
+            <li>Ameisen</li>
           </ul>
         </li>
       </ul>
@@ -121,7 +135,9 @@ URL: https://code.google.com/p/io-2012-slides
     </hgroup>
     <article>
       <ul>
-        <li>Dijkstra zu langsam</li>
+        <li>Alle Routing-Algorithmen Dijkstra-basiert</li>
+        <li>Prinzipiell ausreichend</li>
+        <li>Auf großen Graphen zu langsam</li>
         <li>Bidirektionale Dijkstra, A*</li>
         <li>Beschleunigung durch Karten-Vorverarbeitung</li>
       </ul>
@@ -139,7 +155,17 @@ URL: https://code.google.com/p/io-2012-slides
         <li>Entdeckung kürzester Wege</li>
         <li>Berücksichtigung der Dynamik</li>
         <li>Kommunikation über Pheromone</li>
-        <li>Probabilistische Weg-Entscheidung</li>
+      </ul>
+    </article>
+  </slide>
+
+  <slide>
+    <hgroup>
+      <h2>Natürliche Ameisen</h2>
+    </hgroup>
+    <article>
+      <ul>
+        <li>Wahrscheinlichkeitsbasierte Weg-Entscheidung</li>
         <li>Hohe Pheromon-Konzentration, viele Ameisen</li>
         <li>Kurzer Weg, schneller Anstieg der Pheromon-Konzentration</li>
         <li>Je kürzer der Weg desto mehr Ameisen</li>
@@ -176,7 +202,7 @@ URL: https://code.google.com/p/io-2012-slides
         <li>Erzeugung von Ameisen in bestimmten Zeitintervallen</li>
         <li>Ameisen agieren parallel und unabhängig</li>
         <li>Jede Ameise sucht nach einem Pfad vom Quell- zum Ziel-Knoten</li>
-        <li>Weg-Entscheidung an jedem Zwischen-Knoten</li>
+        <li>Wahrscheinlichkeitsbasierte Weg-Entscheidung an jedem Zwischen-Knoten</li>
         <li>Sammeln und speichern von Informationen über den zurückgelegten Weg</li>
         <li>Am Ziel angekommen Aktualisierung der Knoten-Informationen basierend auf dem Gedächtnis</li>
         <li>Entfernen der Ameise</li>
@@ -187,75 +213,155 @@ URL: https://code.google.com/p/io-2012-slides
   <slide>
     <hgroup>
       <h2>Knoten-Informationen</h2>
+      <h3>Lokales statistisches Modell</h3>
     </hgroup>
     <article>
       <ul>
-        <li>
-          <span>Pheromon-Matrix</span>
-          <ul>
-            <li>Eine Zeile pro Kante</li>
-            <li>Eine Spalte pro Ziel-Knoten</li>
-          </ul>
-        </li>
-        <li>
-          <span>Lokales statistisches Modell</span>
-          <ul>
-            <li>Verkehrssituation aus Sicht des Knotens</li>
-            <li>Mittelwert, Varianz</li>
-            <li>Beste Reisezeit innerhalb eines Zeitfensters</li>
-          </ul>
-        </li>
+        <li>Verkehrssituation aus Sicht des Knotens</li>
+        <li>Mittelwert, Varianz</li>
+        <li>Beste Reisezeit innerhalb eines Zeitfensters</li>
       </ul>
     </article>
   </slide>
 
   <slide>
     <hgroup>
-      <h2>AntNet</h2>
-      <h3>Weg-Entscheidung</h3>
+      <h2>Knoten-Informationen</h2>
+      <h3>Pheromon-Matrix</h3>
     </hgroup>
     <article>
-        <ul>
-          <li>Probabilistisch</li>
-          <li>
-            <span>Berechnung der Wahrscheinlichkeit aus den Pheromonen und weiteren Faktoren</span>
-            <ul>
-              <li>...</li>
-            </ul>
-          </li>
-        </ul>
+      <ul>
+        <li>Eine Zeile pro Kante/Nachbar-Knoten</li>
+        <li>Eine Spalte pro Ziel-Knoten</li>
+        <li>Elemente sind Pheromon-Konzentrationen</li>
+      </ul>
+      <table>
+        <tr>
+          <td>[A] Nachbarn &dArr; / Ziele &rArr;</td>
+          <th>B</th>
+          <th>C</th>
+          <th>D</th>
+          <th>X</th>
+          <th>Y</th>
+          <th>Z</th>
+        </tr>
+        <tr>
+          <th>B</th>
+          <td>0,00</td>
+          <td>0,02</td>
+          <td>0,04</td>
+          <td>0,06</td>
+          <td>0,08</td>
+          <td class="highlight">0,8</td>
+        </tr>
+        <tr>
+          <th>C</th>
+          <td>0,05</td>
+          <td>0,07</td>
+          <td>0,09</td>
+          <td class="highlight">0,75</td>
+          <td>0,01</td>
+          <td>0,03</td>
+        </tr>
+        <tr>
+          <th>D</th>
+          <td>0,10</td>
+          <td class="highlight">0,7</td>
+          <td>0,02</td>
+          <td>0,04</td>
+          <td>0,06</td>
+          <td>0,08</td>
+        </tr>
+      </table>
     </article>
   </slide>
 
   <slide>
     <hgroup>
-      <h2>AntNet</h2>
-      <h3>Aktualisierung der Knoten-Informationen</h3>
+      <h2>Knoten-Informationen</h2>
+      <h3>Routing-Matrix</h3>
     </hgroup>
     <article>
       <ul>
+        <li>Berechnung aus der Pheromon-Matrix</li>
+        <li>Eine Zeile pro Kante/Nachbar-Knoten</li>
+        <li>Eine Spalte pro Ziel-Knoten</li>
+        <li>Elemente sind Wahrscheinlichkeiten</li>
+      </ul>
+      <!-- P<sub>ijd</sub> = (&tau;<sub>ijd</sub> + &alpha;&eta;<sub>ij</sub>) / (1 + &alpha;(|N<sub>i</sub>| - 1)) -->
+      <table>
+        <tr>
+          <td>[A] Nachbarn &dArr; / Ziele &rArr;</td>
+          <th>B</th>
+          <th>C</th>
+          <th>D</th>
+          <th>X</th>
+          <th>Y</th>
+          <th>Z</th>
+        </tr>
+        <tr>
+          <th>B</th>
+          <td>0,05</td>
+          <td>0,07</td>
+          <td>0,09</td>
+          <td>0,11</td>
+          <td>0,13</td>
+          <td class="highlight">0,85</td>
+        </tr>
+        <tr>
+          <th>C</th>
+          <td>0,10</td>
+          <td>0,12</td>
+          <td>0,14</td>
+          <td class="highlight">0,80</td>
+          <td>0,06</td>
+          <td>0,08</td>
+        </tr>
+        <tr>
+          <th>D</th>
+          <td>0,15</td>
+          <td class="highlight">0,75</td>
+          <td>0,07</td>
+          <td>0,09</td>
+          <td>0,11</td>
+          <td>0,13</td>
+        </tr>
+      </table>
+    </article>
+  </slide>
+
+  <slide>
+    <hgroup>
+      <h2>Aktualisierung der Knoten-Informationen</h2>
+    </hgroup>
+    <article>
+      <ul class="build fade">
+        <li>Basierend auf dem Gedächtnis</li>
         <li>
           <span>Aktualisierung des lokalen statistischen Modells</span>
           <ul>
             <li>Neuer Mittelwert</li>
             <li>Neue Varianz</li>
+            <li>Evtl. ein neue beste Reisezeit</li>
           </ul>
         </li>
         <li>
           <span>Aktualisierung der Pheromon-Matrix</span>
           <ul>
-            <li>Verstärkung der Pheromon-Konzentration für besuchte Kanten, Verringerung für andere</li>
+            <li>Verstärkung der Pheromon-Konzentration für den Nachfolger, Verringerung für andere Nachbarn</li>
             <li>Berechnung der Verstärkung aus Reisezeit und Parametern des lokalen statistischen Modells</li>
           </ul>
         </li>
+        <li>Berechnung der Routing-Matrix</li>
       </ul>
     </article>
   </slide>
 
-  <slide class="nobackground segue">
-    <hgroup>
+  <slide class="fill nobackground" style="background-image: url(images/vorfuehrung.jpg)">
+    <aside class="dark left top">
       <h2>Vorführung</h2>
-    </hgroup>
+    </aside>
+    <footer class="source">http://www.flickr.com/photos/laura-kali/7793505332/</footer>
   </slide>
 
   <slide class="fill nobackground" style="background-image: url(images/arlowames.jpg)">
@@ -266,6 +372,9 @@ URL: https://code.google.com/p/io-2012-slides
   </slide>
 
   <slide>
+    <hgroup>
+      <h2>Probleme</h2>
+    </hgroup>
     <article>
       <ul class="build">
         <li>
@@ -287,13 +396,14 @@ URL: https://code.google.com/p/io-2012-slides
     </article>
   </slide>
 
-  <slide class="nobackground segue">
-    <hgroup>
+  <slide class="fill nobackground" style="background-image: url(images/Elbphilharmonie.jpg)">
+    <aside class="dark left top">
       <h2>Aktueller Stand</h2>
-    </hgroup>
+    </aside>
+    <footer class="source">http://www.rohmert-medien.de/wp-content/uploads/2012/07/Elbphilharmonie.jpg</footer>
   </slide>
 
-  <slide class="fill nobackground" style="background-image: url(images/Das-Fernrohr.jpg); background-position: 50%">
+  <slide class="fill nobackground" style="background-image: url(images/Das-Fernrohr.jpg)">
     <aside class="bottom dark left">
       <h2>Ausblick</h2>
     </aside>
@@ -301,17 +411,24 @@ URL: https://code.google.com/p/io-2012-slides
 
   <slide>
     <hgroup>
-      <h2></h2>
+      <h2>Ausblick</h2>
     </hgroup>
     <article>
-
+      <ul>
+        <li>Anbindung an externe Systeme</li>
+        <li>Cloud</li>
+        <li>Hierarchien</li>
+        <li>Unscharfes Routen</li>
+        <li>User-Interface</li>
+      </ul>
     </article>
   </slide>
 
   <slide class="nobackground segue thank-you-slide">
-    <hgroup>
+    <aside class="gdbar right"><img src="images/FH-Wedel-Logo-128.png"></aside>
+    <article class="flexbox vleft">
       <h2>Vielen Dank!</h2>
-    </hgroup>
+    </article>
   </slide>
 
   <slide class="fill image nobackground"
