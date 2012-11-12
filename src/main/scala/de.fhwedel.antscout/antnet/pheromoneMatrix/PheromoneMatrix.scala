@@ -48,7 +48,7 @@ class PheromoneMatrix(destinations: Set[ActorRef], outgoingWays: Set[AntWay]) ex
     probability
   }
 
-  def initialize(source: ActorRef, pheromones: Map[ActorRef, Map[AntWay, Double]], tripTimes: Map[AntWay, Double]) {
+  def initialize(pheromones: Map[ActorRef, Map[AntWay, Double]], tripTimes: Map[AntWay, Double]) {
     probabilities ++= destinations.map((_ -> mutable.Map[AntWay, Double]()))
     initHeuristicValues(tripTimes)
     initPheromones(pheromones)

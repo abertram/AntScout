@@ -21,10 +21,6 @@ class AntNode extends Actor with ActorLogging {
   import AntNode._
 
   val cancellables = mutable.Set[Cancellable]()
-  /**
-   * Ziele, die von diesem Knoten aus erreichbar sind.
-   */
-  val destinations = mutable.Set[ActorRef]()
   var liftSession: Option[LiftSession] = None
   // TODO pheromoneMatrix sollte vom Datentyp Option[PheromoneMatrix] sein.
   var pheromoneMatrix: PheromoneMatrix = _
@@ -108,13 +104,11 @@ class AntNode extends Actor with ActorLogging {
   def initialize(destinations: Set[ActorRef], pheromones: Map[ActorRef, Map[AntWay, Double]]) {
     if (log.isDebugEnabled)
       log.debug("Initializing {}", self)
-    this.destinations ++= mutable.Set(destinations.toSeq: _*)
-    assert(!this.destinations.contains(self))
     if (destinations.nonEmpty) {
       val outgoingWays = AntMap.outgoingWays(AntNode.toNode(self).get)
       pheromoneMatrix = PheromoneMatrix(destinations, outgoingWays)
       val tripTimes = outgoingWays.map(outgoingWay => (outgoingWay -> outgoingWay.tripTime)).toMap
-      pheromoneMatrix.initialize(self, pheromones, tripTimes)
+      pheromoneMatrix.initialize(pheromones, tripTimes)
       val bestWays = mutable.Map[ActorRef, AntWay]()
       traceBySource("Calculating best ways")
       destinations.foreach(destination => bestWays += (destination -> bestWay(destination)))
@@ -131,8 +125,6 @@ class AntNode extends Actor with ActorLogging {
     if (log.isDebugEnabled)
       log.debug("{} initialized", self)
   }
-
-
 
   /**
    * Erzeugt die Ameisen.
