@@ -15,8 +15,6 @@ import map.Node
  */
 object AntMap extends Logger {
 
-  val DefaultRelevantHighways = ""
-
   /**
    * Ziele.
    */
@@ -49,10 +47,10 @@ object AntMap extends Logger {
   }
 
   /**
-   * Berechnet Ant-Wege anhand einer Abbildung von Knoten auf die adjazenten Wege.
+   * Berechnet Ant-Wege-Daten anhand einer Abbildung von Knoten auf die adjazenten Wege.
    *
    * @param nodeWaysMapping Abbildung von Knoten auf die adjazenten Wege.
-   * @return Eine Menge von Ant-Wegen.
+   * @return Eine Menge von Ant-Wege-Daten.
    */
   def computeAntWayData(nodeWaysMapping: Map[OsmNode, Set[OsmWay]]): Set[AntWayData] = {
     @tailrec
@@ -73,10 +71,12 @@ object AntMap extends Logger {
           val (startNodeIndex, endNodeIndex) = {
             // Der aktuelle Knoten ist nicht der End-Knoten des Weges.
             if (!way.isEndNode(node)) {
+              // Start- und End-Inex in die Vorwärts-Richtung suchen
               startAndEndNodeIndexForward(way, node, nodeWaysMapping)
             }
             // Der aktuelle Knoten ist der End-Knoten des Weges.
             else {
+              // Start- und End-Inex in die Rückwärts-Richtung suchen
               val (startNodeIndex, endNodeIndex) = startAndEndNodeIndexBackward(way, node, nodeWaysMapping)
               // Wenn der aktuelle Weg ein Kreis-Weg ist und der aktuelle Knoten der Anfangsknoten des Weges ist,
               // dann ist eine Sonderprüfung nötig. Es wird geprüft, ob das letzte Segment des Weges schon
@@ -142,6 +142,7 @@ object AntMap extends Logger {
           })
             // leere Einträge entfernen
             .filterNot(_._2.isEmpty)
+          // Rekursiver Aufruf
           computeAntWayDataRec(id + 1, innerNodeWaysMapping + (node -> (ways - way)), newAntNodeAntWaysMapping, newAntWays)
         }
       }
@@ -152,6 +153,11 @@ object AntMap extends Logger {
     ways
   }
 
+  /**
+   * Berechnet die Ant-Wege aus extra dafür aufbereiteten Daten.
+   *
+   * @param wayData Aufbereitete Daten.
+   */
   def computeAntWays(wayData: Set[AntWayData]) {
     info("Computing ant ways")
     _ways = (1 to wayData.size).zip(wayData).map {
@@ -173,6 +179,7 @@ object AntMap extends Logger {
     def computeIncomingAndOutgoingWaysRec(ways: Set[AntWay], incomingWays: Map[Node, Set[AntWay]],
         outgoingWays: Map[Node, Set[AntWay]]): (Map[Node, Set[AntWay]], Map[Node, Set[AntWay]]) = {
       if (ways.isEmpty)
+        // Wege sind leer, fertig
         (incomingWays, outgoingWays)
       else {
         // eingehende Wege
@@ -220,6 +227,11 @@ object AntMap extends Logger {
     _outgoingWays = outgoingWays
   }
 
+  /**
+   * Berechnet die Knoten aus der Ant-Weg-Daten.
+   *
+   * @param wayData Ant-Weg-Daten
+   */
   def computeNodes(wayData: Set[AntWayData]) {
     info("Computing nodes")
     wayData.foreach { wd =>
@@ -229,7 +241,7 @@ object AntMap extends Logger {
   }
 
   /**
-   * Berechnet die Quell- und die Zielknoten mit Hilfe der ein- und ausgehenden Wege.
+   * Berechnet die Quell- und die Ziel-Knoten mit Hilfe der ein- und ausgehenden Wege.
    *
    */
   def computeSourcesAndDestinations() {
@@ -254,6 +266,11 @@ object AntMap extends Logger {
     _destinations = destinations.toSet
   }
 
+  /**
+   * Getter für Ziel-Knoten.
+   *
+   * @return Ziel-Knoten
+   */
   def destinations = _destinations
 
   /**
@@ -261,9 +278,9 @@ object AntMap extends Logger {
    *
    * @param source Quell-Knoten
    * @param destination Ziel-Knoten
-   * @return 0, wenn es sich bei den beiden Knoten um den selben Knoten handelt. Weg-Länge,
-   *         wenn die beiden Knoten durch einen Weg verbunden sind und der Weg vom Quell- zum Ziel-Knoten zeigt.
-   *         Unendlich, wenn die beiden Knoten nicht durch einen Weg verbunden sind.
+   * @return 0, wenn es sich bei den beiden Knoten um den selben Knoten handelt. Weg-Länge, wenn die beiden Knoten durch
+   *         einen Weg verbunden sind und der Weg vom Quell- zum Ziel-Knoten zeigt. Unendlich, wenn die beiden Knoten
+   *         nicht durch einen Weg verbunden sind.
    */
   def distance(source: Node, destination: Node) = {
     if (source == destination)
@@ -385,6 +402,11 @@ object AntMap extends Logger {
   def distanceMatrixToString(matrix: collection.Map[Node, Map[Node, Double]]) = matrixToString[Double](matrix, ".2f",
     identity)
 
+  /**
+   * Getter für eingehende Wege.
+   *
+   * @return Eingehende Wege
+   */
   def incomingWays = _incomingWays
 
   /**
@@ -425,10 +447,17 @@ object AntMap extends Logger {
   }
 
   /**
-   * Getter für die Ant-Knoten.
+   * Getter für die Knoten.
+   *
+   * @return Knoten
    */
   def nodes: collection.Set[Node] = _nodes
 
+  /**
+   * Getter für die ausgehenden Wege.
+   *
+   * @return Ausgehende Wege
+   */
   def outgoingWays = _outgoingWays
 
   /**
@@ -522,5 +551,10 @@ object AntMap extends Logger {
     (startNodeIndex, endNodeIndex)
   }
 
+  /**
+   * Getter für die Wege.
+   *
+   * @return Wege
+   */
   def ways = _ways
 }

@@ -7,8 +7,8 @@ import utils.StatisticsUtils
 
 /**
  * Ameise die von einem Quell- zu einem Ziel-Knoten wandert. Der nächste Knoten wird anhand von Wahrscheinlichkeiten
- * bestimmt. Der durchlaufene Weg wird gemerkt. Nach dem Erreichen des Ziels werden die Knoten in umgekehrter
- * Reihenfolge besucht und dessen Datenstrukturen aktualisiert.
+ * bestimmt. Der durchlaufene Weg wird gemerkt. Nach dem Erreichen des Ziels werden die Datenstrukturen der Knoten in
+ * umgekehrter Reihenfolge aktualisiert.
  *
  * @param source Quell-Knoten.
  * @param destination Ziel-Knoten.
@@ -40,12 +40,29 @@ class Ant(val source: ActorRef, val destination: ActorRef, val memory: AntMemory
    */
   def containsCycle(node: ActorRef) = memory.containsNode(node)
 
+  /**
+   * Erzeugt eine Ameise mit aktualisierten Log-Einträgen.
+   *
+   * @param entries Neue Log-Einträge
+   * @return Ameise mit aktualisierten Log-Einträgen
+   */
   def log(entries: Seq[String]) = new Ant(source, destination, memory, entries.reverse.map(logEntry(_)) ++ logEntries,
     startTime, isTraceEnabled)
 
+  /**
+   * Erzeugt eine Ameise mit aktualisierten Log-Einträgen.
+   *
+   * @param entry Neuer Log-Eintrag
+   * @return Ameise mit aktualisierten Log-Einträgen
+   */
   def log(entry: String) = new Ant(source, destination, memory, logEntry(entry) +: logEntries, startTime,
     isTraceEnabled)
 
+  /**
+   * Bereitet die Log-Einträge auf.
+   *
+   * @return Aufbereitete Log-Einträge
+   */
   def prepareLogEntries = logEntries.reverse.mkString("\n\t")
 
   /**
@@ -112,10 +129,15 @@ class Ant(val source: ActorRef, val destination: ActorRef, val memory: AntMemory
   def updateNodes() = {
     val (_, logEntries1) = memory.items.foldLeft((0.0, Seq[String]())) {
       case ((tripTimeAcc, logEntries), antMemoryItem @ AntMemoryItem(node, way, tripTime, shouldUpdate)) => {
+        // Reise-Zeit aufsummieren
         val tripTimeSum = tripTimeAcc + tripTime
+        // Update-Nachricht erzeugen
         val updateDataStructures = AntNode.UpdateDataStructures(destination, way, tripTimeSum)
+        // Soll aktualisiert werden?
         if (shouldUpdate)
+          // Nachricht verschicken
           node ! updateDataStructures
+        // Aufsummierte Reise-Zeit und evtl. Log-Einträge zurückgeben
         (tripTimeSum, if (isTraceEnabled) {
           (if (shouldUpdate)
             "Updating %s: %s".format(node, updateDataStructures)
@@ -124,24 +146,60 @@ class Ant(val source: ActorRef, val destination: ActorRef, val memory: AntMemory
         } else Seq())
       }
     }
+    // Neue Ameise mit aktualisierten Log-Einträgen zurückgeben
     new Ant(source, destination, memory, logEntries1 ++ logEntries, startTime, isTraceEnabled)
   }
 }
 
+/**
+ * Ant-Factory.
+ */
 object Ant {
 
+  /**
+   * Erzeugt eine Ameise.
+   *
+   * @param source Quelle
+   * @param destination Ziel
+   * @param isTraceEnabled Trace-Flag
+   * @return Ameise
+   */
   def apply(source: ActorRef, destination: ActorRef, isTraceEnabled: Boolean) =
     new Ant(source, destination, AntMemory(), if (isTraceEnabled) Seq(logEntry("%s -> %s"
       .format(AntNode.nodeId(source), AntNode.nodeId(destination)))) else Seq.empty, System.currentTimeMillis,
       isTraceEnabled)
 
+  /**
+   * Erzeugt eine Ameise.
+   *
+   * @param source Quelle
+   * @param destination Ziel
+   * @param logEntries Log-Einträge
+   * @param isTraceEnabled Trace-Flag
+   * @return Ameise
+   */
   def apply(source: ActorRef, destination: ActorRef, logEntries: Seq[String], isTraceEnabled: Boolean) =
     new Ant(source, destination, AntMemory(), if (isTraceEnabled) logEntries.reverse ++ Seq(logEntry("%s -> %s".format
       (AntNode.nodeId(source), AntNode.nodeId(destination)))) else Seq.empty, System.currentTimeMillis, isTraceEnabled)
 
+  /**
+   * Erzeugt eine Ameise.
+   *
+   * @param source Quelle
+   * @param destination Ziel
+   * @param logEntry Log-Eintrag
+   * @param isTraceEnabled Trace-Flag
+   * @return Ameise
+   */
   def apply(source: ActorRef, destination: ActorRef, logEntry: String, isTraceEnabled: Boolean) =
     new Ant(source, destination, AntMemory(), if (isTraceEnabled) logEntry +: Seq(this.logEntry("%s -> %s".format(AntNode
       .nodeId(source), AntNode.nodeId(destination)))) else Seq.empty, System.currentTimeMillis, isTraceEnabled)
 
+  /**
+   * Erzeugt einen Log-Eintrag mit vorangestelltem Zeit-Punkt.
+   *
+   * @param entry Log-Eintrag
+   * @return Log-Eintrag mit vorangestelltem Zeit-Punkt
+   */
   def logEntry(entry: String) = "%tH:%1$tM:%1$tS:%1$tL: %s" format (TimeHelpers.now, entry)
 }
