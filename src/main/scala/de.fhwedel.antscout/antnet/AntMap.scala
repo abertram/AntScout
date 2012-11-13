@@ -47,23 +47,24 @@ object AntMap extends Logger {
   }
 
   /**
-   * Berechnet Ant-Wege-Daten anhand einer Abbildung von Knoten auf die adjazenten Wege.
+   * Berechnet Ant-Weg-Daten anhand einer Abbildung von Knoten auf die adjazenten Wege.
    *
    * @param nodeWaysMapping Abbildung von Knoten auf die adjazenten Wege.
-   * @return Eine Menge von Ant-Wege-Daten.
+   * @return Eine Menge von Ant-Weg-Daten.
    */
   def computeAntWayData(nodeWaysMapping: Map[OsmNode, Set[OsmWay]]): Set[AntWayData] = {
     @tailrec
-    def computeAntWayDataRec(id: Int, innerNodeWaysMapping: Map[OsmNode, Set[OsmWay]], osmNodeAntWaysMapping: Map[OsmNode, Set[AntWayData]], antWays: Set[AntWayData]): Set[AntWayData] = {
+    def computeAntWayDataRec(id: Int, innerNodeWaysMapping: Map[OsmNode, Set[OsmWay]],
+        osmNodeAntWayDataMapping: Map[OsmNode, Set[AntWayData]], antWayData: Set[AntWayData]): Set[AntWayData] = {
       // Das Mapping ist leer, wir sind fertig.
       if (innerNodeWaysMapping.isEmpty)
-        antWays
+        antWayData
       else {
         // der aktuell zu verarbeitende Knoten und die adjazenten Wege
         val (node, ways) = innerNodeWaysMapping.head
         // Der aktuelle Knoten hat keine adjazenten Wege mehr, weiter mit dem nächsten Knoten.
         if (ways.isEmpty)
-          computeAntWayDataRec(id, innerNodeWaysMapping tail, osmNodeAntWaysMapping, antWays)
+          computeAntWayDataRec(id, innerNodeWaysMapping tail, osmNodeAntWayDataMapping, antWayData)
         else {
           // der aktuell zu verarbeitende Weg
           val way = ways.head
@@ -83,7 +84,7 @@ object AntMap extends Logger {
               // verarbeitet wurde. Falls das der Fall sein sollte, wird mit dem aktuellen Knoten "manuell" auf das
               // erste Segment umgeschaltet und dessen Start- und End-Knoten-Index berechnet.
               val nodes = way.nodes.slice(startNodeIndex, endNodeIndex + 1)
-              if (!(way.isCircle && way.isStartNode(node) && ((osmNodeAntWaysMapping.contains(nodes.head) && osmNodeAntWaysMapping(nodes.head).find(_.nodes.containsSlice(nodes)).isDefined) || (osmNodeAntWaysMapping.contains(nodes.last) && osmNodeAntWaysMapping(nodes.last).find(_.nodes.containsSlice(nodes)).isDefined) || (osmNodeAntWaysMapping.contains(nodes.head) && osmNodeAntWaysMapping.contains(nodes.last) && osmNodeAntWaysMapping(nodes.head) == osmNodeAntWaysMapping(nodes.last)))))
+              if (!(way.isCircle && way.isStartNode(node) && ((osmNodeAntWayDataMapping.contains(nodes.head) && osmNodeAntWayDataMapping(nodes.head).find(_.nodes.containsSlice(nodes)).isDefined) || (osmNodeAntWayDataMapping.contains(nodes.last) && osmNodeAntWayDataMapping(nodes.last).find(_.nodes.containsSlice(nodes)).isDefined) || (osmNodeAntWayDataMapping.contains(nodes.head) && osmNodeAntWayDataMapping.contains(nodes.last) && osmNodeAntWayDataMapping(nodes.head) == osmNodeAntWayDataMapping(nodes.last)))))
                 (startNodeIndex, endNodeIndex)
               else
                 startAndEndNodeIndexForward(way, node, nodeWaysMapping)
@@ -95,41 +96,41 @@ object AntMap extends Logger {
           // TODO Prüfen, was zu tun ist, wenn nodes nur ein Element enthält
           // Verarbeitung der berechneten Knoten-Sequenz. Es werden fünf mögliche Fälle unterschieden.
           // Fall 1: Die Knoten-Sequenz ist bereits in einem anderen Ant-Weg enthalten.
-          val (newWays, newAntWays, oldWays) = if ((osmNodeAntWaysMapping.contains(nodes.head) && osmNodeAntWaysMapping(nodes.head).find(_.nodes.containsSlice(nodes)).isDefined) || (osmNodeAntWaysMapping.contains(nodes.last) && osmNodeAntWaysMapping(nodes.last).find(_.nodes.containsSlice(nodes)).isDefined) || (osmNodeAntWaysMapping.contains(nodes.head) && osmNodeAntWaysMapping.contains(nodes.last) && osmNodeAntWaysMapping(nodes.head) == osmNodeAntWaysMapping(nodes.last)))
-            (Set[AntWayData](), antWays, Set[AntWayData]())
+          val (newWays, newAntWays, oldWays) = if ((osmNodeAntWayDataMapping.contains(nodes.head) && osmNodeAntWayDataMapping(nodes.head).find(_.nodes.containsSlice(nodes)).isDefined) || (osmNodeAntWayDataMapping.contains(nodes.last) && osmNodeAntWayDataMapping(nodes.last).find(_.nodes.containsSlice(nodes)).isDefined) || (osmNodeAntWayDataMapping.contains(nodes.head) && osmNodeAntWayDataMapping.contains(nodes.last) && osmNodeAntWayDataMapping(nodes.head) == osmNodeAntWayDataMapping(nodes.last)))
+            (Set[AntWayData](), antWayData, Set[AntWayData]())
           // Fall 2: Die Knoten-Sequenz ist das Verbindungsstück zwischen zwei bereits existierenden Ant-Wegen.
-          else if (osmNodeAntWaysMapping.contains(nodes.head) && osmNodeAntWaysMapping(nodes.head).size == 1 && osmNodeAntWaysMapping(nodes.head).find(w => w.isExtendable(nodes.head)(nodeWaysMapping)).isDefined && osmNodeAntWaysMapping.contains(nodes.last) && osmNodeAntWaysMapping(nodes.last).size == 1 && osmNodeAntWaysMapping(nodes.last).find(w => w.isExtendable(nodes.last)(nodeWaysMapping)).isDefined) {
+          else if (osmNodeAntWayDataMapping.contains(nodes.head) && osmNodeAntWayDataMapping(nodes.head).size == 1 && osmNodeAntWayDataMapping(nodes.head).find(w => w.isExtendable(nodes.head)(nodeWaysMapping)).isDefined && osmNodeAntWayDataMapping.contains(nodes.last) && osmNodeAntWayDataMapping(nodes.last).size == 1 && osmNodeAntWayDataMapping(nodes.last).find(w => w.isExtendable(nodes.last)(nodeWaysMapping)).isDefined) {
             // Beide Wege ermitteln, die verbunden werden sollen.
-            val oldWay1 = osmNodeAntWaysMapping(nodes.head).head
-            val oldWay2 = osmNodeAntWaysMapping(nodes.last).head
+            val oldWayData1 = osmNodeAntWayDataMapping(nodes.head).head
+            val oldWayData2 = osmNodeAntWayDataMapping(nodes.last).head
             // Weg erweitern
-            val newWays = Set(oldWay1.extend(nodes, way.maxSpeed).extend(oldWay2.nodes, way.maxSpeed))
+            val newWayData = Set(oldWayData1.extend(nodes, way.maxSpeed).extend(oldWayData2.nodes, way.maxSpeed))
             // oldWays musste explizit erstellt werden.
-            // Bei (newWays, antWays -- oldWays ++ newWays, Set(oldWay1, oldWay2)) hat der Compiler gemeckert (recursive value ... needs type)
-            val oldWays = Set(oldWay1, oldWay2)
-            (newWays, antWays -- oldWays ++ newWays, oldWays)
+            // Bei (newWays, antWayData -- oldWays ++ newWays, Set(oldWay1, oldWay2)) hat der Compiler gemeckert (recursive value ... needs type)
+            val oldWayData = Set(oldWayData1, oldWayData2)
+            (newWayData, antWayData -- oldWayData ++ newWayData, oldWayData)
           }
           // Fall 3: Ein oder mehrere bereits vorhandene Wege können am Kopf um die Knoten-Sequens erweitert werden.
-          else if (osmNodeAntWaysMapping.contains(nodes.head) && osmNodeAntWaysMapping(nodes.head).find(_.isExtendable(nodes.head)(nodeWaysMapping)).isDefined) {
-            val oldWays = osmNodeAntWaysMapping(nodes.head).filter(_.isExtendable(nodes.head)(nodeWaysMapping))
-            val newWays = oldWays.map(_.extend(nodes, way.maxSpeed))
-            (newWays, antWays -- oldWays ++ newWays, oldWays)
+          else if (osmNodeAntWayDataMapping.contains(nodes.head) && osmNodeAntWayDataMapping(nodes.head).find(_.isExtendable(nodes.head)(nodeWaysMapping)).isDefined) {
+            val oldWayData = osmNodeAntWayDataMapping(nodes.head).filter(_.isExtendable(nodes.head)(nodeWaysMapping))
+            val newWayData = oldWayData.map(_.extend(nodes, way.maxSpeed))
+            (newWayData, antWayData -- oldWayData ++ newWayData, oldWayData)
           // Fall 4: Ein oder mehrere bereits vorhandene Wege können am Ende um die Knoten-Sequens erweitert werden.
-          } else if (osmNodeAntWaysMapping.contains(nodes.last) && osmNodeAntWaysMapping(nodes.last).find(_.isExtendable(nodes.last)(nodeWaysMapping)).isDefined) {
-            val oldWays = osmNodeAntWaysMapping(nodes.last).filter(_.isExtendable(nodes.last)(nodeWaysMapping))
-            val newWays = oldWays.map(_.extend(nodes, way.maxSpeed))
-            (newWays, antWays -- oldWays ++ newWays, oldWays)
+          } else if (osmNodeAntWayDataMapping.contains(nodes.last) && osmNodeAntWayDataMapping(nodes.last).find(_.isExtendable(nodes.last)(nodeWaysMapping)).isDefined) {
+            val oldWayData = osmNodeAntWayDataMapping(nodes.last).filter(_.isExtendable(nodes.last)(nodeWaysMapping))
+            val newWayData = oldWayData.map(_.extend(nodes, way.maxSpeed))
+            (newWayData, antWayData -- oldWayData ++ newWayData, oldWayData)
           // Fall 5: Keiner der oberen Fälle trifft zu. Es muss ein neuer Weg erstellt werden.
           } else {
-            val antWay = AntWayData(way.maxSpeed, nodes, way.isInstanceOf[OsmOneWay])
-            (Set(antWay), antWays + antWay, Set[AntWayData]())
+            val newAntWayData = AntWayData(way.maxSpeed, nodes, way.isInstanceOf[OsmOneWay])
+            (Set(newAntWayData), antWayData + newAntWayData, Set[AntWayData]())
           }
           // Mapping aktualisieren, sodass neu berechnte Wege die alten Wege ersetzen.
-          val updatedAntNodeAntWaysMapping = osmNodeAntWaysMapping ++ oldWays.flatMap { ow =>
-            val nodeWaysMappingToUpdate = osmNodeAntWaysMapping.filter { case (n, ws) => ws.contains(ow) }
+          val updatedAntNodeAntWaysMapping = osmNodeAntWayDataMapping ++ oldWays.flatMap { ow =>
+            val nodeWayDataMappingToUpdate = osmNodeAntWayDataMapping.filter { case (n, ws) => ws.contains(ow) }
             val newWay = newWays.find(_.containsSlice(ow.nodes)).get
-            nodeWaysMappingToUpdate.map {
-              case (n, ws) => n -> (osmNodeAntWaysMapping.getOrElse(n, Set[AntWayData]()) - ow + newWay)
+            nodeWayDataMappingToUpdate.map {
+              case (n, ws) => n -> (osmNodeAntWayDataMapping.getOrElse(n, Set[AntWayData]()) - ow + newWay)
             }
           }
           // Mapping um die neu berechneten Wege und dessen Start- und End-Knoten ergänzen
@@ -171,7 +172,9 @@ object AntMap extends Logger {
   /**
    * Berechnet die eingehenden und ausgehenden Wege pro Knoten.
    *
-   * @return 2-Tupel. Das erste Element repräsentiert die eingehenden, das zweite Element die ausgehenden Wege. Die Datenstruktur ist jeweils eine Map, deren Schlüssel die einzelnen Knoten und die Werte die zugehörigen Wege sind.
+   * @return Zweier-Tupel. Das erste Element repräsentiert die eingehenden, das zweite Element die ausgehenden Wege. Die
+   *         Datenstruktur ist jeweils eine Map, deren Schlüssel die einzelnen Knoten und die Werte die zugehörigen Wege
+   *         sind.
    */
   def computeIncomingAndOutgoingWays() {
     assert(_ways != null)
@@ -274,7 +277,7 @@ object AntMap extends Logger {
   def destinations = _destinations
 
   /**
-   * Berechnet die Weg-Länge von einem Quell- zu einem Ziel-Knoten.
+   * Berechnet die Distanz zwischen zwei Knoten.
    *
    * @param source Quell-Knoten
    * @param destination Ziel-Knoten
@@ -284,16 +287,22 @@ object AntMap extends Logger {
    */
   def distance(source: Node, destination: Node) = {
     if (source == destination)
+      // Knoten sind gleich
       0.0
     else {
       if (!_outgoingWays.isDefinedAt(source))
+        // Knoten hat keine ausgehenden Wege, ist also kein Quell-Knoten
         Double.PositiveInfinity
       else {
         _outgoingWays(source).find { way =>
+          // Weg suchen, der die beiden Knoten verbindet
           Set(way.nodes.head, way.nodes.last) == Set(source, destination)
         }.map { way =>
+          // Weg-Länge zurückgeben
           way.length
-        }.getOrElse(Double.PositiveInfinity)
+        }
+          // Knoten sind nicht durch einen Weg verbunden, die Distanz ist unendlich.
+          .getOrElse(Double.PositiveInfinity)
       }
     }
   }
@@ -301,7 +310,7 @@ object AntMap extends Logger {
   /**
    * Berechnet die Adjazenz-Matrix. Die Elemente werden wie folgt berechnet: adjacencyMatrix(i)(j) = weight(i, j)
    *
-   * @return
+   * @return Adjazenz-Matrix
    */
   def adjacencyMatrix = {
     nodes.map { source =>
@@ -312,11 +321,12 @@ object AntMap extends Logger {
   }
 
   /**
-   * Berechnet die kürzesten Pfade für alle Knoten-Paare und deren Längen mit Hilfe des Floyd-Warshall-Algorithmus.
+   * Berechnet die kürzesten Pfade zwischen allen Knoten-Paaren und deren Längen mit Hilfe des
+   * Floyd-Warshall-Algorithmus. Der Pfad kann anschließend rekonstruiert werden.
    *
-   * @param adjacencyMatrix
-   * @param predecessorMatrix
-   * @return
+   * @param adjacencyMatrix Adjazenz-Matrix
+   * @param predecessorMatrix Vorgänger-Matrix
+   * @return Zweier-Tupel bestehend aus der Distanz- und der Zwischen-Knoten-Matrix.
    */
   def calculateShortestPaths(adjacencyMatrix: Map[Node, Map[Node, Double]], predecessorMatrix: Map[Node, Map[Node,
       Option[Node]]]): (Map[Node, Map[Node, Double]], Map[Node, Map[Node, Option[Node]]]) = {
@@ -325,6 +335,7 @@ object AntMap extends Logger {
     debug(predecessorMatrixToString(predecessorMatrix))
     val (time, (distanceMatrix, intermediateMatrix)) = TimeHelpers.calcTime {
       // TODO Rausfinden, warum die Berechnung mit dem SynchronizedMap-Trait wesentlich schneller ist.
+      // Distanz-Matrix initialisieren, initiale Distanz wird der Adjazenz-Matrix entnommen
       val distanceMatrix = new mutable.HashMap[Node, mutable.Map[Node, Double] with mutable.SynchronizedMap[Node, Double]]
         with mutable.SynchronizedMap[Node, mutable.Map[Node, Double] with mutable.SynchronizedMap[Node, Double]]
       adjacencyMatrix.par.foreach {
@@ -335,6 +346,7 @@ object AntMap extends Logger {
               distanceMatrix(source) += destination -> distance
           }
       }
+      // Zwischen-Knoten-Matrix initialisieren, initiale Vorgänger werden der Vorgänger-Matrix entnommen
       val intermediateMatrix = new mutable.HashMap[Node, mutable.Map[Node, Option[Node]] with mutable
         .SynchronizedMap[Node, Option[Node]]] with mutable.SynchronizedMap[Node, mutable.Map[Node, Option[Node]] with
         mutable.SynchronizedMap[Node, Option[Node]]]
@@ -347,29 +359,37 @@ object AntMap extends Logger {
               intermediateMatrix(source) += destination -> predecessor
           }
       }
+      // Über alle Knoten iterieren
       nodes.foreach { intermediate =>
         trace("Intermediate: %s" format intermediate)
         trace("Filtering sources")
+        // Quell-Knoten berechnen
         val sources = nodes.filter { node =>
           node != intermediate && distanceMatrix(node)(intermediate) < Double.PositiveInfinity
         }
         trace("Sources filtered, result: %s" format sources)
+        // Über die Quellen iterieren
         sources.foreach { source =>
           trace("Source: %s" format source)
           trace("Filtering destinations")
+          // Ziel-Knoten berechnen
           val destinations = nodes.filter { node =>
             node != intermediate && distanceMatrix(intermediate)(node) < Double.PositiveInfinity
           }
           trace("Destinations filtered, result: %s" format destinations)
+          // Über die Ziel-Knoten iterieren
           destinations.foreach { destination =>
             trace("Intermediate: %s, source: %s, destination: %s" format (intermediate, source, destination))
+            // Distanz zwischen Quell-, Zwischen- und Ziel-Knoten besser als Distanz zwischen Quell- und Ziel-Knoten?
             if (distanceMatrix(source)(intermediate) + distanceMatrix(intermediate)(destination) <
                 distanceMatrix(source)(destination)) {
               trace("\n\tpath(%s)(%s) + path(%s)(%s) = %1.2f < path(%s)(%s) = %1.2f, updating matrix"
                 .format(source.id, intermediate.id, intermediate.id, destination.id, distanceMatrix(source)(intermediate) +
                 distanceMatrix(intermediate)(destination), source.id, destination.id, distanceMatrix(source)(destination)))
+              // Distanz aktualisieren
               distanceMatrix(source).update(destination, distanceMatrix(source)(intermediate) +
                 distanceMatrix(intermediate)(destination))
+              // Zwischen-Knoten-Matrix aktualisieren
               intermediateMatrix(source).update(destination, Some(intermediate))
 //              trace(AntMap.distanceMatrixToString(distanceMatrix.map {
 //                case (source, distances) => source -> distances.toMap
@@ -381,6 +401,7 @@ object AntMap extends Logger {
           }
         }
       }
+      // Veränderliche Daten-Strukturen in unveränderliche umwandeln
       (distanceMatrix.map {
         case (source, distances) => source -> distances.toMap
       }.toMap, intermediateMatrix.map {
@@ -425,9 +446,11 @@ object AntMap extends Logger {
    * @return Matrix aufbereitet als Tabelle.
    */
   def matrixToString[T](matrix: collection.Map[Node, Map[Node, T]], elementFormatSuffix: String, extract: (T) => Any) = {
+    // Quell-Knoten für die Darstellung
     val sources = matrix.map {
       case (source, elements) => source.id
     }
+    // Ziel-Knoten für die Darstellung
     val destinations = {
       val (_, elements) = matrix.head
       elements.map {
@@ -435,7 +458,9 @@ object AntMap extends Logger {
           destination.id
       }
     }
+    // Längste Id berechnen
     val longestId = (sources.toSet ++ destinations.toSet).maxBy(_.length)
+    // Tabelle für die Darstellung erzeugen
     destinations.map(id => ("%" + longestId.length + "s").format(id)).mkString("\n" + " " * longestId.length + "|", "|",
       "") + matrix.map {
         case (source, elements) =>
@@ -463,10 +488,10 @@ object AntMap extends Logger {
   /**
    * Berechnet einen Pfad vom `source`- zum `destination`-Knoten anhand der Distanz- und Vorgänger-Matrizen.
    *
-   * @param source
-   * @param destination
-   * @param distanceMatrix
-   * @param predecessorMatrix
+   * @param source Quell-Knoten
+   * @param destination Ziel-Knoten
+   * @param distanceMatrix Distanz-Matrix
+   * @param predecessorMatrix Vorgänger-Matrix
    * @return
    */
   def path(source: Node, destination: Node, distanceMatrix: Map[Node, Map[Node, Double]],
@@ -475,15 +500,21 @@ object AntMap extends Logger {
     def pathRec(source: Node, destination: Node): Seq[Node] = {
       assert(predecessorMatrix(source).isDefinedAt(destination))
       if (predecessorMatrix(source)(destination).get == source)
+        // Wieder beim Quell-Knoten angekommen, fertig
         Seq[Node]()
       else {
+        // Zwischen-Knoten berechnen
         val intermediate = predecessorMatrix(source)(destination).get
+        // Pfad setzt sich zusammen aus dem Teil-Pfad von Quell- zum Zwischen-Knoten, dem Zwischen-Knoten und dem
+        // Teil-Pfad vom Zwischen- zum Ziel-Knoten
         pathRec(source, intermediate) ++ Seq(intermediate) ++ pathRec(intermediate, destination)
       }
     }
     if (distanceMatrix(source)(destination) == 0.0 || distanceMatrix(source)(destination) == Double.PositiveInfinity)
+      // Kein Pfad
       None
     else {
+      // Pfad berechnen
       Some(Seq(source) ++ pathRec(source, destination) ++ Seq(destination))
     }
   }
@@ -509,8 +540,8 @@ object AntMap extends Logger {
   /**
    * Bereitet die Vorgänger-Matrix so auf, dass diese als eine gut lesbare Tabelle dargestellt werden kann.
    *
-   * @param matrix
-   * @return
+   * @param matrix Vorgänger-Matrix
+   * @return Vorgänger-Matrix als String
    */
   def predecessorMatrixToString(matrix: Map[Node, Map[Node, Option[Node]]]) = matrixToString[Option[Node]](matrix,
     "s", (element) => element match {
@@ -518,18 +549,34 @@ object AntMap extends Logger {
       case None => ""
     })
 
+  /**
+   * Bereitet die AntMap vor, indem die Ant-Weg-Daten berechnet werden.
+   *
+   * @return Ant-Weg-Daten
+   */
   def prepare = {
     info("Preparing")
-    val nodeWaysMapping = OsmMap.nodeWaysByHighwayMapping(relevantHighways).par.filter {
+    val nodeWaysMapping = OsmMap.nodeWaysByHighwayMapping(Settings.RelevantHighWays.toSet).par.filter {
       case (node, ways) => ways.size >= 2
     }.seq
     computeAntWayData(nodeWaysMapping)
   }
 
-  lazy val relevantHighways = Settings.RelevantHighWays.toSet
-
+  /**
+   * Getter für die Quell-Knoten.
+   *
+   * @return Quell-Knoten
+   */
   def sources = _sources
 
+  /**
+   * Sucht die Indices zweier Knoten, die Kreuzungen sind, von einem Knoten aus in die Rückwärts-Richtung.
+   *
+   * @param way Weg, in dem gesucht werden soll.
+   * @param node Start-Knoten
+   * @param nodeWaysMapping Knoten-Wege-Mapping
+   * @return Start- und End-Indices
+   */
   def startAndEndNodeIndexBackward(way: OsmWay, node: OsmNode, nodeWaysMapping: Map[OsmNode, Set[OsmWay]]) = {
     // End-Index ist der Index des aktuellen Knoten. Der passende Start-Index muss gesucht werden.
     // Index des letzten Verbindungsknotens vom End-Knoten des Weges aus suchen.
@@ -540,6 +587,14 @@ object AntMap extends Logger {
     (startNodeIndex, endNodeIndex)
   }
 
+  /**
+   * Sucht die Indices zweier Knoten, die Kreuzungen sind, von einem Knoten aus in die Vorwärts-Richtung.
+   *
+   * @param way Weg, in dem gesucht werden soll.
+   * @param node Start-Knoten
+   * @param nodeWaysMapping Knoten-Wege-Mapping
+   * @return Start- und End-Indices
+   */
   def startAndEndNodeIndexForward(way: OsmWay, node: OsmNode, nodeWaysMapping: Map[OsmNode, Set[OsmWay]]) = {
     // Start-Index ist der Index des aktuellen Knoten. Der passende End-Index muss gesucht werden.
     val startNodeIndex = way.nodes.indexOf(node)

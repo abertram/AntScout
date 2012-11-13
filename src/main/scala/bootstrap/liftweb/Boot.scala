@@ -13,6 +13,9 @@ import de.fhwedel.antscout.rest.{DebugRest, Rest}
  */
 class Boot extends Logger {
 
+  /**
+   * Bootet die Anwendung.
+   */
   def boot {
     // where to search snippet
     LiftRules.addToPackages("de.fhwedel.antscout")
