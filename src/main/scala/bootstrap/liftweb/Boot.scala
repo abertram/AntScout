@@ -23,22 +23,16 @@ class Boot extends Logger {
     // Use jQuery
     LiftRules.jsArtifacts = net.liftweb.http.js.jquery.JQueryArtifacts
 
-    //Show the spinny image when an Ajax call starts
-    LiftRules.ajaxStart =
-      Full(() => LiftRules.jsArtifacts.show("ajax-loader").cmd)
-
-    // Make the spinny image go away when it ends
-    LiftRules.ajaxEnd =
-      Full(() => LiftRules.jsArtifacts.hide("ajax-loader").cmd)
-
     // Force the request to be UTF-8
     LiftRules.early.append(_.setCharacterEncoding("UTF-8"))
 
     LiftRules.htmlProperties.default.set((r: Req) => new Html5Properties(r.userAgent))
 
+    // Rest-Schnittstellen registrieren
     LiftRules.dispatch.append(Rest)
     LiftRules.dispatch.append(DebugRest)
 
+    // Event-Handler registrieren, die beim Beenden der Anwendung ausgeführt werden.
     LiftRules.unloadHooks.append(() => {
       // System runterfahren
       info("Shutting down")

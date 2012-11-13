@@ -7,40 +7,62 @@ import net.liftweb.common.Logger
 import antnet.AntWay
 
 /**
- * Created by IntelliJ IDEA.
- * User: alex
- * Date: 26.12.11
- * Time: 20:55
- */
-
-/**
- * Pheromon-Matrix
+ * Pheromon-Matrix.
+ *
+ * Enthält eine Zeile pro ausgehenden Weg und eine Spalte pro Ziel-Knoten.
+ *
+ * Hier werden sowohl die Pheromone verwaltet als auch die Wahrscheinlichkeiten, anhand der sich die Ameisen endgültig
+ * für einen Weg eintscheiden.
  *
  * @param destinations Ziel-Knoten
  * @param outgoingWays Ausgehende Wege
  */
 class PheromoneMatrix(destinations: Set[ActorRef], outgoingWays: Set[AntWay]) extends Logger {
 
-  //  assert((destinations & AntMap.destinations) == destinations && (AntMap.destinations &~ destinations).size <= 1)
+//  assert((destinations & AntMap.destinations) == destinations && (AntMap.destinations &~ destinations).size <= 1)
 
-  val probabilities = mutable.Map[ActorRef, mutable.Map[AntWay, Double]]()
+  /**
+   * Heuristische Werte
+   */
   val heuristicValues = mutable.Map[AntWay, Double]()
+  /**
+   * Pheromone
+   */
   val pheromones = mutable.Map[ActorRef, mutable.Map[AntWay, Double]]()
-  var processedMessages = 0
+  /**
+   * Wahrscheinlichkeiten
+   */
+  val probabilities = mutable.Map[ActorRef, mutable.Map[AntWay, Double]]()
 
+  /**
+   * Berechnet die Wahrscheinlichkeiten.
+   */
   def calculateProbabilities() {
     destinations.foreach(calculateProbabilities _)
   }
 
+  /**
+   * Berechnet die Wahrscheinlichkeiten für einen Knoten.
+   *
+   * @param destination Knoten
+   */
   def calculateProbabilities(destination: ActorRef) = {
     outgoingWays.foreach { outgoingWay =>
         probabilities(destination) += outgoingWay -> calculateProbability(destination, outgoingWay)
     }
   }
 
+  /**
+   * Berechnet die Wahrscheinlichkeiten für einen Knoten und einen Weg.
+   *
+   * @param destination Knoten
+   * @param outgoingWay Weg
+   * @return Wahrscheinlichkeit
+   */
   def calculateProbability(destination: ActorRef, outgoingWay: AntWay) = {
-    val probability = pheromones(destination)(outgoingWay) + Settings.Alpha * heuristicValues(outgoingWay) / (1 +
-      Settings.Alpha * (outgoingWays.size - 1))
+    val probability =
+      pheromones(destination)(outgoingWay) + Settings.Alpha * heuristicValues(outgoingWay) /
+          (1 + Settings.Alpha * (outgoingWays.size - 1))
     // Zusicherung, dass die Wahrscheinlichkeiten für den ausgehenden Weg 0 wird. Das würde bedeuten,
     // dass sich keine Ameise mehr für diesen Weg entscheiden würde.
 //    assert(probability ~> 0, "%s-%s: Probability = 0, pheromone: %s, alpha: %s, heuristic value: %s" format (self
@@ -48,10 +70,20 @@ class PheromoneMatrix(destinations: Set[ActorRef], outgoingWays: Set[AntWay]) ex
     probability
   }
 
+  /**
+   * Initialisiert die Pheromon-Matrix.
+   *
+   * @param pheromones Ziele
+   * @param tripTimes Reise-Zeiten pro ausgehenden Weg
+   */
   def initialize(pheromones: Map[ActorRef, Map[AntWay, Double]], tripTimes: Map[AntWay, Double]) {
+    // Wahrscheinlichkeit pro Ziel erzeugen
     probabilities ++= destinations.map((_ -> mutable.Map[AntWay, Double]()))
+    // Heuristische Werte initialisieren
     initHeuristicValues(tripTimes)
+    // Pheromone initialisieren
     initPheromones(pheromones)
+    // Wahrscheinlichkeiten berechnen
     calculateProbabilities()
   }
 
@@ -65,6 +97,11 @@ class PheromoneMatrix(destinations: Set[ActorRef], outgoingWays: Set[AntWay]) ex
     }
   }
 
+  /**
+   * Initialisiert die Pheromone.
+   *
+   * @param pheromones Initiale Pheromone
+   */
   def initPheromones(pheromones: Map[ActorRef, Map[AntWay, Double]]) {
     pheromones.foreach {
       case (destination, pheromones) =>
@@ -76,18 +113,32 @@ class PheromoneMatrix(destinations: Set[ActorRef], outgoingWays: Set[AntWay]) ex
     }
   }
 
+  /**
+   * Aktualisiert die Pheromone.
+   *
+   * @param destination Ziel
+   * @param way Weg
+   * @param reinforcement Verstärkung
+   */
   def updatePheromones(destination: ActorRef, way: AntWay, reinforcement: Double) {
     outgoingWays.foreach(ow => {
+      // Alter Pheromon-Wert
       val oldPheromone = pheromones(destination)(ow)
       if (ow == way)
+        // Besuchter Weg: Konzentration verstärken
         pheromones(destination) += ow -> (oldPheromone + reinforcement * (1 - oldPheromone))
       else
+        // Nicht besuchter Weg: Konzentration verringern
         pheromones(destination) += ow -> (oldPheromone - reinforcement * oldPheromone)
     })
+    // Wahrscheinlichkeiten aktualisieren
     calculateProbabilities(destination)
   }
 }
 
+/**
+ * Pheromon-Matrix-Factory
+ */
 object PheromoneMatrix {
 
   def apply(destinations: Set[ActorRef], outgoingWays: Set[AntWay]) = new PheromoneMatrix(destinations, outgoingWays)

@@ -1,3 +1,4 @@
+<!-- Logback-Konfiguration -->
 <configuration>
     <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <encoder>
