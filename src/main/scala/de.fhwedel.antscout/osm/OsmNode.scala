@@ -8,12 +8,11 @@ import net.liftweb.json.JsonDSL._
 import scala.math._
 
 /**
- * Created by IntelliJ IDEA.
- * User: alex
- * Date: 18.11.11
- * Time: 11:36
+ * Repräsentiert einen OpenStreetMap-Knoten.
+ *
+ * @param id Id
+ * @param geographicCoordinate Geographische Koordinate
  */
-
 class OsmNode(id: String, val geographicCoordinate: GeographicCoordinate) extends Node(id) {
 
   /**
@@ -122,14 +121,43 @@ class OsmNode(id: String, val geographicCoordinate: GeographicCoordinate) extend
   override def toString = "OsmNode #%s".format(id)
 }
 
+/**
+ * OsmNode-Factory.
+ */
 object OsmNode extends Logger {
-  
+
+  /**
+   * Erzeugt eine neue [[de.fhwedel.antscout.osm.OsmNode]]-Instanz.
+   *
+   * @param id Id
+   * @return Neue [[de.fhwedel.antscout.osm.OsmNode]]-Instanz
+   */
   def apply(id: Int) = new OsmNode(id.toString, GeographicCoordinate(0, 0))
-  
+
+  /**
+   * Erzeugt eine neue [[de.fhwedel.antscout.osm.OsmNode]]-Instanz.
+   *
+   * @param id Id
+   * @param geographicCoordinate Geographische Koordinate
+   * @return Neue [[de.fhwedel.antscout.osm.OsmNode]]-Instanz
+   */
   def apply(id: Int, geographicCoordinate: GeographicCoordinate) = new OsmNode(id.toString, geographicCoordinate)
 
+  /**
+   * Erzeugt eine neue [[de.fhwedel.antscout.osm.OsmNode]]-Instanz.
+   *
+   * @param id Id
+   * @param geographicCoordinate Geographische Koordinate
+   * @return Neue [[de.fhwedel.antscout.osm.OsmNode]]-Instanz
+   */
   def apply(id: String, geographicCoordinate: GeographicCoordinate) = new OsmNode(id, geographicCoordinate)
 
+  /**
+   * Parst einen OSM-XML-Knoten.
+   *
+   * @param node OSM-XML-Knoten
+   * @return Neue [[de.fhwedel.antscout.osm.OsmNode]]-Instanz
+   */
   def parseNode(node: xml.Node): OsmNode = {
     val id = (node \ "@id").text
     val latitude = (node \ "@lat").text.toFloat

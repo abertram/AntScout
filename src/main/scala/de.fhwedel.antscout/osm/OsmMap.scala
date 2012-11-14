@@ -9,82 +9,120 @@ import mutable.{SynchronizedMap, SynchronizedSet}
 import xml.{XML, NodeSeq, Elem}
 
 /**
- * Created by IntelliJ IDEA.
- * User: alex
- * Date: 18.11.11
- * Time: 09:58
+ * Repräsentiert eine OpenStreetMap-Karte.
  */
-
 object OsmMap extends Logger {
 
-  private var _intersections: List[OsmNode] = _
+  /**
+   * Knoten
+   */
   private var _nodes: Map[String, OsmNode] = _
+
+  /**
+   * Abbildung von Knoten auf adjazente Wege
+   */
   private var _nodeWaysMapping: Map[OsmNode, Set[OsmWay]] = _
+
+  /**
+   * Wege
+   */
   private var _ways: Map[String, OsmWay] = _
 
-  def intersections = _intersections
-  def nodes = _nodes
-  def nodeWaysMapping = _nodeWaysMapping
-  def ways = _ways
-
-  def computeIntersections = {
-    info("Computing intersections")
-    val (time, result) = TimeHelpers.calcTime(nodeWaysMapping.par.filter(_._2.size > 1).seq.keys.toList)
-    info("Intersections computed in %d ms".format(time))
-    result
-  }
-
-  def computeNodeWaysMap() = {
-    info("Computing node ways map")
-    val synchronizedNodeWaysMap = new mutable.HashMap[OsmNode, mutable.HashSet[OsmWay] with SynchronizedSet[OsmWay]] with SynchronizedMap[OsmNode, mutable.HashSet[OsmWay] with SynchronizedSet[OsmWay]]
-    _nodes.values.map(node => synchronizedNodeWaysMap += (node -> new mutable.HashSet[OsmWay] with SynchronizedSet[OsmWay]))
-    val (time, nodeWaysMap) = TimeHelpers.calcTime {
-      _ways.values.par.foreach(way => {
-        way.nodes.par.foreach(node => {
-          synchronizedNodeWaysMap(node) += way
-        })
-      })
-      synchronizedNodeWaysMap map {
+  /**
+   * Berechnet das Knoten-Wege-Mapping.
+   *
+   * @return Knoten-Wege-Mapping
+   */
+  def computeNodeWaysMapping() = {
+    info("Computing node ways mapping")
+    // Mapping erstellen
+    val synchronizedNodeWaysMapping = new mutable.HashMap[OsmNode, mutable.HashSet[OsmWay] with SynchronizedSet[OsmWay]] with SynchronizedMap[OsmNode, mutable.HashSet[OsmWay] with SynchronizedSet[OsmWay]]
+    // Mapping initialisieren
+    _nodes.values.map { node =>
+      synchronizedNodeWaysMapping += (node -> new mutable.HashSet[OsmWay] with SynchronizedSet[OsmWay])
+    }
+    val (time, nodeWaysMapping) = TimeHelpers.calcTime {
+      // Über die Wege iterieren
+      _ways.values.par.foreach { way =>
+        // Über die Weg-Knoten iterieren
+        way.nodes.par.foreach { node =>
+          // Knoten als Schlüssel und Weg als Wert in das Mapping einfügen
+          synchronizedNodeWaysMapping(node) += way
+        }
+      }
+      // In unveränderliche Daten-Strukturen umwandeln
+      synchronizedNodeWaysMapping map {
         case (osmNode, osmWays) => (osmNode, osmWays toSet)
       } toMap
     }
-    info("Node ways map with %d elements computed in %d ms".format(synchronizedNodeWaysMap.size, time))
-    nodeWaysMap
+    info("Node ways mapping with %d elements computed, took %d ms".format(nodeWaysMapping.size, time))
+    nodeWaysMapping
   }
 
-  def computeNodeWaysMapAndIntersections() {
-    _nodeWaysMapping = computeNodeWaysMap()
-    _intersections = computeIntersections
-  }
-
+  /**
+   * Lädt die OSM-Karte aus einer Datei.
+   *
+   * @param fileName Datei-Name
+   */
   def apply(fileName: String) {
     info("Loading file %s" format fileName)
     apply(XML loadFile(fileName))
   }
 
+  /**
+   * Lädt die OSM-Karte aus XML-Daten.
+   *
+   * @param osmData XML-Daten
+   */
   def apply(osmData: Elem) {
     info("Initializing")
+    // Knoten parsen
     _nodes = parseNodes(osmData \ "node")
+    // Wege parsen
     _ways = parseWays(osmData \ "way", _nodes)
-    computeNodeWaysMapAndIntersections()
+    // Knoten-Wege-Mapping berechnen
+    _nodeWaysMapping = computeNodeWaysMapping()
   }
 
+  /**
+   * Lädt die OSM-Karte aus Knoten und Wegen.
+   *
+   * @param nodes Knoten
+   * @param ways Wege
+   */
   def apply(nodes: Map[String, OsmNode], ways: Map[String, OsmWay]) {
+    // Knoten speichern
     _nodes = nodes
+    // Wege speichern
     _ways = ways
-    computeNodeWaysMapAndIntersections()
+    // Knoten-Wege-Mapping berechnen
+    _nodeWaysMapping = computeNodeWaysMapping()
   }
   
+  /**
+   * Lädt die OSM-Karte aus Knoten und Wegen.
+   *
+   * @param nodes Knoten
+   * @param ways Wege
+   */
   def apply(nodes: Iterable[OsmNode], ways: Iterable[OsmWay]) {
+    // Knoten speichern
     val ns = nodes.map(n => {
       (n.id, n)
     }).toMap
+    // Wege speichern
     val ws = ways.map(w => {
       (w.id, w)
     }).toMap
     this(ns, ws)
   }
 
+  /**
+   * Filtert das Knoten-Wege-Mapping anhand von Weg-Kategorien.
+   *
+   * @param highways Weg-Kategorien
+   * @return Gefiltertes Knoten-Wege-Mapping
+   */
   def nodeWaysByHighwayMapping(highways: Set[String]) = {
       _nodeWaysMapping.par.map {
         case (node, ways) => (node, ways.flatMap { way =>
@@ -97,31 +135,44 @@ object OsmMap extends Logger {
   }
   
   /**
-   * Berechnet den Aussen-Knoten zweier Wege.
+   * Getter für das Knoten-Wege-Mapping
    *
-   * Zuerst wird der Knoten gesucht, der die beiden Wege verbindet und anhand dieses Ergebnisses der Aussen-Knoten bestimmt.
-   *
-   * @param outerWay Weg, der aussen liegt. Der erste oder der letzte Knoten dieses Weges ist der Aussen-Knoten.
-   * @param innerWay Weg, der innen liegt.
-   * @return Aussen-Knoten
+   * @return Knoten-Wege-Mapping
    */
-  def outerNode(outerWay: OsmWay, innerWay: OsmWay): OsmNode = {
-    if (outerWay.nodes.head == innerWay.nodes.head || outerWay.nodes.head == innerWay.nodes.last)
-      outerWay.nodes.last
-    else
-      outerWay.nodes.head
-  }
+  def nodeWaysMapping = _nodeWaysMapping
 
+  /**
+   * Getter für Knoten
+   *
+   * @return Knoten
+   */
+  def nodes = _nodes
+
+  /**
+   * Parst die OSM-XML-Knoten.
+   *
+   * @param nodes OSM-XML-Knoten
+   * @return OSM-Knoten
+   */
   def parseNodes(nodes: NodeSeq) = {
     info("Parsing nodes")
-    val (time, osmNodes) = TimeHelpers.calcTime(nodes.map(node => {
+    val (time, osmNodes) = TimeHelpers.calcTime(nodes.map { node =>
+      // Id auslesen
       val id = (node \ "@id").text
+      // OSM-Knoten erzeugen
       (id, OsmNode.parseNode(node))
-    }) toMap)
+    } toMap)
     info("%d nodes parsed in %d milliseconds".format(osmNodes.size, time))
     osmNodes
   }
 
+  /**
+   * Parst die OSM-XML-Wege.
+   *
+   * @param ways OSM-XML-Wege
+   * @param nodes OSM-Knoten
+   * @return OSM-Wege
+   */
   def parseWays(ways: NodeSeq, nodes: Map[String, OsmNode]) = {
     info("Parsing ways")
     val (time, osmWays) = TimeHelpers.calcTime(ways.map(way => {
@@ -133,24 +184,9 @@ object OsmMap extends Logger {
   }
 
   /**
-   * Berechnet die beiden Aussen-Knoten einer Wege-Sequenz.
+   * Getter für Wege.
    *
-   * @param ways Wege-Sequenz
-   * @return Tupel, dessen Elemente die beiden Aussen-Knoten sind.
+   * @return Wege
    */
-  def outerNodes(ways: Seq[OsmWay]): (OsmNode, OsmNode) = {
-    if (ways.size == 1)
-      (ways.head.nodes.head, ways.head.nodes.last)
-    else {
-      (outerNode(ways.head, ways.tail.head), outerNode(ways.last, ways.init.last))
-    }
-  }
-
-  /**
-   * Liefert nur Wege zurück, deren highway-Tags bestimmten Werten entsprechen.
-   *
-   * @param highways Menge von Werten nach denen gefiltert wird.
-   * @return Wege, deren highways-Tags in der highways-Menge enthalten sind.
-   */
-  def waysByHighway(highways: Set[String]) = ways.par filter { case (id, way) => highways contains (way highway) } seq
+  def ways = _ways
 }

@@ -6,13 +6,6 @@ import net.liftweb.common.Logger
 import map.{Node, Way}
 
 /**
- * Created by IntelliJ IDEA.
- * User: alex
- * Date: 18.11.11
- * Time: 15:13
- */
-
-/**
  * Stellt einen OpenStreetMap-Weg dar.
  *
  * @param highway highway-Tag
@@ -67,15 +60,43 @@ class OsmWay(val highway: String, id: String, val name: String, override val nod
   override def toString = "#%s #%s - #%s".format(id, nodes.head.id, nodes.last.id)
 }
 
+/**
+ * OsmWay-Factory
+ */
 object OsmWay extends Logger {
-  
-  val DefaultSpeed = 13.8889
 
-  def apply(highway: String, id: Int, name: String, nodes: List[OsmNode], maxSpeed: Double) =
+  /**
+   * Erzeugt eine neue [[de.fhwedel.antscout.osm.OsmWay]]-Instanz.
+   *
+   * @param highway Highway-Tag
+   * @param id Id
+   * @param name Name
+   * @param nodes Knoten
+   * @param maxSpeed Maximale Geschwindigkeit
+   * @return Neue [[de.fhwedel.antscout.osm.OsmWay]]-Instanz
+   */
+  def apply(highway: String, id: Int, name: String, nodes: Seq[OsmNode], maxSpeed: Double) =
     new OsmWay(highway, id.toString, name, nodes, maxSpeed)
 
-  def apply(id: Int, nodes: List[OsmNode]) = new OsmWay("", id.toString, "", nodes, 0)
+  /**
+   * Erzeugt eine neue [[de.fhwedel.antscout.osm.OsmWay]]-Instanz.
+   *
+   * @param id Id
+   * @param nodes Knoten
+   * @return Neue [[de.fhwedel.antscout.osm.OsmWay]]-Instanz
+   */
+  def apply(id: Int, nodes: Seq[OsmNode]) = new OsmWay("", id.toString, "", nodes, 0)
 
+  /**
+   * Erzeugt eine neue [[de.fhwedel.antscout.osm.OsmWay]]-Instanz.
+   *
+   * @param highway Highway-Tag
+   * @param id Id
+   * @param name Name
+   * @param nodes Knoten
+   * @param maxSpeed Maximale Geschwindigkeit
+   * @return Neue [[de.fhwedel.antscout.osm.OsmWay]]-Instanz
+   */
   def apply(highway: String, id: String, name: String, nodes: List[OsmNode], maxSpeed: Double) =
     new OsmWay(highway, id, name, nodes, maxSpeed)
 
@@ -86,12 +107,18 @@ object OsmWay extends Logger {
    * @return Weg-Länge
    */
   def length(nodes: Seq[OsmNode]) = {
-    nodes.zip(nodes.tail).map { case (node1, node2) =>
-      node1.distanceTo(node2)
-    }.sum
+    nodes.zip(nodes.tail).map { case (node1, node2) => node1.distanceTo(node2) } sum
   }
 
+  /**
+   * Parst einen OSM-XML-Weg.
+   *
+   * @param way OSM-XML-Weg
+   * @param nodes OSM-Knoten
+   * @return Neue [[de.fhwedel.antscout.osm.OsmWay]]-Instanz
+   */
   def parseWay(way: xml.Node, nodes: Map[String, OsmNode]): OsmWay = {
+    // Weg-Knoten parsen
     def parseNodes(wayId: String, wayNodes: NodeSeq) = {
       wayNodes.flatMap(wayNode => {
         val wayNodeId = (wayNode \ "@ref").text
@@ -104,6 +131,7 @@ object OsmWay extends Logger {
     val tags = (way \ "tag" map (tag => ((tag \ "@k").text, (tag \ "@v").text))).toMap
     val highway = tags getOrElse ("highway", "")
     val name = tags.getOrElse("name", "")
+    // Bestimmt die maximale Geschwindigkeit aus dem maxspeed-Tag
     def maxSpeedFromMaxSpeedTag: Option[Double] = {
       tags.getOrElse("maxspeed", "") match {
         case value if value != "" => {
@@ -112,6 +140,9 @@ object OsmWay extends Logger {
             Some(value.toDouble).map(_ / 3.6)
           } catch {
             case numberFormatException: NumberFormatException => {
+              // Im maxspeed-Tag stand etwas, aber keine Gleitkomma-Zahl
+              // Annahme, dass im maxspeed-Tag eine Weg-Kategorie stand und versuchen die Standard-Geschwindigkeit
+              // für diese Kategorie aus der Konfiguration zu bestimmen
               val maxSpeed = Settings.defaultSpeed(value)
               if (maxSpeed.isEmpty)
                 warn("Way %s: unknown max speed \"%s\"" format(id, value))
@@ -127,9 +158,13 @@ object OsmWay extends Logger {
           None
       }
     }
+    // Bestimmt die maximale Geschwindigkeit aus dem highway-Tag
     def maxSpeedFromHighwayTag = Settings.defaultSpeed(tags.getOrElse("highway", "default"))
+    // Maximale Geschwindigkeit bestimmen, zuerst aus dem maxspeed-Tag, dann anhand des highway-Tags. Falls beides
+    // nicht klappt Default-Geschwindigkeit setzen.
     val maxSpeed = maxSpeedFromMaxSpeedTag orElse maxSpeedFromHighwayTag getOrElse Settings.DefaultSpeed
     val oneWay = tags.getOrElse("oneway", "")
+    // Prüfung auf Einbahn-Strasse und Erzeugung der entsprechenden Instanz
     oneWay match {
       // Einbahnstrasse, Richtung ist durch die Reihenfolge der Knoten vorgegeben
       case "yes" | "true" | "1" => OsmOneWay(highway, id, name, wayNodes, maxSpeed)
