@@ -2,8 +2,7 @@ package de.fhwedel.antscout
 package antnet
 
 import akka.actor.{Cancellable, ActorRef, ActorLogging, Actor}
-import akka.util.{Duration, Timeout}
-import akka.util.duration._
+import akka.util.Duration
 import collection.mutable
 import pheromoneMatrix.PheromoneMatrix
 import routing.RoutingService
@@ -20,12 +19,26 @@ class AntNode extends Actor with ActorLogging {
 
   import AntNode._
 
+  /**
+   * Cancellabeles werden beim Erzeugen von Schedulern zurückgegeben und erlauben es diese zu stoppen.
+   */
   val cancellables = mutable.Set[Cancellable]()
+  /**
+   * Lift-Session
+   */
   var liftSession: Option[LiftSession] = None
   // TODO pheromoneMatrix sollte vom Datentyp Option[PheromoneMatrix] sein.
+  /**
+   * Pheromon-Matrix
+   */
   var pheromoneMatrix: PheromoneMatrix = _
+  /**
+   * Statistiken
+   */
   val statistics = new AntNodeStatistics()
-  implicit val timeout = Timeout(5 seconds)
+  /**
+   * Lokales statistisches Modell
+   */
   var trafficModel: Option[TrafficModel] = None
 
   /**
@@ -105,20 +118,29 @@ class AntNode extends Actor with ActorLogging {
     if (log.isDebugEnabled)
       log.debug("Initializing {}", self)
     if (destinations.nonEmpty) {
+      // Lokales statischtisches Modell erzeugen und initialisieren
+      trafficModel = Some(TrafficModel(destinations))
+      // Ausgehende Wege
       val outgoingWays = AntMap.outgoingWays(AntNode.toNode(self).get)
+      // Pheromon-Matrix erzeugen
       pheromoneMatrix = PheromoneMatrix(destinations, outgoingWays)
+      // Reise-Zeite im statischen Fall
       val tripTimes = outgoingWays.map(outgoingWay => (outgoingWay -> outgoingWay.tripTime)).toMap
+      // Pheromon-Matrix initialisieren
       pheromoneMatrix.initialize(pheromones, tripTimes)
+      // Beste Wege berechnen
       val bestWays = mutable.Map[ActorRef, AntWay]()
       traceBySource("Calculating best ways")
       destinations.foreach(destination => bestWays += (destination -> bestWay(destination)))
       traceBySource("Best ways calculated, result: %s, sending to the routing service" format bestWays)
+      // Beste Wege an der Routing-Service-Aktor schicken
       system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) !
         RoutingService.InitializeBestWays(self, bestWays)
-      trafficModel = Some(TrafficModel(destinations, Settings.Varsigma, Settings.Wmax))
+      // Scheduler zum Erzeugen der Ameisen erzeugen
       createAntsLaunchSchedulers(destinations)
     }
     if (Settings.IsStatisticsEnabled) {
+      // Scheduler zum Verarbeiten der Statistiken erzeugen
       cancellables += context.system.scheduler.schedule(Settings.ProcessStatisticsDelay,
         Settings.ProcessStatisticsDelay, self, ProcessStatistics)
     }
@@ -138,6 +160,7 @@ class AntNode extends Actor with ActorLogging {
       // Log-Ausgaben erzeugen soll.
       for {
         liftSession <- liftSession
+        // Ameisen erzeugen
         ants = S.initIfUninitted(liftSession) {
           destinations.map { destination =>
             (for {
@@ -154,9 +177,10 @@ class AntNode extends Actor with ActorLogging {
       } yield
         ants
     } else {
-      // sonst Ameisen ohne Log-Ausgaben erzeugen
+      // Sonst Ameisen ohne Log-Ausgaben erzeugen
       Some(destinations.map(destination => Ant(self, destination, false)))
     }
+    // Ameisen gleich zum nächsten Knoten weiterleiten
     for {
       ants <- ants
     } yield {
@@ -176,7 +200,7 @@ class AntNode extends Actor with ActorLogging {
    * Event-Handler, der nach dem Stoppen des Aktors augeführt wird.
    */
   override def postStop() {
-    // alle schedule-Aktionen stoppen
+    // Alle schedule-Aktionen stoppen
     for (cancellable <- cancellables)
       cancellable.cancel()
   }
@@ -193,11 +217,13 @@ class AntNode extends Actor with ActorLogging {
         if (Settings.IsStatisticsEnabled) {
           statistics.antAges += ant.age
         }
+        // Ameise evtl. um Log-Ausgaben erweitern
         val ant1 = if (ant.isTraceEnabled)
           ant.log(Seq("Destination reached, visited %d nodes, took %d milliseconds" format (ant.memory.size, ant.age),
             "Memory: %s" format ant.memory.items.reverse.mkString("\n\t\t", "\n\t\t", ""), "Updating nodes"))
         else
           ant
+        // Knoten aktualisieren
         val ant2 = ant1.updateNodes()
         if (ant2.isTraceEnabled)
           log.debug("{}", ant2.prepareLogEntries)
@@ -209,6 +235,7 @@ class AntNode extends Actor with ActorLogging {
         if (Settings.IsStatisticsEnabled) {
           statistics.antAges += ant.age
         }
+        // Ameise evtl. um Log-Ausgaben erweitern
         val ant1 = if (ant.isTraceEnabled)
           ant.log("Lifetime expired, visited %d nodes, took %s milliseconds, removing ant" format (ant.memory.size,
             ant.age))
@@ -228,6 +255,7 @@ class AntNode extends Actor with ActorLogging {
         if (Settings.IsStatisticsEnabled) {
           statistics.antAges += ant.age
         }
+        // Ameise evtl. um Log-Ausgaben erweitern
         val ant1 = if (ant.isTraceEnabled)
           ant.log("Dead end street reached, visited %d nodes, took %d milliseconds, removing ant" format (ant.memory
             .size, ant.age))
@@ -239,6 +267,7 @@ class AntNode extends Actor with ActorLogging {
         if (ant1.isTraceEnabled)
           log.debug("{}", ant1.prepareLogEntries)
       } else {
+        // Sonst Ameise evtl. um Log-Ausgaben erweitern und weiterleiten
         val ant1 = if (ant.isTraceEnabled)
           ant.log("Visiting node %s".format(AntNode.nodeId(self)))
         else
@@ -260,6 +289,7 @@ class AntNode extends Actor with ActorLogging {
   def processStatistics() {
     // Statistik aufbereiten und an den Supervisor senden
     context.parent ! statistics.prepare
+    // Wenn Tracing eingeschaltet ist, lokale Statistiken im UserInterface anzeigen
     if (Settings.IsTraceEnabled) {
       for {
         liftSession <- liftSession
@@ -271,12 +301,16 @@ class AntNode extends Actor with ActorLogging {
             destination <- Destination
           } yield {
             NamedCometListener.getDispatchersFor(Full("userInterface")) foreach { actor =>
+              // Anzahl der Ameisen, die an diesem Knoten als Ziel angekommen sind
               if (AntNode.nodeId(self) == destination)
                 actor.map(_ ! ArrivedAnts(statistics.arrivedAnts.getOrElse(AntNode(source), 0)))
+              // Anzahl der Ameisen, die an diesem Knoten erzeugt wurden
               if (AntNode.nodeId(self) == source)
                 actor.map(_ ! LaunchedAnts(statistics.launchedAnts.getOrElse(AntNode(destination), 0)))
+              // Anzahl der Ameisen, die diesen Knoten auf ihrem Weg zum Ziel passiert haben
               if (AntNode.nodeId(self) == node)
                 actor.map(_ ! PassedAnts(statistics.passedAnts.getOrElse(AntNode(destination), 0)))
+              // Ausschnitt der Pheromon-Matrix anzeigen
               if (AntNode.nodeId(self) == node && AntNode.nodeId(self) != destination && pheromoneMatrix != null)
                 actor.map(_ ! PheromonesAndProbabilities(pheromoneMatrix.pheromones(AntNode(destination)).toSeq,
                   pheromoneMatrix.probabilities(AntNode(destination)).toMap))
@@ -304,24 +338,31 @@ class AntNode extends Actor with ActorLogging {
       // für Debug-Zwecke
 //      assert(trafficModel.samples.isDefinedAt(destination), "Node: %s, destination: %s".format(self, destination))
       val startTime = System.currentTimeMillis
+      // Eintrag zum lokalen statistischen Modell hinzufügen
       trafficModel.addSample(destination, tripTime)
-      val nodeId = self.path.elements.last
-      val node = AntMap.nodes.find(_.id == nodeId).get
-      val outgoingWays = AntMap.outgoingWays(node)
+      // Ausgehende Wege berechnen
+      val outgoingWays = AntMap.outgoingWays(toNode(self).get)
+      // Verstärkung berechnen
       val reinforcement = trafficModel.reinforcement(destination, tripTime, outgoingWays.size)
       trace(self, destination, "Updating pheromones: way: %s, reinforcement: %s" format (way, reinforcement))
+      // Bester Weg vor dem Update
       val bestWayBeforeUpdate = bestWay(destination)
       trace(self, destination, "Before update: pheromones: %s, best way: %s" format (pheromoneMatrix
         .pheromones(destination), bestWayBeforeUpdate))
+      // Pheromon-Matrix aktualisieren
       pheromoneMatrix.updatePheromones(destination, way, reinforcement)
       if (Settings.IsStatisticsEnabled) {
+        // Dauer des Updates für die Statistik berechnen
         statistics.updateDataStructuresDurations += System.currentTimeMillis - startTime
       }
+      // Bester Weg nach dem Update
       val bestWayAfterUpdate = bestWay(destination)
       trace(self, destination, "After update: pheromones: %s, best way: %s" format (pheromoneMatrix
         .pheromones(destination), bestWayAfterUpdate))
+      // Wenn sich der beste Weg verändert hat
       if (bestWayAfterUpdate != bestWayBeforeUpdate) {
         trace(self, destination, "Sending best way to routing service: %s" format bestWayAfterUpdate)
+        // Besten Weg an den Routing-Service schicken
         system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) !
           RoutingService.UpdateBestWay(self, destination, bestWayAfterUpdate)
       }
@@ -336,24 +377,37 @@ class AntNode extends Actor with ActorLogging {
    * Verarbeitet eine empfangene Nachricht.
    */
   protected def receive = {
+    // Ameise verarbeiten
     case (ant: Ant, sendTime: Long) =>
       if (Settings.IsStatisticsEnabled) {
         statistics.antsIdleTimes += System.currentTimeMillis - sendTime
       }
       processAnt(ant)
+    // Initialisieren
     case Initialize(destinations, pheromones) =>
       initialize(destinations, pheromones)
+    // Ameisen erzeugen
     case LaunchAnts(destinations) =>
       launchAnts(destinations)
+    // Lift-Session
     case liftSession: LiftSession =>
       this.liftSession = Some(liftSession)
+    // Statistiken verarbeiten und zurücksetzen
     case ProcessStatistics =>
       processStatistics()
       statistics.reset()
+    // Daten-Strukturen initialisieren
     case UpdateDataStructures(destination, way, tripTime) =>
       updateDataStructures(destination, way, tripTime)
   }
 
+  /**
+   * Erzeugt Debug-Ausgaben, wenn Quell- und Ziel-Knoten mit denen übereinstimmen, die getraced werden sollen.
+   *
+   * @param source Quelle
+   * @param destination Ziel
+   * @param message Log-Eintrag
+   */
   def trace(source: => ActorRef, destination: => ActorRef, message: => String) {
     if (Settings.IsTraceEnabled) {
       for {
@@ -373,6 +427,12 @@ class AntNode extends Actor with ActorLogging {
     }
   }
 
+  /**
+   * Erzeugt Debug-Ausgaben, wenn der Ziel-Knoten mit dem übereinstimmt, der getraced werden soll.
+   *
+   * @param destination Ziel
+   * @param message Log-Eintrag
+   */
   def traceByDestination(destination: => ActorRef, message: => String) {
     if (Settings.IsTraceEnabled) {
       for {
@@ -385,6 +445,12 @@ class AntNode extends Actor with ActorLogging {
     }
   }
 
+  /**
+   * Erzeugt Debug-Ausgaben, wenn der aktuelle Knoten mit dem übereinstimmt, der getraced werden soll.
+   *
+   * @param message
+   * @param source
+   */
   def traceBySource(message: => String, source: => ActorRef = self) {
     if (Settings.IsTraceEnabled) {
       for {
@@ -398,19 +464,81 @@ class AntNode extends Actor with ActorLogging {
   }
 }
 
+/**
+ * AntNode-Factory.
+ */
 object AntNode {
 
   import map.Node
 
+  /**
+   * Angekommene Ameisen.
+   *
+   * @param arrivedAnts Angekommene Ameisen
+   */
   case class ArrivedAnts(arrivedAnts: Int)
-  case object DeadEndStreet
-  case class Enter(destination: ActorRef)
+
+  /**
+   * Initialisierung.
+   *
+   * @param destinations Ziele
+   * @param pheromones Initiale Pheromone
+   */
   case class Initialize(destinations: Set[ActorRef], pheromones: Map[ActorRef, Map[AntWay, Double]])
+
+  /**
+   * Ameisen erzeugen.
+   *
+   * @param destinations Ziele
+   */
   case class LaunchAnts(destinations: Set[ActorRef])
-  case class LaunchedAnts(arrivedAnts: Int)
-  case class PassedAnts(arrivedAnts: Int)
+
+  /**
+   * Erzeugte Ameisen.
+   *
+   * @param launchedAnts Erzeugte Ameisen
+   */
+  case class LaunchedAnts(launchedAnts: Int)
+
+  /**
+   * Passierte Ameisen.
+   *
+   * @param passedAnts Passierte Ameisen
+   */
+  case class PassedAnts(passedAnts: Int)
+
+  /**
+   * Pheromone und Wahrscheinlichkeiten.
+   *
+   * @param pheromones Pheromone
+   * @param probabilities Wahrscheinlichkeiten
+   */
   case class PheromonesAndProbabilities(pheromones: Seq[(AntWay, Double)], probabilities: Map[AntWay, Double])
+
+  /**
+   * Statistiken verarbeiten.
+   */
   case object ProcessStatistics
+
+  /**
+   * Statistiken.
+   *
+   * @param antAge Ameisen-Alter
+   * @param antsIdleTime Ameisen-Leerlauf-Zeit
+   * @param arrivedAnts Angekommen Ameisen pro Statistik-Zyklus
+   * @param deadEndStreetReachedAnts Aufgrund von Sackgassen entfernte Ameisen pro Statistik-Zyklus
+   * @param launchAntsDuration Dauer der Erzeugung von Ameisen
+   * @param launchedAnts Erzeugte Ameisen pro Statistik-Zyklus
+   * @param maxAgeExceededAnts Aufgrund des Alters entfernte Ameisen pro Statistik-Zyklus
+   * @param processAntDuration Dauer der Verarbeitung einer Ameise
+   * @param processedAnts Verarbeitete Ameisen
+   * @param selectNextNodeDuration Dauer der Auswahl des nächsten Knotens
+   * @param totalArrivedAnts Insgesamt angekommene Ameisen
+   * @param totalDeadEndStreetReachedAnts Insgesamt aufgrund von Sackgassen entfernte Ameisen
+   * @param totalLaunchedAnts Insgesamt erzeugte Ameisen
+   * @param totalMaxAgeExceededAnts Insgesamt aufgrund des Alters entfernte Ameisen
+   * @param updateDataStructuresDuration Dauer der Aktualisierung der Daten-Strukturen
+   */
   case class Statistics(
     antAge: Double,
     antsIdleTime: Double,
@@ -432,8 +560,8 @@ object AntNode {
   /**
    * Sucht zu einem Knoten den passenden Ant-Knoten.
    *
-   * @param node
-   * @return
+   * @param node Knoten
+   * @return Ant-Knoten
    */
   def apply(node: Node) = {
     system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName, node.id))
@@ -442,8 +570,8 @@ object AntNode {
   /**
    * Sucht zu einer Knoten-Id den passenden Ant-Knoten.
    *
-   * @param nodeId
-   * @return
+   * @param nodeId Knoten-Id
+   * @return Ant-Knoten
    */
   def apply(nodeId: String) = {
     system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName, nodeId))
@@ -452,21 +580,27 @@ object AntNode {
   /**
    * Extrahiert eine Knoten-Id aus einem Aktor-Pfad.
    *
-   * @param antNode
-   * @return
+   * @param antNode Ant-Knoten
+   * @return Knoten-Id
    */
   def nodeId(antNode: ActorRef) = antNode.path.elements.last
 
   /**
    * Sucht den passenden Knoten zu einem Ant-Knoten.
    *
-   * @param antNode
-   * @return
+   * @param antNode Ant-Knoten
+   * @return Knoten
    */
   def toNode(antNode: ActorRef) = {
     val nodeId = this.nodeId(antNode)
     AntMap.nodes.find(_.id == nodeId)
   }
 
+  /**
+   * Wandelt implizit einen Ant-Knoten in einen Osm-Knoten um.
+   *
+   * @param antNode Ant-Knoten
+   * @return Osm-Knoten
+   */
   implicit def toOsmNode(antNode: ActorRef): OsmNode = OsmMap.nodes(nodeId(antNode))
 }

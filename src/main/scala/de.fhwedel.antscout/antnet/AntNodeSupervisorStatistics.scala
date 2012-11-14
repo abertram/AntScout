@@ -5,7 +5,7 @@ import akka.actor.ActorRef
 import collection.mutable
 
 /**
- * Ant-Knoten-Supervisor-Statistiken.
+ * AntNodeSupervisor-Statistiken.
  */
 class AntNodeSupervisorStatistics {
 
@@ -13,11 +13,12 @@ class AntNodeSupervisorStatistics {
    * Ant-Knoten-Statistiken pro Ant-Knoten.
    */
   val antNodeStatistics = mutable.Map[ActorRef, AntNode.Statistics]()
-  /**
-   * Anzahl verarbeiteter Ameisen.
-   */
-  var processedAnts = 0
 
+  /**
+   * Bereitet die Statistiken auf. Die einzelnen Statistiken werden aufsummiert und Durchschnitts-Werte gebildet.
+   *
+   * @return Aufbereitete Statistiken.
+   */
   def prepare = {
     val (antAge, antsIdleTime, arrivedAnts, totalArrivedAnts) = if (antNodeStatistics.isEmpty)
       (0.0,

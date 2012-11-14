@@ -11,6 +11,12 @@ import osm.{OsmMap, OsmWay, OsmNode}
  */
 class AntWayData(val maxSpeed: Double, val nodes: Seq[OsmNode]) {
 
+  /**
+   * Berechnet, ob eine Osm-Knoten-Sequenz in diesen Ant-Weg-Daten enthalten ist.
+   *
+   * @param nodes Osm-Knoten-Sequenz
+   * @return true, wenn die Osm-Knoten-Sequenz enthalten ist
+   */
   def containsSlice(nodes: Seq[OsmNode]) = {
     this.nodes.containsSlice(nodes) || this.nodes.containsSlice(nodes.reverse)
   }
@@ -67,8 +73,19 @@ class AntWayData(val maxSpeed: Double, val nodes: Seq[OsmNode]) {
   }
 }
 
+/**
+ * AntWayData-Factory.
+ */
 object AntWayData {
 
+  /**
+   * Erzeugt eine neue [[de.fhwedel.antscout.antnet.AntWayData]]-Instanz.
+   *
+   * @param maxSpeed Maximale Geschwidigkeit
+   * @param nodes Osm-Knoten-Sequenz
+   * @param oneWay true, wenn die Ant-Weg-Daten eine Einbahn-Strasse repräsentieren
+   * @return Neue [[de.fhwedel.antscout.antnet.AntWayData]]-Instanz
+   */
   def apply(maxSpeed: Double, nodes: Seq[OsmNode], oneWay: Boolean = false) = {
     if (oneWay)
       new AntOneWayData(maxSpeed, nodes)

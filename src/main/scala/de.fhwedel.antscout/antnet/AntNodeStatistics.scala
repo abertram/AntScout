@@ -9,31 +9,70 @@ import akka.actor.ActorRef
  */
 class AntNodeStatistics {
 
+  /**
+   * Ameisen-Alter
+   */
   val antAges = mutable.Buffer[Long]()
+  /**
+   * Ameisen-Leerlauf-Zeit
+   */
   val antsIdleTimes = mutable.Buffer[Long]()
   /**
    * Anzahl angekommener Ameisen pro Quelle.
    */
   private val _arrivedAnts = mutable.Map[ActorRef, Int]()
+  /**
+   * Angekommene Ameisen pro Sekunde
+   */
   private var arrivedAntsPerSecond = 0
+  /**
+   * In einer Sackgasse angekommene Ameisen pro Sekunde
+   */
   private var deadEndStreetReachedAnts = 0
+  /**
+   * Dauer der Erzeugung von Ameisen
+   */
   var launchAntsDurations = mutable.Buffer[Long]()
   /**
    * Anzahl erzeugter Ameisen pro Ziel.
    */
   private val _launchedAnts = mutable.Map[ActorRef, Int]()
+  /**
+   * Erzeugte Ameisen pro Sekunde
+   */
   var launchedAntsPerSecond = 0
+  /**
+   * Ameisen, die das erlaubte Ameisen-Alter überschritten haben
+   */
   private var maxAgeExceededAnts = 0
   /**
    * Anzahl der Ameisen, die diesen Knoten auf dem Weg zu ihrem Ziel passiert haben. Ziel-Knoten sind die Schlüssel
    * dieser Map.
    */
   val passedAnts = mutable.Map[ActorRef, Int]()
+  /**
+   * Dauer zum Verarbeiten einer Ameise
+   */
   var processAntDurations = mutable.Buffer[Long]()
+  /**
+   * Verarbeitete Ameisen
+   */
   var processedAnts = 0
+  /**
+   * Dauer zur Auswahl des nächsten Knotens
+   */
   var selectNextNodeDurations = mutable.Buffer[Long]()
+  /**
+   * Insgesamt in einer Sackgasse angekommene Ameisen
+   */
   private var totalDeadEndStreetReachedAnts = 0
+  /**
+   * Insgesamte Anzahl der Ameisen, die das erlaubte Ameisen-Alter überschritten haben
+   */
   private var totalMaxAgeExceededAnts = 0
+  /**
+   * Dauer zur Aktualisierung der Daten-Strukturen
+   */
   var updateDataStructuresDurations = mutable.Buffer[Long]()
 
   def antsIdleTime = if (antsIdleTimes.size > 0) antsIdleTimes.sum.toDouble / antsIdleTimes.size else 0.0

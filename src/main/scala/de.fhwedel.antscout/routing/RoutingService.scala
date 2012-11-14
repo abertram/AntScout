@@ -5,9 +5,9 @@ import annotation.tailrec
 import collection.mutable
 import antnet.{AntNode, AntWay}
 import akka.actor.{ActorRef, ActorLogging, Actor}
+import de.fhwedel.antscout
 import net.liftweb.common.{Empty, Full, Box}
 import net.liftweb.http.{NamedCometListener, S, LiftSession}
-import comet.OpenLayers
 
 class RoutingService extends Actor with ActorLogging {
 
@@ -90,7 +90,7 @@ class RoutingService extends Actor with ActorLogging {
     } yield {
       S.initIfUninitted(liftSession) {
         for {
-          path <- Path
+          path <- antscout.Path
           selectedDestination <- Destination
           shouldUpdate = AntNode.nodeId(destination) == selectedDestination && path.exists(_.startAndEndNodes
             .contains(source))
@@ -121,7 +121,7 @@ class RoutingService extends Actor with ActorLogging {
         for {
           selectedSource <- Source
           selectedDestination <- Destination
-          path <- Path
+          path <- antscout.Path
         } yield {
           val shouldUpdate = AntNode.nodeId(destination) == selectedDestination && path.exists(_.startAndEndNodes
             .contains(source))
@@ -135,8 +135,9 @@ class RoutingService extends Actor with ActorLogging {
             } yield {
               // Pfad nur erneut zeichnen lassen, wenn er vollständig ist
               if (path.last.startAndEndNodes.contains(AntNode(selectedDestination))) {
-                NamedCometListener.getDispatchersFor(Full("openLayers")) foreach { actor =>
-                  actor.map(_ ! OpenLayers.DrawPath(Full(path)))
+                log.info(".")
+                NamedCometListener.getDispatchersFor(Full("userInterface")) foreach { actor =>
+                  actor.map(_ ! Path(Full(path)))
                 }
               }
               path
@@ -157,5 +158,6 @@ object RoutingService {
   case object Initialize
   case class InitializeBestWays(source: ActorRef, ways: mutable.Map[ActorRef, AntWay])
   case object Initialized
+  case class Path(path: Box[Seq[AntWay]])
   case class UpdateBestWay(source: ActorRef, destination: ActorRef, way: AntWay)
 }

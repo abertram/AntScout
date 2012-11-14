@@ -12,7 +12,7 @@ import akka.actor.ActorRef
 import net.liftweb.json.JsonAST.JArray
 
 /**
- * Repräsentiert einen Weg für den AntNet-Algorithmus.
+ * Repräsentiert eine Strasse in der AntNet-Karte.
  *
  * @param id Eindeutige Id.
  * @param nodes Knoten, aus denen der Weg besteht.
@@ -65,6 +65,13 @@ class AntWay(id: String, override val nodes: Seq[Node], val startNode: ActorRef,
       nodes.head
   }
 
+  /**
+   * Getter für die maximale Geschwindigkeit.
+   *
+   * @param await Falls der Wert im Moment der Abfrage verändert wird, gibt dieses Flag an, ob gewartet werden soll,
+   *              bis der Wert verändert ist.
+   * @return Maximale Geschwidigkeit
+   */
   def maxSpeed(implicit await: Boolean = false) = {
     if (await)
       _maxSpeed.await
@@ -72,8 +79,18 @@ class AntWay(id: String, override val nodes: Seq[Node], val startNode: ActorRef,
       _maxSpeed.get
   }
 
+  /**
+   * Setter für die maximale Geschwindigkeit.
+   *
+   * @param value Neue Geschwindigkeit
+   */
   def maxSpeed_=(value: Double) = _maxSpeed.send(value)
 
+  /**
+   * Berechnet die Start- und End-Knoten.
+   *
+   * @return Start- und End-Knoten als Menge
+   */
   def startAndEndNodes = Set(startNode, endNode)
 
   /**
@@ -116,22 +133,26 @@ class AntWay(id: String, override val nodes: Seq[Node], val startNode: ActorRef,
   /**
    * Reisezeit.
    *
-   * Zeit, die benötigt wird, um den Weg bei der maximal erlaubten Geschwindigkeit zu durchqueren.
+   * Zeit, die benötigt wird, um den Weg bei der aktuell maximal erlaubten Geschwindigkeit zu durchqueren.
    *
    * @return Reisezeit in Sekunden.
    */
   def tripTime = length / maxSpeed
 
   /**
-   * Aktualisiert die maximal erlaubte Geschwindigkeit.
+   * Aktualisiert den Weg.
    *
    * @param update Aktualisierungs-Parameter.
    */
   def update(update: AntWay.Update) = {
+    // Maximale Geschwindigkeit in m/s setzen
     maxSpeed = update.maxSpeed / 3.6
   }
 }
 
+/**
+ * AntWay-Factory.
+ */
 object AntWay extends Logger {
 
   /**
@@ -141,17 +162,36 @@ object AntWay extends Logger {
    */
   case class Update(maxSpeed: Double)
 
+  /**
+   * Erzeugt eine neue [[de.fhwedel.antscout.antnet.AntWay]]-Instanz.
+   *
+   * @param id Eindeutige Id
+   * @param startNode Start-Knoten
+   * @param endNode End-Knoten
+   * @param length Länge
+   * @param maxSpeed Maximale Geschwidigkeit
+   * @return Neue [[de.fhwedel.antscout.antnet.AntWay]]-Instanz
+   */
   def apply(id: String, startNode: ActorRef, endNode: ActorRef, length: Double, maxSpeed: Double) = {
     new AntWay(id, Seq(), startNode, endNode, length, maxSpeed)
   }
 
+  /**
+   * Erzeugt eine neue [[de.fhwedel.antscout.antnet.AntWay]]-Instanz.
+   *
+   * @param id Eindeutige Id
+   * @param nodes Osm-Knoten-Sequenz
+   * @param maxSpeed Maximale Geschwidigkeit
+   * @param oneWay Flag, ob Einbahn-Strasse
+   * @return Neue [[de.fhwedel.antscout.antnet.AntWay]]-Instanz
+   */
   def apply(id: String, nodes: Seq[OsmNode], maxSpeed: Double, oneWay: Boolean = false) = {
-    val startNodeId = nodes.head.id
-    val endNodeId = nodes.last.id
-    val startNode = system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName,
-      startNodeId))
-    val endNode = system.actorFor(Iterable("user", AntScout.ActorName, AntNodeSupervisor.ActorName, endNodeId))
+    // Start- und End-Knoten-Aktoren berechnen
+    val startNode = AntNode(nodes.head.id)
+    val endNode = AntNode(nodes.last.id)
+    // Länge berechnen
     val length = nodes.zip(nodes.tail).map(n => n._1.distanceTo(n._2)).sum
+    // Ant-Weg erzeugen
     if (oneWay)
       new AntOneWay(id, nodes, startNode, endNode, length, maxSpeed)
     else

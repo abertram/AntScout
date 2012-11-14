@@ -300,8 +300,8 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
       $("#pathTripTime").attr("data-original-title", tripTimes.join("<br>")).html(path.tripTime)
       addWaysToLayer(path.ways, pathLayer, styles.path, styles.selectedPath)
 
-  # Zeichnet einen Pfad auf der Karte. Wird aus dem Back-End aufgerufen.
-  AntScout.drawPath = (path) ->
+  # Schnittstelle zum Back-End. Verarbeitet den Pfad.
+  AntScout.path = (path) ->
     # console? && console.debug("Drawing path - path: " + JSON.stringify(path))
     drawPath(path)
 

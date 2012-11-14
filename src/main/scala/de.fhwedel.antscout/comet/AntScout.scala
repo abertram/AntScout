@@ -13,6 +13,7 @@ class AntScout extends Logger with NamedCometActorTrait {
 
   override protected def initCometActor(theSession: LiftSession, theType: Box[String], name: Box[String],
       defaultHtml: NodeSeq, attributes: Map[String, String]) {
+    // Lift-Session an das Aktoren-System senden
     system.actorFor(system / AntScout.ActorName) ! theSession
     super.initCometActor(theSession, theType, name, defaultHtml, attributes)
   }

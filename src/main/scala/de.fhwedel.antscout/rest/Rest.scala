@@ -13,7 +13,6 @@ import akka.dispatch.Await
 import akka.util.Timeout
 import net.liftweb.json.JsonAST.JArray
 import net.liftweb.http.NamedCometListener
-import comet.OpenLayers
 
 object Rest extends Logger with RestHelper {
 
@@ -84,8 +83,8 @@ object Rest extends Logger with RestHelper {
         } yield {
           if (path.contains(way)) {
             val newPath = (path.takeWhile(_ != way) :+ way) ++ path.dropWhile(_ != way).tail
-            NamedCometListener.getDispatchersFor(Full("openLayers")) foreach { actor =>
-              actor.map(_ ! OpenLayers.DrawPath(Full(newPath)))
+            NamedCometListener.getDispatchersFor(Full("userInterface")) foreach { actor =>
+              actor.map(_ ! RoutingService.Path(Full(newPath)))
             }
             Path(Full(newPath))
           }

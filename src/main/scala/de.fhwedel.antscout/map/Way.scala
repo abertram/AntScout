@@ -5,16 +5,27 @@ import net.liftweb.common.Logger
 import net.liftweb.json.JsonDSL._
 
 /**
- * Created by IntelliJ IDEA.
- * User: alex
- * Date: 04.12.11
- * Time: 14:02
+ * Basis-Klasse für einen Weg.
+ *
+ * @param id Id
+ * @param nodes Knoten-Sequenz
  */
-
 class Way(val id: String, val nodes: Seq[Node]) extends Logger {
 
+  /**
+   * Hilfs-Funktion für den Vergleich von Wegen.
+   *
+   * @param that Anderer Weg
+   * @return true, wenn der andere Weg eine Weg-Instanz ist.
+   */
   def canEqual(that: Any) = that.isInstanceOf[Way]
 
+  /**
+   * Vergleicht zwei Wege anhand von ihren Knoten.
+   *
+   * @param that Anderer Weg
+   * @return true, wenn die Knoten der Wege gleich sind.
+   */
   override def equals(that: Any) = {
     that match {
       case way: Way => (this canEqual that) && nodes == way.nodes
@@ -24,6 +35,11 @@ class Way(val id: String, val nodes: Seq[Node]) extends Logger {
 
   override def hashCode = nodes.hashCode
 
+  /**
+   * Erzeugt eine Json-Repräsentation des Weges.
+   *
+   * @return Json-Repräsentation des Weges
+   */
   def toJson = {
     ("id" -> id) ~
     ("nodes" -> nodes.map(_.toJson))

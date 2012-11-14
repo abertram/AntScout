@@ -8,8 +8,8 @@ import com.typesafe.config.Config
 /**
  * Priorisierte Mailbox für [[de.fhwedel.antscout.antnet.AntNode]].
  *
- * @param settings
- * @param config
+ * @param settings ActorSystem-Settings
+ * @param config Config
  */
 class AntNodeMailbox(settings: ActorSystem.Settings, config: Config) extends UnboundedPriorityMailbox(
   PriorityGenerator {

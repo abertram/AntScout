@@ -4,7 +4,7 @@ package antnet
 import collection.mutable.Buffer
 import extensions.ExtendedDouble._
 
-class TrafficModelSample(varsigma: Double, windowSize: Int) {
+class TrafficModelSample {
 
   private var mean = 0.0
   private val _tripTimes = Buffer[Double]()
@@ -12,11 +12,11 @@ class TrafficModelSample(varsigma: Double, windowSize: Int) {
 
   def +=(tripTime: Double) {
     tripTime +=: _tripTimes
-    if (_tripTimes.size > windowSize) {
+    if (_tripTimes.size > Settings.Wmax) {
       _tripTimes -= _tripTimes.last
     }
-    mean += varsigma * (tripTime - mean)
-    variance += varsigma * (math.pow(tripTime - mean, 2) - variance)
+    mean += Settings.Varsigma * (tripTime - mean)
+    variance += Settings.Varsigma * (math.pow(tripTime - mean, 2) - variance)
   }
 
   /**
@@ -38,7 +38,7 @@ class TrafficModelSample(varsigma: Double, windowSize: Int) {
    */
   def reinforcement(tripTime: Double, neighbourCount: Double) = {
     val iInf = bestTripTime
-    val iSup = mean + Settings.Z * math.sqrt(variance / windowSize)
+    val iSup = mean + Settings.Z * math.sqrt(variance / Settings.Wmax)
     val stabilityTerm = (iSup - iInf) + (tripTime - iInf)
     val r = Settings.C1 * (bestTripTime / tripTime) + Settings.C2 * (if (stabilityTerm ~> 0.0) ((iSup - iInf) /
       stabilityTerm)
@@ -57,7 +57,7 @@ class TrafficModelSample(varsigma: Double, windowSize: Int) {
 
 object TrafficModelSample {
 
-  def apply(varsigma: Double, windowSize: Int) = new TrafficModelSample(varsigma, windowSize)
+  def apply() = new TrafficModelSample()
 
   /**
    * Laut Literatur eigentlich (1 + ...)^(-1). Wenn aber die Transformation nicht mit s(r) / s(1) sondern mit s(1) /

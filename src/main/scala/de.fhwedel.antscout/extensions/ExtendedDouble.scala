@@ -64,6 +64,9 @@ class ExtendedDouble(d: Double) {
   }
 }
 
+/**
+ * ExtendedDouble-Factory.
+ */
 object ExtendedDouble {
 
   /**
@@ -71,5 +74,11 @@ object ExtendedDouble {
    */
   val epsilon = Settings.Epsilon
 
+  /**
+   * Wandelt einen Double implizit in einen ExtendedDouble um.
+   *
+   * @param d Double
+   * @return ExtendedDouble
+   */
   implicit def extendDouble(d: Double) = new ExtendedDouble(d)
 }

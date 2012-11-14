@@ -9,9 +9,13 @@ import net.liftweb.http.NamedCometActorTrait
 import xml.Text
 import net.liftweb.util.TimeHelpers
 
+/**
+ * Zuständig für die Darstellung der Statistiken.
+ */
 class Statistics extends Logger with NamedCometActorTrait {
 
   override def lowPriority = {
+    // Verarbeitet die Statistiken und stellt diese in den entsprechenden Felder dar
     case statistics: AntNodeSupervisor.Statistics =>
       partialUpdate(SetHtml("ant-age", Text("%.4f" format statistics.antAge)))
       partialUpdate(SetHtml("ants-idle-time", Text("%.4f" format statistics.antsIdleTime)))
@@ -42,5 +46,5 @@ class Statistics extends Logger with NamedCometActorTrait {
       warn("Unknown message: %s" format m)
   }
 
-  def render = Call("console.log", "Statistics").cmd
+  def render = Call("console.log", name.toString).cmd
 }

@@ -492,7 +492,7 @@ object AntMap extends Logger {
    * @param destination Ziel-Knoten
    * @param distanceMatrix Distanz-Matrix
    * @param predecessorMatrix Vorgänger-Matrix
-   * @return
+   * @return Pfad vom `source`- zum `destination`-Knoten oder None, wenn kein Pfad vorhanden ist.
    */
   def path(source: Node, destination: Node, distanceMatrix: Map[Node, Map[Node, Double]],
       predecessorMatrix: Map[Node, Map[Node, Option[Node]]]): Option[Seq[Node]] = {
