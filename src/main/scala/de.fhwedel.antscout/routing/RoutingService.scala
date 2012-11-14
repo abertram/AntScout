@@ -61,7 +61,7 @@ class RoutingService extends Actor with ActorLogging {
         liftSession <- liftSession
       } yield {
         S.initIfUninitted(liftSession) {
-          Path(path)
+          antscout.Path(path)
         }
       }
       sender ! path
@@ -135,14 +135,13 @@ class RoutingService extends Actor with ActorLogging {
             } yield {
               // Pfad nur erneut zeichnen lassen, wenn er vollständig ist
               if (path.last.startAndEndNodes.contains(AntNode(selectedDestination))) {
-                log.info(".")
                 NamedCometListener.getDispatchersFor(Full("userInterface")) foreach { actor =>
                   actor.map(_ ! Path(Full(path)))
                 }
               }
               path
             }
-            Path(path)
+            antscout.Path(path)
           }
         }
       }
