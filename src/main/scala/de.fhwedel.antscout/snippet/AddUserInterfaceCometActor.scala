@@ -4,21 +4,21 @@ package snippet
 import net.liftweb.http.NamedCometActorSnippet
 
 /**
- * Fügt einen AntScoutCometActor zum System hinzu.
+ * Fügt einen UserInterfaceCometActor zum System hinzu.
  */
-class AddAntScoutCometActor extends NamedCometActorSnippet {
+class AddUserInterfaceCometActor extends NamedCometActorSnippet {
 
   /**
    * Comet-Klasse.
    *
    * @return Comet-Klasse
    */
-  def cometClass = "AntScout"
+  def cometClass = "UserInterface"
 
   /**
    * Aktor-Name.
    *
    * @return Aktor-Name
    */
-  def name = "antScout"
+  def name = "userInterface"
 }

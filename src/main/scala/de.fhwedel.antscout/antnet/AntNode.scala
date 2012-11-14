@@ -135,7 +135,7 @@ class AntNode extends Actor with ActorLogging {
       traceBySource("Best ways calculated, result: %s, sending to the routing service" format bestWays)
       // Beste Wege an der Routing-Service-Aktor schicken
       system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) !
-        RoutingService.InitializeBestWays(self, bestWays)
+        RoutingService.InitializeBestWays(bestWays)
       // Scheduler zum Erzeugen der Ameisen erzeugen
       createAntsLaunchSchedulers(destinations)
     }
@@ -364,7 +364,7 @@ class AntNode extends Actor with ActorLogging {
         trace(self, destination, "Sending best way to routing service: %s" format bestWayAfterUpdate)
         // Besten Weg an den Routing-Service schicken
         system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) !
-          RoutingService.UpdateBestWay(self, destination, bestWayAfterUpdate)
+          RoutingService.UpdateBestWay(destination, bestWayAfterUpdate)
       }
       if (Settings.IsStatisticsEnabled) {
         // Anzahl der Ameisen erhöhen, die diesen Knoten auf dem Weg zum Ziel passiert haben.

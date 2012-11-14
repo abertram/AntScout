@@ -11,10 +11,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
+
+<!-- Obere Navigations-Bar -->
 <div class="navbar">
   <div class="navbar-inner">
     <div class="container-fluid">
       <span class="brand">AntScout</span>
+      <!-- Tabs -->
       <ul class="nav">
         <li class="active"><a href="#map-tab" data-toggle="tab">Map</a></li>
         <li><a href="#statistics-tab" data-toggle="tab">Statistics</a></li>
@@ -23,17 +26,25 @@
   </div>
 </div>
 <div class="container-fluid">
+
+  <!-- Fehler-Meldung-Platzhalter -->
   <div class="alert alert-block alert-error hide" id="error">
     <h3 class="alert-heading">Error</h3>
     <p></p>
   </div>
   <div class="tab-content">
+
+    <!-- Karten-Tab -->
     <div class="active tab-pane" id="map-tab">
       <div class="row-fluid">
+
+        <!-- Karte -->
         <div class="span10">
           <div id="map"></div>
         </div>
         <div class="span2">
+
+          <!-- Pfad -->
           <div class="well well-small">
             <button id="show-path-additional-data" class="btn pull-right" data-toggle="button">
               <i class="icon-zoom-in"></i>
@@ -72,6 +83,8 @@
               </table>
             </div>
           </div>
+
+          <!-- Knoten -->
           <div class="well well-small">
             <div class="btn-group pull-right">
               <button class="btn" id="setNodeAsSource" title="Set node as source">
@@ -117,6 +130,8 @@
               <button id="trace" class="btn btn-block" data-toggle="button" type="button">Trace</button>
             </div>
           </div>
+
+          <!-- Weg -->
           <div class="well well-small">
             <h2>Way</h2>
             <table class="table table-bordered table-condensed table-striped">
@@ -174,8 +189,12 @@
         </div>
       </div>
     </div>
+
+    <!-- Statistiken-Tab -->
     <div class="tab-pane" id="statistics-tab">
       <div class="row">
+
+        <!-- Ameisen -->
         <div class="span6 well">
           <h1>Ants</h1>
           <table class="table table-bordered table-condensed table-hover table-striped">
@@ -211,6 +230,8 @@
           <br>
           Select next node duration: <span id="select-next-node-duration"></span> ms
         </div>
+
+        <!-- Knoten -->
         <div class="span6 well">
           <h1>Nodes</h1>
           Launch ants duration: <span id="launch-ants-duration"></span> ms
@@ -222,13 +243,19 @@
           Update data structures duration: <span id="update-data-structures-duration"></span> ms
         </div>
       </div>
+
+      <!-- Letztes Update -->
       <div class="well">Last update: <span id="last-update"></span></div>
     </div>
   </div>
 </div>
+
+<!-- Comet-Aktoren -->
 <div data-lift="AddAntScoutCometActor"></div>
-<div data-lift="AddStatisticsActor"></div>
-<div data-lift="AddUserInterfaceActor"></div>
+<div data-lift="AddStatisticsCometActor"></div>
+<div data-lift="AddUserInterfaceCometActor"></div>
+
+<!-- Skripte einbinden -->
 <script data-main="scripts/script" src="scripts/require-jquery.js"></script>
 </body>
 </html>

@@ -11,7 +11,7 @@ import akka.actor.ActorSystem
 package object antscout {
 
   /**
-   * Actor-System.
+   * Aktoren-System.
    */
   implicit val system = ActorSystem("AntScout")
 
@@ -21,7 +21,7 @@ package object antscout {
   object Destination extends SessionVar[Box[String]](Empty)
 
   /**
-   * Der aktuell vom Benutzer ausgewählte Knoten.
+   * Der aktuell vom Benutzer ausgewählte Knoten, repräsentiert durch seine Id.
    */
   object Node extends SessionVar[Box[String]](Empty)
 

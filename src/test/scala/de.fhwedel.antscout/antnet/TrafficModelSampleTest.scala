@@ -15,7 +15,7 @@ import org.scalatest.matchers.ShouldMatchers
 class TrafficModelSampleTest extends FunSuite with ShouldMatchers {
   
   test("+=") {
-    val tmi = TrafficModelSample(0, 2)
+    val tmi = TrafficModelSample()
     tmi += 1
     tmi.tripTimes should be (Seq(1))
     tmi += 2

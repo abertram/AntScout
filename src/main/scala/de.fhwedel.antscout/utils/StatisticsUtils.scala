@@ -8,6 +8,9 @@ import scala.util.Random
  */
 object StatisticsUtils {
 
+  /**
+   * Zufalls-Generator.
+   */
   private val random = new Random(System.currentTimeMillis)
 
   /**

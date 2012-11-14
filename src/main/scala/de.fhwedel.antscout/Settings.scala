@@ -10,6 +10,9 @@ import java.util.concurrent.TimeUnit
  */
 object Settings {
 
+  /**
+   * Konfiguration.
+   */
   private val config = ConfigFactory.load
 
   import config._
@@ -89,6 +92,17 @@ object Settings {
    */
   val Map = getString("ant-scout.map")
 
+  /**
+   * Maximale Pfad-Länge.
+   *
+   * Der Routing-Service bricht die Suche nach einem Pfad ab, wenn der Pfad diese Länge erreicht.
+   */
+  val MaxPathLength = getInt("ant-scout.max-path-length")
+
+  /**
+   * Intervall in Sekunden, in dem Statistiken erzeugt und verarbeitet werden. Der Wert 0 schaltet die Statistiken aus.
+   * Statistiken senken die Performance und sollten nur wenn nötig eingeschaltet werden!
+   */
   val ProcessStatisticsDelay = Duration(getInt("ant-scout.process-statistics-delay"), TimeUnit.SECONDS)
 
   /**

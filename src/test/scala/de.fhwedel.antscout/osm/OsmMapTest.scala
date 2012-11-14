@@ -26,19 +26,4 @@ class OsmMapTest extends FunSuite with ShouldMatchers {
     OsmMap.nodeWaysMapping(nodes(3)) should equal (Set(way2))
     OsmMap.nodeWaysMapping(nodes(4)) should equal (Set(way2))
   }
-  
-  test("intersections") {
-    val node1 = OsmNode(1, new GeographicCoordinate(1, 1))
-    val node2 = OsmNode(2, new GeographicCoordinate(2, 2))
-    val node3 = OsmNode(3, new GeographicCoordinate(3, 3))
-    val node4 = OsmNode(4, new GeographicCoordinate(4, 4))
-    val nodes = Vector(node1, node2, node3, node4)
-    val way1 = OsmWay("", 1, "", List(node1, node2), 1)
-    val way2 = OsmWay("", 2, "", List(node2, node3), 2)
-    val ways = Vector(way1, way2)
-    OsmMap(nodes, ways)
-    val intersections = OsmMap.intersections
-    intersections should have size (1)
-    intersections should contain (node2)
-  }
 }
