@@ -12,7 +12,7 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= {
-  val akkaVersion = "2.0.3"
+  val akkaVersion = "2.0.4"
   val jettyVersion = "8.1.7.v20120910"
   val liftVersion = "2.5-M1"
   Seq(
