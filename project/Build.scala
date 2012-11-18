@@ -2,12 +2,35 @@ import com.github.siasia.{WebPlugin, PluginKeys}
 import sbt._
 import Keys._
 
+/**
+ * AntScout-Build-Definition.
+ *
+ * Sorgt dafür, dass eine OpenStreetMap-Karte heruntergeladen wird und aus dieser definierte Karten extrahiert werden.
+ * Es wird zusätzlich dafür gesorgt, dass diese Anforderungen vor dem Start der Anwendung ausgeführt werden, sodass die
+ * extrahierten Karten rechtzeitig zur Verfügung stehen.
+ */
 object AntScoutBuild extends Build {
 
+  /**
+   * Karten-Verzeichnis.
+   */
   val mapDirectory = "maps"
+
+  /**
+   * Karten-Name.
+   */
   val mapName = "hamburg.osm"
+
+  /**
+   * Karten-Erweiterung.
+   */
   val mapExtension = ".pbf"
+
+  /**
+   * Original-Karte.
+   */
   val originalMap = file("%s/%s%s" format (mapDirectory, mapName, mapExtension))
+
   /**
    * Karten, die erzeugt werden sollen.
    *
@@ -27,14 +50,28 @@ object AntScoutBuild extends Build {
     (originalMap, (9.693, 53.595, 9.78, 53.56), file("%s/%s" format (mapDirectory, "Wedel.osm")))
   )
 
+  /**
+   * TaskKey zum Download der Original-Karte.
+   */
   val downloadMap = TaskKey[Unit]("download-map")
+
+  /**
+   * TaskKey zum Vorverarbeiten der Karte.
+   */
   val preprocessMap = TaskKey[Unit]("preprocess-map")
 
+  /**
+   * Task zum Donwload der Original-Karte.
+   */
   val downloadMapTask = downloadMap <<= streams.map { s: TaskStreams =>
+    // Nur ausführen, wenn die Original-Karte nicht existiert
     if (!originalMap.exists) {
+      // Karten-URL erzeugen
       val mapUrl = url("http://download.geofabrik.de/openstreetmap/europe/germany/%s%s" format (mapName, mapExtension))
       s.log.info("Downloading map from %s to %s" format (mapUrl, originalMap))
+      // Karte runterladen
       sbt.IO.download(mapUrl, originalMap)
+      // Status-Meldung ausgeben
       if (originalMap.exists)
         s.log.success("Map downloaded")
       else
@@ -42,16 +79,26 @@ object AntScoutBuild extends Build {
     }
   }
 
+  /**
+   * Task zum Vorverarbeiten der Karten.
+   */
   val preprocessMapTask = preprocessMap <<= streams.map { s: TaskStreams =>
+    // Nur ausführen, wenn eine der Karten, die vorverarbeitet werden sollen, nicht existiert
     if (preprocessedMaps exists { case (_, _, preprocessedMap) => !preprocessedMap.exists }) {
       s.log.info("Preprocessing maps")
+      // Pfad zu Osmosis, mit dem die Karten vorverarbeitet werden
       val command = "maps/osmosis-0.40.1/bin/osmosis" + (if (sys.props("os.name").startsWith("Win")) ".bat" else "")
+      // Osmosis als ausführbar setzen
       file(command).setExecutable(true, true)
+      // Über die zu vorberarbeitende Karten iterieren
       preprocessedMaps foreach {
         case (originalMap, boundingBox, preprocessedMap) => {
+          // Nur ausführen, wenn die Karte nicht existiert
           if (!preprocessedMap.exists) {
             s.log.info("Preprocessing map %s" format preprocessedMap)
+            // Grenzen extrahieren
             val (left, top, right, bottom) = boundingBox
+            // Argumente für Osmosis erzeugen
             val arguments = Seq[String](
               "-q",
               "--read-pbf", "file=" + originalMap,
@@ -62,6 +109,7 @@ object AntScoutBuild extends Build {
               "--used-node",
               "--write-xml", preprocessedMap.toString
             )
+            // Kommando ausführen und Status-Meldung ausgeben
             (Process(command, arguments) !) match {
               case 0 => s.log.success("Map %s preprocessed" format preprocessedMap)
               case _ => s.log.error("Preprocessing map %s failed" format preprocessedMap)
@@ -72,8 +120,29 @@ object AntScoutBuild extends Build {
     }
   }
 
-  lazy val antScout = Project("AntScout", file("."), settings = Project.defaultSettings ++ WebPlugin.webSettings ++
-    Seq(downloadMapTask, preprocessMapTask, PluginKeys.start in WebPlugin.container.Configuration <<= (PluginKeys.start
-      in WebPlugin.container.Configuration).dependsOn(preprocessMap), preprocessMap <<= preprocessMap.dependsOn
-      (downloadMap)))
+  /**
+   * AntScout-Projekt.
+   */
+  lazy val antScout = Project(
+    // Name
+    "AntScout",
+    // Verzeichnis
+    file("."),
+    // Konfiguration
+    settings =
+      // Standard-Konfiguration
+      Project.defaultSettings ++
+      // WebPlugin-Konfiguration
+      WebPlugin.webSettings ++
+      // Eigene Tasks und deren Abhängigkeiten
+      Seq(
+        downloadMapTask,
+        preprocessMapTask,
+        // container:start hängt von preprocessMap ab
+        PluginKeys.start in WebPlugin.container.Configuration <<= (PluginKeys.start in WebPlugin.container
+          .Configuration).dependsOn(preprocessMap),
+        // preprocessMap hängt von downloadMap ab
+        preprocessMap <<= preprocessMap.dependsOn(downloadMap)
+      )
+  )
 }
