@@ -189,9 +189,9 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
     # Wege abrufen
     retrieveWays()
     # Aktuell selektierten Knoten als Quelle setzen
-    $("#setNodeAsSource").click -> setNodeAsSource()
+    $("#setNodeAsSource").click -> setNodeAsSource(selectedNode.node)
     # Aktuell selektierten Knoten als Ziel setzen
-    $("#setNodeAsDestination").click -> setNodeAsDestination()
+    $("#setNodeAsDestination").click -> setNodeAsDestination(selectedNode.node)
     # Weg-Geschwindigkeit-Veränderungs-Controls ein- und ausschalten
     $("#wayEditMaxSpeed, #waySaveMaxSpeed, #wayCancelEditMaxSpeed").click -> toggleWayEditMaxSpeedControls()
     # Fokus in das Weg-Geschwindigkeit-Input-Feld setzen
@@ -298,11 +298,17 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
       tripTimes = for tripTime in path.tripTimes
         "#{ tripTime.value } #{ tripTime.unit }"
       $("#pathTripTime").attr("data-original-title", tripTimes.join("<br>")).html(path.tripTime)
+      # Quell-Marker erzeugen wenn nötig
+      if not source? or (source.id != path.source.id)
+        setNodeAsSource(path.source)
+      # Ziel-Marker erzeugen, wenn nötig
+      if not destination or (destination.id != path.destination.id)
+        setNodeAsDestination(path.destination)
       addWaysToLayer(path.ways, pathLayer, styles.path, styles.selectedPath)
 
   # Schnittstelle zum Back-End. Verarbeitet den Pfad.
   AntScout.path = (path) ->
-    # console? && console.debug("Drawing path - path: " + JSON.stringify(path))
+#    console.debug("Path: " + JSON.stringify(path))
     drawPath(path)
 
   # Aktiviert ein Html-Element.
@@ -329,9 +335,9 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
         drawPath(path)
 
   # Setzt den aktuell selektierten Knoten als Ziel.
-  setNodeAsDestination = () ->
+  setNodeAsDestination = (node) ->
     # Knoten extrahieren
-    destination = selectedNode.node
+    destination = node
     # Existiert bereits ein Marker?
     if not destinationMarker?
       # Marker erzeugen
@@ -348,9 +354,9 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
     retrievePath(source, destination) if source? and destination?
 
   # Setzt den aktuell selektierten Knoten als Quelle.
-  setNodeAsSource = () ->
+  setNodeAsSource = (node) ->
     # Knoten extrahieren
-    source = selectedNode.node
+    source = node
     # Existiert bereits ein Marker?
     if not sourceMarker?
       # Marker erzeugen
