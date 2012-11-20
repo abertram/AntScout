@@ -4,18 +4,40 @@ package antnet
 import collection.mutable.Buffer
 import extensions.ExtendedDouble._
 
+/**
+ * Stich-Proben für das lokale statistische Modell.
+ */
 class TrafficModelSample {
 
+  /**
+   * Mittel-Wert.
+   */
   private var mean = 0.0
+
+  /**
+   * Reise-Zeiten.
+   */
   private val _tripTimes = Buffer[Double]()
+
+  /**
+   * Varianz.
+   */
   private var variance = 0.0
 
+  /**
+   * Fügt eine Reise-Zeit hinzu.
+   *
+   * @param tripTime Reise-Zeit
+   */
   def +=(tripTime: Double) {
     tripTime +=: _tripTimes
+    // Die älteste Reise-Zeit entfernen, falls nötig.
     if (_tripTimes.size > Settings.Wmax) {
       _tripTimes -= _tripTimes.last
     }
+    // Mittel-Wert aktualisieren
     mean += Settings.Varsigma * (tripTime - mean)
+    // Varianz aktualisieren
     variance += Settings.Varsigma * (math.pow(tripTime - mean, 2) - variance)
   }
 
@@ -52,21 +74,34 @@ class TrafficModelSample {
     squashedReinforcement
   }
 
+  /**
+   * Reise-Zeiten.
+   *
+   * @return Reise-Zeiten
+   */
   def tripTimes = _tripTimes
 }
 
+/**
+ * TrafficModelSample-Factory.
+ */
 object TrafficModelSample {
 
+  /**
+   * Erzeugt eine neue [[de.fhwedel.antscout.antnet.TrafficModelSample]]-Instanz.
+   *
+   * @return [[de.fhwedel.antscout.antnet.TrafficModelSample]]-Instanz
+   */
   def apply() = new TrafficModelSample()
 
   /**
    * Laut Literatur eigentlich (1 + ...)^(-1). Wenn aber die Transformation nicht mit s(r) / s(1) sondern mit s(1) /
    * s(r) aufgerufen wird, kann (...)^(-1) weggelassen werden.
    *
-   * @param x
-   * @param neighbourCount
-   * @param a
-   * @return
+   * @param x Wert, der transformiert werden soll.
+   * @param neighbourCount Anzahl der Nachbarn.
+   * @param a a.
+   * @return Transformierter Wert.
    */
   def squash(x: Double, neighbourCount: Double, a: Double = Settings.A) = {
     require((x ~> 0) && (x ~<= 1), "x: %f".format(x))
@@ -77,10 +112,10 @@ object TrafficModelSample {
    * Laut Literatur eigentlich s(r) / s(1). Wenn aber in s(x) das (...)^(-1) weggelassen wird,
    * wird aus s(r) / s(1) (s1) / s(r).
    *
-   * @param x
-   * @param N
-   * @param a
-   * @return
+   * @param x Wert, der transformiert werden soll.
+   * @param N Anzahl der Nachbarn.
+   * @param a a.
+   * @return Transformierter Wert.
    */
-  def transformBySquash(x: Double, N: Double, a: Double = 10) = squash(1, N, a) / squash(x, N, a)
+  def transformBySquash(x: Double, N: Double, a: Double = Settings.A) = squash(1, N, a) / squash(x, N, a)
 }

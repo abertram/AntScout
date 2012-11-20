@@ -4,12 +4,11 @@ package antnet
 import osm.OsmNode
 
 /**
- * Created by IntelliJ IDEA.
- * User: alex
- * Date: 28.04.12
- * Time: 11:30
+ * Wird für die Vorberechnung der Ant-Wege benötigt.
+ *
+ * @param maxSpeed Maximale Geschwidigkeit
+ * @param nodes Knoten, aus denen der Weg besteht
  */
-
 class AntOneWayData(maxSpeed: Double, nodes: Seq[OsmNode]) extends AntWayData(maxSpeed, nodes) {
 
   override def containsSlice(nodes: Seq[OsmNode]) = this.nodes.containsSlice(nodes)
