@@ -126,7 +126,7 @@ object AntScout {
 
   /**
    * Fährt AntScout herunter.
-    */
+   */
   def shutDown() {
     system.shutdown()
   }

@@ -1,6 +1,5 @@
 package de.fhwedel
 
-import de.fhwedel.antscout.antnet.AntWay
 import net.liftweb.common.{Box, Empty}
 import net.liftweb.http.SessionVar
 import akka.actor.ActorSystem
@@ -28,7 +27,7 @@ package object antscout {
   /**
    * Aktueller Pfad vom Quell- zum Ziel-Knoten.
    */
-  object Path extends SessionVar[Box[Seq[AntWay]]](Empty)
+  object Path extends SessionVar[Box[antnet.Path]](Empty)
 
   /**
    * Der aktuell vom Benutzer ausgewählte Quell-Knoten, repräsentiert durch seine Id.

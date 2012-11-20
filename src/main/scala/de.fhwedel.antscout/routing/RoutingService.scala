@@ -32,7 +32,7 @@ class RoutingService extends Actor with ActorLogging {
   /**
    * Sucht einen Pfad von einem Quell- zu einem Ziel-Knoten.
    */
-  def findPath(source: ActorRef, destination: ActorRef): Box[Seq[AntWay]] = {
+  def findPath(source: ActorRef, destination: ActorRef): Box[antnet.Path] = {
     @tailrec
     def findPathRecursive(source: ActorRef, path: Seq[AntWay]): Box[Seq[AntWay]] = {
       if (log.isDebugEnabled)
@@ -61,7 +61,7 @@ class RoutingService extends Actor with ActorLogging {
       // Rekursiver Aufruf
       findPathRecursive(newSource, bestWay +: path)
     }
-    findPathRecursive(source, Seq()).map(_.reverse)
+    antnet.Path(findPathRecursive(source, Seq()).map(_.reverse))
   }
 
   /**
@@ -126,7 +126,7 @@ class RoutingService extends Actor with ActorLogging {
         for {
           path <- antscout.Path
           selectedDestination <- Destination
-          shouldUpdate = AntNode.nodeId(destination) == selectedDestination && path.exists(_.startAndEndNodes
+          shouldUpdate = AntNode.nodeId(destination) == selectedDestination && path.ways.exists(_.startAndEndNodes
             .contains(source))
           if shouldUpdate
         } yield {
@@ -160,7 +160,7 @@ class RoutingService extends Actor with ActorLogging {
           path <- antscout.Path
         } yield {
           // Berechnen, ob der Pfad aktualisiert werden soll
-          val shouldUpdate = AntNode.nodeId(destination) == selectedDestination && path.exists(_.startAndEndNodes
+          val shouldUpdate = AntNode.nodeId(destination) == selectedDestination && path.ways.exists(_.startAndEndNodes
             .contains(source))
           if (shouldUpdate) {
             if (log.isDebugEnabled) {
@@ -172,7 +172,7 @@ class RoutingService extends Actor with ActorLogging {
               path <- findPath(AntNode(selectedSource), AntNode(selectedDestination))
             } yield {
               // Pfad nur an das User-Interface senden, wenn er vollständig ist.
-              if (path.last.startAndEndNodes.contains(AntNode(selectedDestination))) {
+              if (path.ways.last.startAndEndNodes.contains(AntNode(selectedDestination))) {
                 NamedCometListener.getDispatchersFor(Full("userInterface")) foreach { actor =>
                   actor.map(_ ! Path(Full(path)))
                 }
@@ -228,7 +228,7 @@ object RoutingService {
    *
    * @param path Pfad.
    */
-  case class Path(path: Box[Seq[AntWay]])
+  case class Path(path: Box[antnet.Path])
 
   /**
    * Aktualisierung des besten Weges für ein Ziel.

@@ -53,24 +53,9 @@ object Rest extends Logger with RestHelper {
         RoutingService.FindPath(AntNode(source), AntNode(destination)))
       for {
         // Auf die Antwort vom RoutingService warten
-        path <- Await.result(pathFuture, 5 seconds).asInstanceOf[Box[Seq[AntWay]]] ?~ "No path found" ~> 404
+        path <- Await.result(pathFuture, 5 seconds).asInstanceOf[Box[antnet.Path]] ?~ "No path found" ~> 404
       } yield {
-        // Json aus den Daten erzeugen
-        val (length, tripTime) = path.foldLeft(0.0, 0.0) {
-          case ((lengthAcc, tripTimeAcc), way) => (way.length + lengthAcc, way.tripTime + tripTimeAcc)
-        }
-        ("length" -> "%.4f".format(length / 1000)) ~
-        ("lengths" ->
-          JArray(List(("unit" -> "m") ~
-          ("value" -> "%.4f".format(length))))) ~
-        ("tripTime" -> "%.4f".format(tripTime / 60)) ~
-        ("tripTimes" ->
-          JArray(List(
-            ("unit" -> "s") ~
-            ("value" -> "%.4f".format(tripTime)),
-            ("unit" -> "h") ~
-            ("value" -> "%.4f".format(tripTime / 3600))))) ~
-        ("ways" -> path.map(_.toJson))
+        path toJson
       }
     // Anfrage nach den OSM-Knoten
     case Get(List("osmnodes"), _) => {
@@ -99,9 +84,9 @@ object Rest extends Logger with RestHelper {
           path <- Path
         } yield {
           // Ist der aktualisierte Weg Teil des aktuellen Pfades?
-          if (path.contains(way)) {
+          if (path.ways.contains(way)) {
             // Weg im Pfad ersetzen
-            val newPath = (path.takeWhile(_ != way) :+ way) ++ path.dropWhile(_ != way).tail
+            val newPath = antnet.Path((path.ways.takeWhile(_ != way) :+ way) ++ path.ways.dropWhile(_ != way).tail)
             // Neuen Pfad an den User-Interface-Aktor senden
             NamedCometListener.getDispatchersFor(Full("userInterface")) foreach { actor =>
               actor.map(_ ! RoutingService.Path(Full(newPath)))
