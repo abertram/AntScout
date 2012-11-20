@@ -57,7 +57,7 @@ class RoutingService extends Actor with ActorLogging {
       // Rekursiver Aufruf
       findPathRecursive(newSource, bestWay +: path)
     }
-    antnet.Path(findPathRecursive(source, Seq()).map(_.reverse))
+    antnet.Path(source, destination, findPathRecursive(source, Seq()).map(_.reverse))
   }
 
   /**

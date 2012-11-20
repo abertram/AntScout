@@ -86,7 +86,8 @@ object Rest extends Logger with RestHelper {
           // Ist der aktualisierte Weg Teil des aktuellen Pfades?
           if (path.ways.contains(way)) {
             // Weg im Pfad ersetzen
-            val newPath = antnet.Path((path.ways.takeWhile(_ != way) :+ way) ++ path.ways.dropWhile(_ != way).tail)
+            val newPath = antnet.Path(path.source, path.destination, (path.ways.takeWhile(_ != way) :+ way) ++
+              path.ways.dropWhile(_ != way).tail)
             // Neuen Pfad an den User-Interface-Aktor senden
             NamedCometListener.getDispatchersFor(Full("userInterface")) foreach { actor =>
               actor.map(_ ! RoutingService.Path(Full(newPath)))
