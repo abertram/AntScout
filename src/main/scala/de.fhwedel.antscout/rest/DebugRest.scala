@@ -13,11 +13,11 @@ object DebugRest extends RestHelper {
   serve {
     // Tracing ausschalten
     case Delete(List("debug", "trace"), _) =>
-      IsTraceEnabled(Empty)
+      IsTraceEnabled.send(Empty)
       OkResponse()
     // Tracing einschalten
     case Put(List("debug", "trace"), _) =>
-      IsTraceEnabled(Full(true))
+      IsTraceEnabled.send(Full(true))
       OkResponse()
   }
 }

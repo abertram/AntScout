@@ -4,7 +4,6 @@ import antnet._
 import osm.OsmMap
 import routing.RoutingService
 import akka.actor.{Props, Actor, FSM}
-import net.liftweb.http.LiftSession
 
 /**
  * Initialisiert die Anwendung mit Hilfe eines Zustands-Automaten.
@@ -64,15 +63,6 @@ class AntScout extends Actor with FSM[AntScoutState, Unit] {
       context.actorFor(AntNodeSupervisor.ActorName) ! AntNodeSupervisor.InitializeNodes
       // In diesem Zustand bleiben
       stay()
-  }
-
-  // Unbehandelte Nachrichten
-  whenUnhandled {
-    // Lift-Session
-    case Event(liftSession: LiftSession, _) =>
-      context.children.foreach(_ ! liftSession)
-      // Zustand beibehalten
-      stay
   }
 
   // Zustands-Automaten initialisieren

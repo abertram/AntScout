@@ -3,7 +3,7 @@ package antnet
 
 import akka.actor.{Cancellable, Props, ActorLogging, Actor}
 import pheromoneMatrix.ShortestPathsPheromoneMatrixInitializer
-import net.liftweb.http.{LiftSession, NamedCometListener}
+import net.liftweb.http.NamedCometListener
 import net.liftweb.common.Full
 import collection.mutable
 
@@ -18,10 +18,6 @@ class AntNodeSupervisor extends Actor with ActorLogging {
    * Cancellabeles werden beim Erzeugen von Schedulern zurückgegeben und erlauben es diese zu stoppen.
    */
   val cancellables = mutable.Set[Cancellable]()
-  /**
-   * Lift-Session
-   */
-  var liftSession: Option[LiftSession] = None
   /**
    * Statistiken
    */
@@ -92,10 +88,6 @@ class AntNodeSupervisor extends Actor with ActorLogging {
     // Initialisiert die Ant-Knoten
     case InitializeNodes =>
       initNodes()
-    // Lift-Session
-    case liftSession: LiftSession =>
-      this.liftSession = Some(liftSession)
-      context.children.foreach(_ ! liftSession)
     // Verarbeitet die Statistiken
     case ProcessStatistics(createTime) =>
       if (log.isDebugEnabled)

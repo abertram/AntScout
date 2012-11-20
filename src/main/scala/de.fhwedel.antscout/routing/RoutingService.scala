@@ -7,7 +7,7 @@ import antnet.{AntNode, AntWay}
 import akka.actor.{ActorRef, ActorLogging, Actor}
 import de.fhwedel.antscout
 import net.liftweb.common.{Empty, Full, Box}
-import net.liftweb.http.{NamedCometListener, S, LiftSession}
+import net.liftweb.http.NamedCometListener
 
 /**
  * Verwaltet eine globale Routing-Tabelle, beantwortet Anfragen nach dem aktuellen Pfad von einem Quell- zu einem
@@ -17,10 +17,6 @@ class RoutingService extends Actor with ActorLogging {
 
   import RoutingService._
 
-  /**
-   * Lift-Session
-   */
-  var liftSession: Option[LiftSession] = None
   /**
    * Routing-Tabelle.
    *
@@ -84,14 +80,8 @@ class RoutingService extends Actor with ActorLogging {
     case FindPath(source, destination) =>
       // Pfad suchen
       val path = findPath(source, destination)
-      for {
-        liftSession <- liftSession
-      } yield {
-        S.initIfUninitted(liftSession) {
-          // Pfad in die Session schreiben
-          antscout.Path(path)
-        }
-      }
+      // Pfad in einem globalen Objekt speichern
+      antscout.Path.send(path)
       // Pfad zurücksenden
       sender ! path
     // Initialisierung
@@ -100,9 +90,6 @@ class RoutingService extends Actor with ActorLogging {
     // Initialisiert die besten Wege
     case InitializeBestWays(ways) =>
       routingTable += (sender -> ways)
-    // Lift-Session
-    case liftSession: LiftSession =>
-      this.liftSession = Some(liftSession)
     // Aktualisiert den besten Weg zu einem Ziel
     case UpdateBestWay(destination, way) =>
       updateBestWay(sender, destination, way)
@@ -120,21 +107,15 @@ class RoutingService extends Actor with ActorLogging {
   def updateBestWay(source: ActorRef, destination: ActorRef, way: AntWay) {
     // Debug-Ausgabe
     for {
-      liftSession <- liftSession
+      path <- antscout.Path.get
+      selectedDestination <- Destination.get
+      shouldUpdate = AntNode.nodeId(destination) == selectedDestination && path.ways.exists(_.startAndEndNodes
+        .contains(source))
+      if shouldUpdate
     } yield {
-      S.initIfUninitted(liftSession) {
-        for {
-          path <- antscout.Path
-          selectedDestination <- Destination
-          shouldUpdate = AntNode.nodeId(destination) == selectedDestination && path.ways.exists(_.startAndEndNodes
-            .contains(source))
-          if shouldUpdate
-        } yield {
-          if (log.isDebugEnabled) {
-            log.debug("Updating best way: source: {}, destination: {}, way: {}", source, destination, way)
-            log.debug("Routing table before update: {}", routingTable(source)(destination))
-          }
-        }
+      if (log.isDebugEnabled) {
+        log.debug("Updating best way: source: {}, destination: {}, way: {}", source, destination, way)
+        log.debug("Routing table before update: {}", routingTable(source)(destination))
       }
     }
     // Routing-Tabelle aktualisieren
@@ -151,38 +132,32 @@ class RoutingService extends Actor with ActorLogging {
    */
   def updatePath(source: ActorRef, destination: ActorRef) {
     for {
-      liftSession <- liftSession
+      selectedSource <- Source.get
+      selectedDestination <- Destination.get
+      path <- antscout.Path.get
     } yield {
-      S.initIfUninitted(liftSession) {
-        for {
-          selectedSource <- Source
-          selectedDestination <- Destination
-          path <- antscout.Path
-        } yield {
-          // Berechnen, ob der Pfad aktualisiert werden soll
-          val shouldUpdate = AntNode.nodeId(destination) == selectedDestination && path.ways.exists(_.startAndEndNodes
-            .contains(source))
-          if (shouldUpdate) {
-            if (log.isDebugEnabled) {
-              log.debug("Routing table after update: {}", routingTable(source)(destination))
-              log.debug("Updating path")
-            }
-            val path = for {
-              // Neuen Pfad berechnen
-              path <- findPath(AntNode(selectedSource), AntNode(selectedDestination))
-            } yield {
-              // Pfad nur an das User-Interface senden, wenn er vollständig ist.
-              if (path.ways.last.startAndEndNodes.contains(AntNode(selectedDestination))) {
-                NamedCometListener.getDispatchersFor(Full("userInterface")) foreach { actor =>
-                  actor.map(_ ! Path(Full(path)))
-                }
-              }
-              path
-            }
-            // Pfad in der Session speichern
-            antscout.Path(path)
-          }
+      // Berechnen, ob der Pfad aktualisiert werden soll
+      val shouldUpdate = AntNode.nodeId(destination) == selectedDestination && path.ways.exists(_.startAndEndNodes
+        .contains(source))
+      if (shouldUpdate) {
+        if (log.isDebugEnabled) {
+          log.debug("Routing table after update: {}", routingTable(source)(destination))
+          log.debug("Updating path")
         }
+        val path = for {
+          // Neuen Pfad berechnen
+          path <- findPath(AntNode(selectedSource), AntNode(selectedDestination))
+        } yield {
+          // Pfad nur an das User-Interface senden, wenn er vollständig ist.
+          if (path.ways.last.startAndEndNodes.contains(AntNode(selectedDestination))) {
+            NamedCometListener.getDispatchersFor(Full("userInterface")) foreach { actor =>
+              actor.map(_ ! Path(Full(path)))
+            }
+          }
+          path
+        }
+        // Pfad in einem globalen Objekt speichern
+        antscout.Path.send(path)
       }
     }
   }

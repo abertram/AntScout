@@ -24,7 +24,7 @@ object Rest extends Logger with RestHelper {
   serve {
     // Anfrage nach den Daten eines bestimmten Knotens
     case Get(List("node", id), _) =>
-      Node(Full(id))
+      Node.send(Full(id))
       // Eingehende Wege
       val incomingWays = AntMap.incomingWays.find {
         case (node, ways) => node.id == id
@@ -44,10 +44,10 @@ object Rest extends Logger with RestHelper {
       AntMap.nodes.map(node => OsmMap.nodes(node.id).toJson): JArray
     // Anfrage nach einem Pfad
     case Get(List("path", source, destination), _) =>
-      // Quelle in die Session schreiben
-      Source(Full(source))
-      // Zeil in die Session schreiben
-      Destination(Full(destination))
+      // Quelle in einem globalen Objekt speichern
+      Source.send(Full(source))
+      // Ziel in einem globalen Objekt speichern
+      Destination.send(Full(destination))
       // Anfrage an den RoutingService nach dem Pfad
       val pathFuture = (system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) ?
         RoutingService.FindPath(AntNode(source), AntNode(destination)))
@@ -81,7 +81,7 @@ object Rest extends Logger with RestHelper {
         way.maxSpeed(true)
         // Pfad aktualisieren, falls notwendig
         for {
-          path <- Path
+          path <- Path.get
         } yield {
           // Ist der aktualisierte Weg Teil des aktuellen Pfades?
           if (path.ways.contains(way)) {
@@ -91,8 +91,8 @@ object Rest extends Logger with RestHelper {
             NamedCometListener.getDispatchersFor(Full("userInterface")) foreach { actor =>
               actor.map(_ ! RoutingService.Path(Full(newPath)))
             }
-            // Neuen Pfad in die Session schreiben
-            Path(Full(newPath))
+            // Neuen Pfad in einem globalen Objekt speichern
+            Path.send(Full(newPath))
           }
         }
         // Aktualisierten Weg zurückgeben
