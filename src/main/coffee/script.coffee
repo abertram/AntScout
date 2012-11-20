@@ -63,6 +63,10 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
     $("#wayTripTime").html("")
     $("#way-nodes").html("")
 
+  # Verzögert den Aufruf der Funktion f um ms Millisekunden.
+  delay = (ms, f) ->
+    setTimeout(f, ms)
+
   # Deselektiert einen Knoten.
   deselectNode = () ->
     # Knoten selektiert?
@@ -100,34 +104,44 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
     # Ajax-GET-Request an das Back-End
     $.get "nodes",
       (nodes) ->
-        # Knoten merken
-        this.nodes = this
-        # Über die Knoten iterieren
-        for node in nodes
-          # Marker erstellen
-          marker = L.circleMarker([node.latitude, node.longitude], styles.node)
-          # Marker um aktuellen Knoten erweitern
-          marker.node = node
-          # Marker zum Knoten-Layer hinzufügen
-          marker.addTo(nodesLayer)
-          # Beim Klick auf den Marker den im Marker gespeicherten Knoten selektieren
-          marker.on("click", (e) -> selectNode(e.target))
-        # Aktuelle Karten-Ansicht an die Knoten anpassen
-        map.fitBounds(for node in nodes
-          [node.latitude, node.longitude])
+        console.log(JSON.stringify(nodes))
+        if nodes.length == 0
+          # Keine Knoten, in einer Sekunde erneut versuchen
+          delay 1000, retrieveNodes()
+        else
+          # Knoten merken
+          this.nodes = this
+          # Über die Knoten iterieren
+          for node in nodes
+            # Marker erstellen
+            marker = L.circleMarker([node.latitude, node.longitude], styles.node)
+            # Marker um aktuellen Knoten erweitern
+            marker.node = node
+            # Marker zum Knoten-Layer hinzufügen
+            marker.addTo(nodesLayer)
+            # Beim Klick auf den Marker den im Marker gespeicherten Knoten selektieren
+            marker.on("click", (e) -> selectNode(e.target))
+          # Aktuelle Karten-Ansicht an die Knoten anpassen
+          map.fitBounds(for node in nodes
+            [node.latitude, node.longitude])
 
   # Ruft Wege aus dem Back-End ab und zeigt diese als Linien auf der Karte an.
   retrieveWays = () ->
     # Ajax-GET-Request an das Back-End
     $.get "ways",
       (ways) ->
-        # Wege zum Wege-Layer hinzufügen
-        addWaysToLayer(ways, waysLayer, styles.way, styles.selectedWay)
-        # Aktuelle Karten-Ansicht an die Wege anpassen
-        map.fitBounds(for way in ways
-          for node in way.nodes
-            [node.latitude, node.longitude]
-        )
+        console.log(JSON.stringify(ways))
+        if ways.length == 0
+          # Keine Wege, in einer Sekunde erneut versuchen
+          delay 1000, retrieveWays()
+        else
+          # Wege zum Wege-Layer hinzufügen
+          addWaysToLayer(ways, waysLayer, styles.way, styles.selectedWay)
+          # Aktuelle Karten-Ansicht an die Wege anpassen
+          map.fitBounds(for way in ways
+            for node in way.nodes
+              [node.latitude, node.longitude]
+          )
 
   # Selektiert einen Knoten und hebt diesen optisch hervor.
   selectNode = (nodePath) ->
