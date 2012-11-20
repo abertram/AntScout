@@ -14,7 +14,7 @@ import com.typesafe.config.Config
 class AntNodeMailbox(settings: ActorSystem.Settings, config: Config) extends UnboundedPriorityMailbox(
   PriorityGenerator {
     // Aktualisierung der Daten-Strukturen wird mit höchster Priorität behandelt.
-    case AntNode.UpdateDataStructures => 0
+    case AntNode.UpdateDataStructures(_, _, _) => 0
     // Verarbeitung der Statistiken wird mit zweit höchster Priorität behandelt.
     case AntNode.ProcessStatistics => 1
     case _ => 2
