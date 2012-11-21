@@ -1,1 +1,1 @@
--mem 3072 -Drun.mode=production -J-server -J-Xloggc:gc.log -J-XX:+UseAdaptiveSizePolicy -J-XX:+UseParallelGC -J-XX:+UseParallelOldGC
+-mem 4096 -Drun.mode=production -J-server -J-Xloggc:gc.log -J-XX:+UseAdaptiveSizePolicy -J-XX:+UseParallelGC -J-XX:+UseParallelOldGC
