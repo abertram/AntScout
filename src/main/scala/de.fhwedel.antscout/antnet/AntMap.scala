@@ -38,7 +38,7 @@ object AntMap extends Logger {
   /**
    * Wege.
    */
-  private var _ways: Set[AntWay] = _
+  private var _ways = Set[AntWay]()
 
   def apply() {
     info("%d ant nodes".format(_nodes.size))
