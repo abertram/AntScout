@@ -41,7 +41,7 @@ object Rest extends Logger with RestHelper {
       ("outgoingWays" -> outgoingWays.map(_.toJson))
     // Anfrage nach Knoten
     case Get(List("nodes"), _) =>
-      AntMap.nodes.map(node => OsmMap.nodes(node.id).toJson): JArray
+      AntMap.nodes.map(node => OsmMap.nodes(node.id)).map(_.toJson): JArray
     // Anfrage nach einem Pfad
     case Get(List("path", source, destination), _) =>
       // Quelle in einem globalen Objekt speichern
