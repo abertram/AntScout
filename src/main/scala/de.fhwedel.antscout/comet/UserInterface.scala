@@ -19,10 +19,10 @@ class UserInterface extends Logger with NamedCometActorTrait {
   override def lowPriority = {
     // Angekommene Ameisen
     case AntNode.ArrivedAnts(arrivedAnts) =>
-      partialUpdate(SetHtml("arrived-ants", Text(arrivedAnts.toString)))
+      partialUpdate(SetHtml("path-additional-data-arrived-ants", Text(arrivedAnts.toString)))
     // Erzeugte Ameisen
     case AntNode.LaunchedAnts(launchedAnts) =>
-      partialUpdate(SetHtml("launched-ants", Text(launchedAnts.toString)))
+      partialUpdate(SetHtml("path-additional-data-launched-ants", Text(launchedAnts.toString)))
     // Passierte Ameisen
     case AntNode.PassedAnts(passedAnts) =>
       partialUpdate(SetHtml("passed-ants", Text(passedAnts.toString)))

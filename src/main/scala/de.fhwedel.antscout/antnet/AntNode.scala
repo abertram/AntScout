@@ -23,15 +23,23 @@ class AntNode extends Actor with ActorLogging {
    * Cancellabeles werden beim Erzeugen von Schedulern zurückgegeben und erlauben es diese zu stoppen.
    */
   val cancellables = mutable.Set[Cancellable]()
+
   // TODO pheromoneMatrix sollte vom Datentyp Option[PheromoneMatrix] sein.
   /**
    * Pheromon-Matrix
    */
   var pheromoneMatrix: PheromoneMatrix = _
+
+  /**
+   * Start-Zeit
+   */
+  var startTime = 0L
+
   /**
    * Statistiken
    */
   val statistics = new AntNodeStatistics()
+
   /**
    * Lokales statistisches Modell
    */
@@ -135,13 +143,14 @@ class AntNode extends Actor with ActorLogging {
       // Scheduler zum Erzeugen der Ameisen erzeugen
       createAntsLaunchSchedulers(destinations)
     }
-    if (Settings.IsStatisticsEnabled) {
+    if (Settings.StatisticsProcessingInterval > Duration.Zero) {
       // Scheduler zum Verarbeiten der Statistiken erzeugen
-      cancellables += context.system.scheduler.schedule(Settings.ProcessStatisticsDelay,
-        Settings.ProcessStatisticsDelay, self, ProcessStatistics)
+      cancellables += context.system.scheduler.schedule(Settings.StatisticsProcessingInterval,
+        Settings.StatisticsProcessingInterval, self, ProcessStatistics)
     }
     if (log.isDebugEnabled)
       log.debug("{} initialized", self)
+    startTime = System.currentTimeMillis
   }
 
   /**
@@ -201,7 +210,7 @@ class AntNode extends Actor with ActorLogging {
       if (self == ant.destination) {
         // Ziel erreicht
         if (Settings.IsStatisticsEnabled) {
-          statistics.antAges += ant.age
+          statistics.antsAges += ant.age
         }
         // Ameise evtl. um Log-Ausgaben erweitern
         val ant1 = if (ant.isTraceEnabled)
@@ -219,7 +228,7 @@ class AntNode extends Actor with ActorLogging {
       } else if (ant.age > Settings.MaxAntAge) {
         // Ameise ist zu alt
         if (Settings.IsStatisticsEnabled) {
-          statistics.antAges += ant.age
+          statistics.antsAges += ant.age
         }
         // Ameise evtl. um Log-Ausgaben erweitern
         val ant1 = if (ant.isTraceEnabled)
@@ -239,7 +248,7 @@ class AntNode extends Actor with ActorLogging {
         // Knoten nicht erreichbar.
         // In beiden Fällen wird die Ameise aus dem System entfernt.
         if (Settings.IsStatisticsEnabled) {
-          statistics.antAges += ant.age
+          statistics.antsAges += ant.age
         }
         // Ameise evtl. um Log-Ausgaben erweitern
         val ant1 = if (ant.isTraceEnabled)
@@ -274,7 +283,7 @@ class AntNode extends Actor with ActorLogging {
    */
   def processStatistics() {
     // Statistik aufbereiten und an den Supervisor senden
-    context.parent ! statistics.prepare
+    context.parent ! statistics.prepare(startTime)
     // Wenn Tracing eingeschaltet ist, lokale Statistiken im UserInterface anzeigen
     if (Settings.IsTraceEnabled) {
       for {
@@ -372,7 +381,6 @@ class AntNode extends Actor with ActorLogging {
     // Statistiken verarbeiten und zurücksetzen
     case ProcessStatistics =>
       processStatistics()
-      statistics.reset()
     // Daten-Strukturen initialisieren
     case UpdateDataStructures(destination, way, tripTime) =>
       updateDataStructures(destination, way, tripTime)
@@ -504,10 +512,6 @@ object AntNode {
    * @param processAntDuration Dauer der Verarbeitung einer Ameise
    * @param processedAnts Verarbeitete Ameisen
    * @param selectNextNodeDuration Dauer der Auswahl des nächsten Knotens
-   * @param totalArrivedAnts Insgesamt angekommene Ameisen
-   * @param totalDeadEndStreetReachedAnts Insgesamt aufgrund von Sackgassen entfernte Ameisen
-   * @param totalLaunchedAnts Insgesamt erzeugte Ameisen
-   * @param totalMaxAgeExceededAnts Insgesamt aufgrund des Alters entfernte Ameisen
    * @param updateDataStructuresDuration Dauer der Aktualisierung der Daten-Strukturen
    */
   case class Statistics(
@@ -521,10 +525,6 @@ object AntNode {
     processAntDuration: Double,
     processedAnts: Int,
     selectNextNodeDuration: Double,
-    totalArrivedAnts: Int,
-    totalDeadEndStreetReachedAnts: Int,
-    totalLaunchedAnts: Int,
-    totalMaxAgeExceededAnts: Int,
     updateDataStructuresDuration: Double)
   case class UpdateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double)
 

@@ -6,6 +6,7 @@ import pheromoneMatrix.ShortestPathsPheromoneMatrixInitializer
 import net.liftweb.http.NamedCometListener
 import net.liftweb.common.Full
 import collection.mutable
+import akka.util.Duration
 
 /**
  * Erzeugt und überwacht die Ant-Knoten-Aktoren.
@@ -30,10 +31,10 @@ class AntNodeSupervisor extends Actor with ActorLogging {
     log.info("Initializing")
     // Ant-Knoten erzeugen
     AntMap.nodes foreach { node => context.actorOf(Props[AntNode].withDispatcher("ant-node-dispatcher"), node.id) }
-    if (Settings.IsStatisticsEnabled) {
+    if (Settings.StatisticsProcessingInterval > Duration.Zero) {
       // Scheduler zur Verarbeitung von Statistiken erzeugen
-      cancellables += context.system.scheduler.schedule(Settings.ProcessStatisticsDelay,
-          Settings.ProcessStatisticsDelay) {
+      cancellables += context.system.scheduler.schedule(Settings.StatisticsProcessingInterval,
+          Settings.StatisticsProcessingInterval) {
         self ! ProcessStatistics(System.currentTimeMillis)
       }
     }
@@ -148,10 +149,6 @@ object AntNodeSupervisor {
    * @param processAntDuration Dauer der Verarbeitung einer Ameise
    * @param processedAnts Verarbeitete Ameisen
    * @param selectNextNodeDuration Dauer der Auswahl des nächsten Knotens
-   * @param totalArrivedAnts Insgesamt angekommene Ameisen
-   * @param totalDeadEndStreetReachedAnts Insgesamt aufgrund von Sackgassen entfernte Ameisen
-   * @param totalLaunchedAnts Insgesamt erzeugte Ameisen
-   * @param totalMaxAgeExceededAnts Insgesamt aufgrund des Alters entfernte Ameisen
    * @param updateDataStructuresDuration Dauer der Aktualisierung der Daten-Strukturen
    */
   case class Statistics(
@@ -165,10 +162,6 @@ object AntNodeSupervisor {
     processAntDuration: Double,
     processedAnts: Int,
     selectNextNodeDuration: Double,
-    totalArrivedAnts: Int,
-    totalDeadEndStreetReachedAnts: Int,
-    totalLaunchedAnts: Int,
-    totalMaxAgeExceededAnts: Int,
     updateDataStructuresDuration: Double
   )
 }
