@@ -291,6 +291,7 @@ class AntNode extends Actor with ActorLogging {
         node <- Node.get
         destination <- Destination.get
       } yield {
+        // TODO Die folgenden Nachrichten sollten zusammengefasst und als eine Nachricht versendet werden.
         NamedCometListener.getDispatchersFor(Full("userInterface")) foreach { actor =>
           // Anzahl der Ameisen, die an diesem Knoten als Ziel angekommen sind
           if (AntNode.nodeId(self) == destination)
