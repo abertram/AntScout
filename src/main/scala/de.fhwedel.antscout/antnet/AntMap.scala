@@ -298,8 +298,8 @@ object AntMap extends Logger {
           // Weg suchen, der die beiden Knoten verbindet
           Set(way.nodes.head, way.nodes.last) == Set(source, destination)
         }.map { way =>
-          // Weg-Länge zurückgeben
-          way.length
+          // Reise-Zeit zurückgeben
+          way.tripTime
         }
           // Knoten sind nicht durch einen Weg verbunden, die Distanz ist unendlich.
           .getOrElse(Double.PositiveInfinity)
