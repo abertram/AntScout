@@ -70,7 +70,7 @@ class TrafficModelSample {
     val squashedReinforcement = TrafficModelSample.transformBySquash(math.max(0.05, math.min(r, 0.95)),
       neighbourCount)
     assert(squashedReinforcement ~> 0 && (squashedReinforcement ~< 1 || (neighbourCount == 1 && (squashedReinforcement
-      ~= 1))))
+      ~= 1))), "Squashed reinforcement: %f, neighbour count: %d" format (squashedReinforcement, neighbourCount))
     squashedReinforcement
   }
 
