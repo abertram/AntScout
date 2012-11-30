@@ -13,7 +13,7 @@ import akka.actor.ActorRef
  * @param destination Ziel
  * @param ways Wege
  */
-class Path(val source: ActorRef, val destination: ActorRef, val ways: Seq[AntWay]) {
+case class Path(source: ActorRef, destination: ActorRef, ways: Seq[AntWay]) {
 
   /**
    * Länge und Reise-Zeit
@@ -57,16 +57,7 @@ object Path {
    * @param destination Ziel
    * @return [[de.fhwedel.antscout.antnet.Path]]-Instanz
    */
-  def apply(source: ActorRef, destination: ActorRef, ways: Box[Seq[AntWay]]) = ways map { new Path(source, destination,
-    _) }
-
-  /**
-   * Erzeugt eine neue [[de.fhwedel.antscout.antnet.Path]]-Instanz.
-   *
-   * @param ways Wege
-   * @param source Quelle
-   * @param destination Ziel
-   * @return [[de.fhwedel.antscout.antnet.Path]]-Instanz
-   */
-  def apply(source: ActorRef, destination: ActorRef, ways: Seq[AntWay]) = new Path(source, destination, ways)
+  def apply(source: ActorRef, destination: ActorRef, ways: Box[Seq[AntWay]]) = {
+    ways map { new Path(source, destination, _) }
+  }
 }
