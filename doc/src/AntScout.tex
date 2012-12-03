@@ -5,6 +5,7 @@
 
 \usepackage[ngerman]{babel}
 \usepackage{graphicx}
+\usepackage{ifpdf}
 \usepackage[utf8]{inputenc}
 \usepackage{listings}
 \usepackage{scrhack}
@@ -21,6 +22,22 @@
 \author{Alexander Bertram}
 
 \bibliographystyle{alphadin}
+
+\ifpdf
+%   \definecolor{darkblue}{rgb}{0, 0, 0.5}
+  \hypersetup{
+%     citecolor = darkblue,
+    colorlinks = true,
+    breaklinks = true,
+%     linkcolor = darkblue,
+    linktoc = all,
+%     menucolor = darkblue,
+%     urlcolor = darkblue
+%     pdfauthor = {\theAuthor},
+%     pdfsubject = {\theSubject},
+%     pdftitle = {\theTitle~-~\theSubtitle}
+  }
+\fi
 
 % Listings-Konfiguration
 \lstset{
