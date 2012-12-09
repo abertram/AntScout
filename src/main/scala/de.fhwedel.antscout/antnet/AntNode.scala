@@ -31,14 +31,14 @@ class AntNode extends Actor with ActorLogging {
   var pheromoneMatrix: PheromoneMatrix = _
 
   /**
-   * Start-Zeit
+   * Startzeit
    */
   var startTime = 0L
 
   /**
-   * Statistiken
+   * Monitoring-Daten
    */
-  val statistics = new AntNodeStatistics()
+  val monitoringData = new AntNodeMonitoringData()
 
   /**
    * Lokales statistisches Modell
@@ -106,8 +106,8 @@ class AntNode extends Actor with ActorLogging {
     val probabilities = pheromoneMatrix.probabilities(ant.destination)
     val startTime = System.currentTimeMillis
     val (nextNode, ant1) = ant.nextNode(self, probabilities)
-    if (Settings.IsStatisticsEnabled) {
-      statistics.selectNextNodeDurations += System.currentTimeMillis - startTime
+    if (Settings.IsMonitoringEnabled) {
+      monitoringData.selectNextNodeDurations += System.currentTimeMillis - startTime
     }
     nextNode ! (ant1, System.currentTimeMillis)
   }
@@ -143,10 +143,10 @@ class AntNode extends Actor with ActorLogging {
       // Scheduler zum Erzeugen der Ameisen erzeugen
       createAntsLaunchSchedulers(destinations)
     }
-    if (Settings.StatisticsProcessingInterval > Duration.Zero) {
-      // Scheduler zum Verarbeiten der Statistiken erzeugen
-      cancellables += context.system.scheduler.schedule(Settings.StatisticsProcessingInterval,
-        Settings.StatisticsProcessingInterval, self, ProcessStatistics)
+    if (Settings.MonitoringDataProcessingInterval > Duration.Zero) {
+      // Scheduler zum Verarbeiten der Monitoring-Daten erzeugen
+      cancellables += context.system.scheduler.schedule(Settings.MonitoringDataProcessingInterval,
+        Settings.MonitoringDataProcessingInterval, self, ProcessMonitoringData)
     }
     if (log.isDebugEnabled)
       log.debug("{} initialized", self)
@@ -182,12 +182,12 @@ class AntNode extends Actor with ActorLogging {
     // Ameisen gleich zum nächsten Knoten weiterleiten
     ants.map { ant =>
       forwardAnt(ant)
-      if (Settings.IsStatisticsEnabled) {
-        statistics.incrementLaunchedAnts(ant.destination)
+      if (Settings.IsMonitoringEnabled) {
+        monitoringData.incrementLaunchedAnts(ant.destination)
       }
     }
-    if (Settings.IsStatisticsEnabled) {
-      statistics.launchAntsDurations += System.currentTimeMillis - startTime
+    if (Settings.IsMonitoringEnabled) {
+      monitoringData.launchAntsDurations += System.currentTimeMillis - startTime
     }
   }
 
@@ -209,8 +209,8 @@ class AntNode extends Actor with ActorLogging {
     val (time, _) = TimeHelpers.calcTime {
       if (self == ant.destination) {
         // Ziel erreicht
-        if (Settings.IsStatisticsEnabled) {
-          statistics.antsAges += ant.age
+        if (Settings.IsMonitoringEnabled) {
+          monitoringData.antsAges += ant.age
         }
         // Ameise evtl. um Log-Ausgaben erweitern
         val ant1 = if (ant.isTraceEnabled)
@@ -222,13 +222,13 @@ class AntNode extends Actor with ActorLogging {
         val ant2 = ant1.updateNodes()
         if (ant2.isTraceEnabled)
           log.debug("{}", ant2.prepareLogEntries)
-        if (Settings.IsStatisticsEnabled) {
-          statistics.incrementArrivedAnts(ant.source)
+        if (Settings.IsMonitoringEnabled) {
+          monitoringData.incrementArrivedAnts(ant.source)
         }
       } else if (ant.age > Settings.MaxAntAge) {
         // Ameise ist zu alt
-        if (Settings.IsStatisticsEnabled) {
-          statistics.antsAges += ant.age
+        if (Settings.IsMonitoringEnabled) {
+          monitoringData.antsAges += ant.age
         }
         // Ameise evtl. um Log-Ausgaben erweitern
         val ant1 = if (ant.isTraceEnabled)
@@ -236,8 +236,8 @@ class AntNode extends Actor with ActorLogging {
             ant.age))
         else
           ant
-        if (Settings.IsStatisticsEnabled) {
-          statistics.incrementMaxAgeExceededAnts()
+        if (Settings.IsMonitoringEnabled) {
+          monitoringData.incrementMaxAgeExceededAnts()
         }
         if (ant1.isTraceEnabled)
           log.debug("{}", ant1.prepareLogEntries)
@@ -247,8 +247,8 @@ class AntNode extends Actor with ActorLogging {
         // Wenn die Wahrscheinlichkeiten für einen Ziel-Knoten undefiniert sind, dann ist der Ziel-Knoten von diesem
         // Knoten nicht erreichbar.
         // In beiden Fällen wird die Ameise aus dem System entfernt.
-        if (Settings.IsStatisticsEnabled) {
-          statistics.antsAges += ant.age
+        if (Settings.IsMonitoringEnabled) {
+          monitoringData.antsAges += ant.age
         }
         // Ameise evtl. um Log-Ausgaben erweitern
         val ant1 = if (ant.isTraceEnabled)
@@ -256,8 +256,8 @@ class AntNode extends Actor with ActorLogging {
             .size, ant.age))
         else
           ant
-        if (Settings.IsStatisticsEnabled) {
-          statistics.incrementDeadEndStreetReachedAnts()
+        if (Settings.IsMonitoringEnabled) {
+          monitoringData.incrementDeadEndStreetReachedAnts()
         }
         if (ant1.isTraceEnabled)
           log.debug("{}", ant1.prepareLogEntries)
@@ -269,22 +269,22 @@ class AntNode extends Actor with ActorLogging {
           ant
         forwardAnt(ant1)
       }
-      if (Settings.IsStatisticsEnabled) {
-        statistics.processedAnts += 1
+      if (Settings.IsMonitoringEnabled) {
+        monitoringData.processedAnts += 1
       }
     }
-    if (Settings.IsStatisticsEnabled) {
-      statistics.processAntDurations += time
+    if (Settings.IsMonitoringEnabled) {
+      monitoringData.processAntDurations += time
     }
   }
 
   /**
-   * Verarbeitet die Statistiken.
+   * Verarbeitet die Monitoring-Daten.
    */
-  def processStatistics() {
-    // Statistik aufbereiten und an den Supervisor senden
-    context.parent ! statistics.prepare(startTime)
-    // Wenn Tracing eingeschaltet ist, lokale Statistiken im UserInterface anzeigen
+  def processMonitoringData() {
+    // Monitoring-Daten aufbereiten und an den Supervisor senden
+    context.parent ! monitoringData.prepare(startTime)
+    // Wenn Tracing eingeschaltet ist, lokale Monitoring-Daten im User-Interface anzeigen
     if (Settings.IsTraceEnabled) {
       for {
         source <- Source.get
@@ -295,13 +295,13 @@ class AntNode extends Actor with ActorLogging {
         NamedCometListener.getDispatchersFor(Full("userInterface")) foreach { actor =>
           // Anzahl der Ameisen, die an diesem Knoten als Ziel angekommen sind
           if (AntNode.nodeId(self) == destination)
-            actor.map(_ ! ArrivedAnts(statistics.arrivedAnts.getOrElse(AntNode(source), 0)))
+            actor.map(_ ! ArrivedAnts(monitoringData.arrivedAnts.getOrElse(AntNode(source), 0)))
           // Anzahl der Ameisen, die an diesem Knoten erzeugt wurden
           if (AntNode.nodeId(self) == source)
-            actor.map(_ ! LaunchedAnts(statistics.launchedAnts.getOrElse(AntNode(destination), 0)))
+            actor.map(_ ! LaunchedAnts(monitoringData.launchedAnts.getOrElse(AntNode(destination), 0)))
           // Anzahl der Ameisen, die diesen Knoten auf ihrem Weg zum Ziel passiert haben
           if (AntNode.nodeId(self) == node)
-            actor.map(_ ! PassedAnts(statistics.passedAnts.getOrElse(AntNode(destination), 0)))
+            actor.map(_ ! PassedAnts(monitoringData.passedAnts.getOrElse(AntNode(destination), 0)))
           // Ausschnitt der Pheromon-Matrix anzeigen
           if (AntNode.nodeId(self) == node && AntNode.nodeId(self) != destination && pheromoneMatrix != null)
             actor.map(_ ! PheromonesAndProbabilities(pheromoneMatrix.pheromones(AntNode(destination)).toSeq,
@@ -341,9 +341,9 @@ class AntNode extends Actor with ActorLogging {
         .pheromones(destination), bestWayBeforeUpdate))
       // Pheromon-Matrix aktualisieren
       pheromoneMatrix.updatePheromones(destination, way, reinforcement)
-      if (Settings.IsStatisticsEnabled) {
-        // Dauer des Updates für die Statistik berechnen
-        statistics.updateDataStructuresDurations += System.currentTimeMillis - startTime
+      if (Settings.IsMonitoringEnabled) {
+        // Dauer des Updates für das Monitoring berechnen
+        monitoringData.updateDataStructuresDurations += System.currentTimeMillis - startTime
       }
       // Bester Weg nach dem Update
       val bestWayAfterUpdate = bestWay(destination)
@@ -356,9 +356,9 @@ class AntNode extends Actor with ActorLogging {
         system.actorFor(Iterable("user", AntScout.ActorName, RoutingService.ActorName)) !
           RoutingService.UpdateBestWay(destination, bestWayAfterUpdate)
       }
-      if (Settings.IsStatisticsEnabled) {
+      if (Settings.IsMonitoringEnabled) {
         // Anzahl der Ameisen erhöhen, die diesen Knoten auf dem Weg zum Ziel passiert haben.
-        statistics.passedAnts += destination -> (statistics.passedAnts.getOrElse(destination, 0) + 1)
+        monitoringData.passedAnts += destination -> (monitoringData.passedAnts.getOrElse(destination, 0) + 1)
       }
     }
   }
@@ -369,8 +369,8 @@ class AntNode extends Actor with ActorLogging {
   protected def receive = {
     // Ameise verarbeiten
     case (ant: Ant, sendTime: Long) =>
-      if (Settings.IsStatisticsEnabled) {
-        statistics.antsIdleTimes += System.currentTimeMillis - sendTime
+      if (Settings.IsMonitoringEnabled) {
+        monitoringData.antsIdleTimes += System.currentTimeMillis - sendTime
       }
       processAnt(ant)
     // Initialisieren
@@ -379,10 +379,10 @@ class AntNode extends Actor with ActorLogging {
     // Ameisen erzeugen
     case LaunchAnts(destinations) =>
       launchAnts(destinations)
-    // Statistiken verarbeiten und zurücksetzen
-    case ProcessStatistics =>
-      processStatistics()
-    // Daten-Strukturen initialisieren
+    // Monitoring-Daten verarbeiten
+    case ProcessMonitoringData =>
+      processMonitoringData()
+    // Datenstrukturen initialisieren
     case UpdateDataStructures(destination, way, tripTime) =>
       updateDataStructures(destination, way, tripTime)
   }
@@ -496,37 +496,17 @@ object AntNode {
   case class PheromonesAndProbabilities(pheromones: Seq[(AntWay, Double)], probabilities: Map[AntWay, Double])
 
   /**
-   * Statistiken verarbeiten.
+   * Monitoring-Daten verarbeiten.
    */
-  case object ProcessStatistics
+  case object ProcessMonitoringData
 
   /**
-   * Statistiken.
+   * Datenstrukturen sollen aktualisiert werden.
    *
-   * @param antAge Ameisen-Alter
-   * @param antsIdleTime Ameisen-Leerlauf-Zeit
-   * @param arrivedAnts Angekommen Ameisen pro Statistik-Zyklus
-   * @param deadEndStreetReachedAnts Aufgrund von Sackgassen entfernte Ameisen pro Statistik-Zyklus
-   * @param launchAntsDuration Dauer der Erzeugung von Ameisen
-   * @param launchedAnts Erzeugte Ameisen pro Statistik-Zyklus
-   * @param maxAgeExceededAnts Aufgrund des Alters entfernte Ameisen pro Statistik-Zyklus
-   * @param processAntDuration Dauer der Verarbeitung einer Ameise
-   * @param processedAnts Verarbeitete Ameisen
-   * @param selectNextNodeDuration Dauer der Auswahl des nächsten Knotens
-   * @param updateDataStructuresDuration Dauer der Aktualisierung der Daten-Strukturen
+   * @param destination Zielknoten
+   * @param way Weg
+   * @param tripTime Reisezeit
    */
-  case class Statistics(
-    antAge: Double,
-    antsIdleTime: Double,
-    arrivedAnts: Int,
-    deadEndStreetReachedAnts: Int,
-    launchAntsDuration: Double,
-    launchedAnts: Int,
-    maxAgeExceededAnts: Int,
-    processAntDuration: Double,
-    processedAnts: Int,
-    selectNextNodeDuration: Double,
-    updateDataStructuresDuration: Double)
   case class UpdateDataStructures(destination: ActorRef, way: AntWay, tripTime: Double)
 
   /**

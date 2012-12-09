@@ -76,16 +76,16 @@ object Settings {
   val Epsilon = getDouble("ant-scout.epsilon")
 
   /**
+   * Flag, das angibt, ob das Monitoring eingeschaltet ist.
+   */
+  val IsMonitoringEnabled = getBoolean("ant-scout.monitoring.enabled")
+
+  /**
    * Flag, ob detaillierte (Log-)Ausgaben erzeugt werden sollen.
    *
    * Senkt die Performance und sollte nur zur Fehlersuche eingeschaltet werden!
    */
   val IsTraceEnabled = getBoolean("ant-scout.trace-is-enabled")
-
-  /**
-   * Flag, das angibt, ob Statistiken eingeschaltet sind.
-   */
-  lazy val IsStatisticsEnabled = getBoolean("ant-scout.statistics.enabled")
 
   /**
    * Karte, die verwendet werden soll.
@@ -100,22 +100,23 @@ object Settings {
   val MaxPathLength = getInt("ant-scout.max-path-length")
 
   /**
+   * Begrenzung der Buffer-Größen, in denen die Monitroing-Daten gespeichert werden. Diese Daten werden genutzt,
+   * um z.B. Mittelwerte zu berechnen.
+   * 0 schaltet die Buffer-Begrenzung aus.
+   */
+  val MonitoringBufferSize = getInt("ant-scout.monitoring.buffer-size")
+
+  /**
+   * Intervall in Sekunden, in dem Monitoring-Daten aufbereitet und im Front-End angezeigt werden.
+   * Bei 0 werden die Monitoring-Daten nicht aufbereitet und auch nicht im Front-End angezeigt.
+   */
+  val MonitoringDataProcessingInterval = Duration(getInt("ant-scout.monitoring.data-processing-interval"),
+    TimeUnit.SECONDS)
+
+  /**
    * Weg-Klassen, die für den AntNet-Algorithmus berücksichtigt werden sollen.
    */
   val RelevantHighWays = getStringList("ant-scout.relevant-highways").asScala
-
-  /**
-   * Begrenzung der Buffer-Größen, in denen die Statistik-Werte gespeichert werden. Diese Werte werden genutzt, um z.B.
-   * Mittel-Werte zu berechnen.
-   * 0 schaltet die Buffer-Begrenzung aus.
-   */
-  val StatisticsBufferSize = getInt("ant-scout.statistics.buffer-size")
-
-  /**
-   * Intervall in Sekunden, in dem Statistiken aufbereitet und im Front-End angezeigt werden.
-   * Bei 0 werden die Statistiken nicht aufbereitet und auch nicht im Front-End angezeigt.
-   */
-  val StatisticsProcessingInterval = Duration(getInt("ant-scout.statistics.processing-interval"), TimeUnit.SECONDS)
 
   /**
    * Größe des gleitendes Beobachtungsfensters des lokalen statistischen Modells.

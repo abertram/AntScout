@@ -1,12 +1,13 @@
 package de.fhwedel.antscout
 package antnet
 
-import akka.actor.{Cancellable, Props, ActorLogging, Actor}
+import akka.actor._
 import pheromoneMatrix.ShortestPathsPheromoneMatrixInitializer
 import net.liftweb.http.NamedCometListener
-import net.liftweb.common.Full
 import collection.mutable
 import akka.util.Duration
+import net.liftweb.common.Full
+import scala.Some
 
 /**
  * Erzeugt und überwacht die Ant-Knoten-Aktoren.
@@ -20,9 +21,9 @@ class AntNodeSupervisor extends Actor with ActorLogging {
    */
   val cancellables = mutable.Set[Cancellable]()
   /**
-   * Statistiken
+   * Monitoring-Daten pro Ant-Knoten.
    */
-  val statistics = new AntNodeSupervisorStatistics()
+  val monitoringData = mutable.Map[ActorRef, MonitoringData]()
 
   /**
    * Initialisiert den AntNodeSupervisor.
@@ -31,11 +32,11 @@ class AntNodeSupervisor extends Actor with ActorLogging {
     log.info("Initializing")
     // Ant-Knoten erzeugen
     AntMap.nodes foreach { node => context.actorOf(Props[AntNode].withDispatcher("ant-node-dispatcher"), node.id) }
-    if (Settings.StatisticsProcessingInterval > Duration.Zero) {
-      // Scheduler zur Verarbeitung von Statistiken erzeugen
-      cancellables += context.system.scheduler.schedule(Settings.StatisticsProcessingInterval,
-          Settings.StatisticsProcessingInterval) {
-        self ! ProcessStatistics(System.currentTimeMillis)
+    if (Settings.MonitoringDataProcessingInterval > Duration.Zero) {
+      // Scheduler zur Verarbeitung von Monitoring-Daten erzeugen
+      cancellables += context.system.scheduler.schedule(Settings.MonitoringDataProcessingInterval,
+          Settings.MonitoringDataProcessingInterval) {
+        self ! ProcessMonitoringData(System.currentTimeMillis)
       }
     }
     log.info("Initialized")
@@ -48,6 +49,45 @@ class AntNodeSupervisor extends Actor with ActorLogging {
     // Alle schedule-Aktionen stoppen
     for (cancellable <- cancellables)
       cancellable.cancel()
+  }
+
+  /**
+   * Bereitet die Monitoring-Daten auf. Die einzelnen Werte werden aufsummiert und Durchschnittswerte gebildet.
+   *
+   * @return Aufbereitete Monitoring-Daten.
+   */
+  def prepareMonitoringData = {
+    val (antAge, antsIdleTime, arrivedAnts, deadEndStreetReachedAnts, launchedAnts, launchAntsDuration,
+        maxAgeExceededAnts, processAntDuration, processedAnts, selectNextNodeDuration, updateDataStructuresDuration
+        ) = if (monitoringData.isEmpty)
+      (0.0, 0.0, 0, 0, 0, 0.0, 0, 0.0, 0, 0.0, 0.0)
+    else {
+      (monitoringData.values.map(_.antAge).sum / monitoringData.size,
+        monitoringData.values.map(_.antsIdleTime).sum / monitoringData.size,
+        monitoringData.values.map(_.arrivedAnts).sum,
+        monitoringData.values.map(_.deadEndStreetReachedAnts).sum,
+        monitoringData.values.map(_.launchedAnts).sum,
+        monitoringData.values.map(_.launchAntsDuration).sum / monitoringData.size,
+        monitoringData.values.map(_.maxAgeExceededAnts).sum,
+        monitoringData.values.map(_.processAntDuration).sum / monitoringData.size,
+        monitoringData.values.map(_.processedAnts).sum / monitoringData.size,
+        monitoringData.values.map(_.selectNextNodeDuration).sum / monitoringData.size,
+        monitoringData.values.map(_.updateDataStructuresDuration).sum / monitoringData.size
+      )
+    }
+    MonitoringData(
+      antsIdleTime = antsIdleTime,
+      arrivedAnts = arrivedAnts,
+      deadEndStreetReachedAnts = deadEndStreetReachedAnts,
+      launchAntsDuration = launchAntsDuration,
+      launchedAnts = launchedAnts,
+      maxAgeExceededAnts = maxAgeExceededAnts,
+      antAge = antAge,
+      processAntDuration = processAntDuration,
+      processedAnts = processedAnts,
+      selectNextNodeDuration = selectNextNodeDuration,
+      updateDataStructuresDuration = updateDataStructuresDuration
+    )
   }
 
   /**
@@ -79,9 +119,9 @@ class AntNodeSupervisor extends Actor with ActorLogging {
   }
 
   protected def receive = {
-    // Verarbeitet die Ant-Knoten-Statistiken
-    case antNodeStatistics: AntNode.Statistics =>
-      statistics.antNodeStatistics += sender -> antNodeStatistics
+    // Verarbeitet die Ant-Knoten-Monitoring-Daten
+    case monitoringData: MonitoringData =>
+      this.monitoringData += sender -> monitoringData
     // Initialisierung
     case Initialize(wayData) =>
       init()
@@ -89,13 +129,13 @@ class AntNodeSupervisor extends Actor with ActorLogging {
     // Initialisiert die Ant-Knoten
     case InitializeNodes =>
       initNodes()
-    // Verarbeitet die Statistiken
-    case ProcessStatistics(createTime) =>
+    // Verarbeitet die Monitoring-Daten
+    case ProcessMonitoringData(createTime) =>
       if (log.isDebugEnabled)
-        log.debug("Time to receive ProcessStatistics: {} ms", System.currentTimeMillis - createTime)
-      // Statistiken aufbereiten und an den entpsrechenden Comet-Aktor senden
-      NamedCometListener.getDispatchersFor(Full("statistics")) foreach { actor =>
-        actor.map(_ ! statistics.prepare)
+        log.debug("Time to receive ProcessMonitoringData: {} ms", System.currentTimeMillis - createTime)
+      // Monitoring-Data aufbereiten und an den entpsrechenden Comet-Aktor senden
+      NamedCometListener.getDispatchersFor(Full("monitoring")) foreach { actor =>
+        actor.map(_ ! prepareMonitoringData)
       }
   }
 }
@@ -130,38 +170,9 @@ object AntNodeSupervisor {
   case class Initialized(antWayData: Set[AntWayData])
 
   /**
-   * Verarbeitet die Statistiken.
+   * Verarbeitet die Monitoring-Daten.
    *
-   * @param createTime Start-Zeit
+   * @param createTime Startzeit
    */
-  case class ProcessStatistics(createTime: Long)
-
-  /**
-   * Statistiken.
-   *
-   * @param antAge Ameisen-Alter
-   * @param antsIdleTime Ameisen-Leerlauf-Zeit
-   * @param arrivedAnts Angekommen Ameisen pro Statistik-Zyklus
-   * @param deadEndStreetReachedAnts Aufgrund von Sackgassen entfernte Ameisen pro Statistik-Zyklus
-   * @param launchAntsDuration Dauer der Erzeugung von Ameisen
-   * @param launchedAnts Erzeugte Ameisen pro Statistik-Zyklus
-   * @param maxAgeExceededAnts Aufgrund des Alters entfernte Ameisen pro Statistik-Zyklus
-   * @param processAntDuration Dauer der Verarbeitung einer Ameise
-   * @param processedAnts Verarbeitete Ameisen
-   * @param selectNextNodeDuration Dauer der Auswahl des nächsten Knotens
-   * @param updateDataStructuresDuration Dauer der Aktualisierung der Daten-Strukturen
-   */
-  case class Statistics(
-    antAge: Double,
-    antsIdleTime: Double,
-    arrivedAnts: Int,
-    deadEndStreetReachedAnts: Int,
-    launchAntsDuration: Double,
-    launchedAnts: Int,
-    maxAgeExceededAnts: Int,
-    processAntDuration: Double,
-    processedAnts: Int,
-    selectNextNodeDuration: Double,
-    updateDataStructuresDuration: Double
-  )
+  case class ProcessMonitoringData(createTime: Long)
 }

@@ -5,12 +5,12 @@ import collection.mutable
 import akka.actor.ActorRef
 
 /**
- * Ant-Knoten-Statistiken.
+ * AntNode-Monitoring-Daten.
  */
-class AntNodeStatistics {
+class AntNodeMonitoringData {
 
   /**
-   * Ameisen-Alter
+   * Ameisenalter
    */
   private val _antsAges = mutable.Buffer[Long]()
   /**
@@ -63,7 +63,7 @@ class AntNodeStatistics {
 
   def antsAges_=(value: Long) = {
     value +=: _antsAges
-    if (_antsAges.size >= Settings.StatisticsBufferSize)
+    if (_antsAges.size >= Settings.MonitoringBufferSize)
       _antsAges.remove(_antsAges.size - 1)
   }
 
@@ -71,7 +71,7 @@ class AntNodeStatistics {
 
   def antsIdleTimes_=(value: Long) = {
     value +=: _antsIdleTimes
-    if (_antsIdleTimes.size >= Settings.StatisticsBufferSize)
+    if (_antsIdleTimes.size >= Settings.MonitoringBufferSize)
       _antsIdleTimes.remove(_antsIdleTimes.size - 1)
   }
 
@@ -97,7 +97,7 @@ class AntNodeStatistics {
 
   def launchAntsDurations_=(value: Long) = {
     value +=: _launchAntsDurations
-    if (_launchAntsDurations.size >= Settings.StatisticsBufferSize)
+    if (_launchAntsDurations.size >= Settings.MonitoringBufferSize)
       _launchAntsDurations.remove(_launchAntsDurations.size - 1)
   }
 
@@ -105,7 +105,7 @@ class AntNodeStatistics {
 
   def processAntDurations_=(value: Long) = {
     value +=: _processAntDurations
-    if (_processAntDurations.size >= Settings.StatisticsBufferSize)
+    if (_processAntDurations.size >= Settings.MonitoringBufferSize)
       _processAntDurations.remove(_processAntDurations.size - 1)
   }
 
@@ -113,7 +113,7 @@ class AntNodeStatistics {
 
   def selectNextNodeDurations_=(value: Long) = {
     value +=: _selectNextNodeDurations
-    if (_selectNextNodeDurations.size >= Settings.StatisticsBufferSize)
+    if (_selectNextNodeDurations.size >= Settings.MonitoringBufferSize)
       _selectNextNodeDurations.remove(_selectNextNodeDurations.size - 1)
   }
 
@@ -121,7 +121,7 @@ class AntNodeStatistics {
 
   def updateDataStructuresDurations_=(value: Long) = {
     value +=: _updateDataStructuresDurations
-    if (_updateDataStructuresDurations.size >= Settings.StatisticsBufferSize)
+    if (_updateDataStructuresDurations.size >= Settings.MonitoringBufferSize)
       _updateDataStructuresDurations.remove(_updateDataStructuresDurations.size - 1)
   }
 
@@ -136,7 +136,7 @@ class AntNodeStatistics {
   def prepare(startTime: Long) = {
     // Laufzeit in Millisekunden
     val upTime = (System.currentTimeMillis - startTime) / 1000.0
-    AntNode.Statistics(
+    MonitoringData(
       antAge = if (antsAges.size > 0) antsAges.sum.toDouble / antsAges.size / 10e3 else 0,
       antsIdleTime = if (antsIdleTimes.size > 0) antsIdleTimes.sum.toDouble / antsIdleTimes.size else 0,
       arrivedAnts = _arrivedAnts.values.sum,
