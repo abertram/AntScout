@@ -359,7 +359,7 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
         icon: L.icon(
           iconAnchor: [15, 50]
           iconSize: [60, 50]
-          iconUrl: "images/markers/end.png")).addTo(sourceAndDestinationLayer)
+          iconUrl: "images/markers/destination.png")).addTo(sourceAndDestinationLayer)
     else
       # Marker aktualisieren
       destinationMarker.setLatLng([destination.latitude, destination.longitude])
