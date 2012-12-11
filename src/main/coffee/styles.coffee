@@ -27,7 +27,8 @@ define ->
     # Pfad
     path: $.extend({}, defaultWayStyle,
       color: "#ff7400"
-      opacity: 0.7
+      opacity: 0.8
+      weight: 6
     )
     # Selektierter eingehender Weg
     selectedIncomingWay: $.extend({}, defaultSelectedWay)

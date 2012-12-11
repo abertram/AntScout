@@ -357,9 +357,9 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
       # Marker erzeugen
       destinationMarker ?= L.marker([destination.latitude, destination.longitude],
         icon: L.icon(
-          iconAnchor: [14, 43]
-          iconSize: [28, 43]
-          iconUrl: "images/markers/green/B.png")).addTo(sourceAndDestinationLayer)
+          iconAnchor: [15, 50]
+          iconSize: [60, 50]
+          iconUrl: "images/markers/end.png")).addTo(sourceAndDestinationLayer)
     else
       # Marker aktualisieren
       destinationMarker.setLatLng([destination.latitude, destination.longitude])
@@ -376,9 +376,9 @@ require(["jquery", "styles", "bootstrap", "leaflet-src", "underscore"], ($, styl
       # Marker erzeugen
       sourceMarker ?= L.marker([source.latitude, source.longitude],
         icon: L.icon(
-          iconAnchor: [14, 43]
-          iconSize: [28, 43]
-          iconUrl: "images/markers/green/A.png")).addTo(sourceAndDestinationLayer)
+          iconAnchor: [15, 50]
+          iconSize: [60, 50]
+          iconUrl: "images/markers/start.png")).addTo(sourceAndDestinationLayer)
     else
       # Marker aktualisieren
       sourceMarker.setLatLng([source.latitude, source.longitude])
