@@ -15,6 +15,8 @@ define ->
     # Eingehender Weg
     incomingWay: $.extend({}, defaultWayStyle,
       color: "#ff0000"
+      opacity: 0.8
+      weight: 6
     )
     # Knoten
     node: $.extend({}, defaultStyle,
@@ -23,6 +25,8 @@ define ->
     # Ausgehender Weg
     outgoingWay: $.extend({}, defaultWayStyle,
       color: "#00ff00"
+      opacity: 0.8
+      weight: 6
     )
     # Pfad
     path: $.extend({}, defaultWayStyle,
