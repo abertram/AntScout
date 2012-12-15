@@ -31,18 +31,18 @@ object Settings {
    * Die von einem Knoten aus erreichbaren Ziele werden in Gruppen unterteilt. Dieser Parameter (Angabe in Metern)
    * entscheidet, in welchen Abständen eine neue Gruppe erzeugt wird.
    */
-  val AntsLaunchGroupDistance = getInt("ant-scout.ant-net.ants-launch.group-distance")
+  val AntsLaunchDistance = getInt("ant-scout.ant-net.ants-launch.distance")
 
   /**
    * Intervall in Millisekunden, in dem Ameisen mit Zielen aus der am weitesten entfernten Gruppe erzeugt werden.
    */
-  val AntsLaunchInitialDelay = getInt("ant-scout.ant-net.ants-launch.initial-delay")
+  val AntsLaunchInterval = getInt("ant-scout.ant-net.ants-launch.interval")
 
   /**
-   * Mit abnehmender Entfernung wird pro Gruppe dieser Wert (Angabe in Millisekunden) zum initial-delay hinzu
+   * Mit abnehmender Entfernung wird pro Gruppe dieser Wert (Angabe in Millisekunden) zum AntsLaunchInterval hinzu
    * addiert.
    */
-  val AntsLaunchDelayIncrement = getInt("ant-scout.ant-net.ants-launch.delay-increment")
+  val AntsLaunchIntervalIncrement = getInt("ant-scout.ant-net.ants-launch.interval-increment")
 
   /**
    * Maximales Alter einer Ameise in Millisekunden. Wenn die Ameise ihr Ziel nicht innerhalb dieser Zeit erreicht hat,

@@ -71,7 +71,7 @@ class AntNode extends Actor with ActorLogging {
       (destination, self.distanceTo(destination).round)
     }.groupBy {
       // gruppieren
-      case (_, distance) => (distance / Settings.AntsLaunchGroupDistance).toInt
+      case (_, distance) => (distance / Settings.AntsLaunchDistance).toInt
     }.map {
       // Gruppen-Id und Ziel beibehalten
       case (key, distances) =>
@@ -82,7 +82,7 @@ class AntNode extends Actor with ActorLogging {
     // nötig für die Prüfung, ob alle Ziele durch die Scheduler abgedeckt sind
 //    val processedDestinations = mutable.Set[ActorRef]()
     // Gruppen-Ids von groß nach klein verarbeiten
-    (0 to distances.keys.max).foldRight(Settings.AntsLaunchInitialDelay) {
+    (0 to distances.keys.max).foldRight(Settings.AntsLaunchInterval) {
       case (i, delay) => {
         // Gruppen-Id definiert?
         if (distances.isDefinedAt(i)) {
@@ -91,7 +91,7 @@ class AntNode extends Actor with ActorLogging {
             TimeUnit.MILLISECONDS), self, LaunchAnts(distances(i)))
 //          processedDestinations ++= distances(i)
         }
-        delay + Settings.AntsLaunchDelayIncrement
+        delay + Settings.AntsLaunchIntervalIncrement
       }
     }
 //    assert(this.destinations == processedDestinations)
