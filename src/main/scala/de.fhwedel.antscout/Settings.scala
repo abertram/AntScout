@@ -51,7 +51,7 @@ object Settings {
   val MaxAntAge = getMilliseconds("ant-scout.ant-net.max-ant-age")
 
   /**
-   * Mit diesem Wert wird der beste Weg in der Pheromon-Matrix initialisiert, der als nächstes auf dem Weg zum Ziel
+   * Mit diesem Wert wird der beste Weg in der Präpheromonmatrix initialisiert, der als nächstes auf dem Weg zum Ziel
    * besucht werden sollte.
    */
   val BestWayPheromone = getDouble("ant-scout.ant-net.best-way-pheromone")

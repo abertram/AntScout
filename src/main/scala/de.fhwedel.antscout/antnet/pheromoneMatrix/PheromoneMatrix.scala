@@ -7,14 +7,14 @@ import net.liftweb.common.Logger
 import antnet.AntWay
 
 /**
- * Pheromon-Matrix.
+ * Repräsentiert die Präpheromon- und die Pheromonmatrix.
  *
  * Enthält eine Zeile pro ausgehenden Weg und eine Spalte pro Ziel-Knoten.
  *
  * Hier werden sowohl die Pheromone verwaltet als auch die Wahrscheinlichkeiten, anhand der sich die Ameisen endgültig
  * für einen Weg eintscheiden.
  *
- * @param destinations Ziel-Knoten
+ * @param destinations Zielknoten
  * @param outgoingWays Ausgehende Wege
  */
 class PheromoneMatrix(destinations: Set[ActorRef], outgoingWays: Set[AntWay]) extends Logger {
