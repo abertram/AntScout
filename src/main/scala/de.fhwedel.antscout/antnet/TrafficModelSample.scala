@@ -36,9 +36,9 @@ class TrafficModelSample {
       _tripTimes -= _tripTimes.last
     }
     // Mittel-Wert aktualisieren
-    mean += Settings.Varsigma * (tripTime - mean)
+    mean += Settings.Rho * (tripTime - mean)
     // Varianz aktualisieren
-    variance += Settings.Varsigma * (math.pow(tripTime - mean, 2) - variance)
+    variance += Settings.Rho * (math.pow(tripTime - mean, 2) - variance)
   }
 
   /**

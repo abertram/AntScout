@@ -119,15 +119,15 @@ object Settings {
   val RelevantHighWays = getStringList("ant-scout.relevant-highways").asScala
 
   /**
-   * Größe des gleitendes Beobachtungsfensters des lokalen statistischen Modells.
-   */
-  val Wmax = getInt("ant-scout.ant-net.w-max")
-
-  /**
    * Faktor, der die Anzahl der Messungen bestimmt, die zum Berechnen des Mittelwertes und der Varianz des lokalen
    * statistischen Modells verwendet werden.
    */
-  val Varsigma = getDouble("ant-scout.ant-net.varsigma")
+  val Rho = getDouble("ant-scout.ant-net.rho")
+
+  /**
+   * Größe des gleitendes Beobachtungsfensters des lokalen statistischen Modells.
+   */
+  val Wmax = getInt("ant-scout.ant-net.w-max")
 
   /**
    * Parameter z für die Berechnung der Verstärkung.
