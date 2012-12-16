@@ -1,35 +1,38 @@
 \documentclass[
-  a4paper,
-  10pt
+  BCOR = 10mm,
+  bibliography = totoc,
+  listof = totoc,
+  parskip = half
 ]{scrreprt}
 
+\usepackage[
+  printonlyused,
+  withpage
+]{acronym}
 \usepackage[ngerman]{babel}
+\usepackage{booktabs}
+\usepackage[T1]{fontenc}
 \usepackage{graphicx}
 \usepackage{ifpdf}
 \usepackage[utf8]{inputenc}
 \usepackage{listings}
+\usepackage{lmodern}
 \usepackage{scrhack}
 \usepackage[shadow]{todonotes}
 \usepackage{tabularx}
 \usepackage{hyperref}
-\usepackage[
-  acronym,
-  nomain,
-  toc,
-  xindy
-]{glossaries}
 
 \author{Alexander Bertram}
 
 \bibliographystyle{alphadin}
 
 \ifpdf
-%   \definecolor{darkblue}{rgb}{0, 0, 0.5}
+  \definecolor{darkblue}{rgb}{0, 0, 0.5}
   \hypersetup{
 %     citecolor = darkblue,
     colorlinks = true,
     breaklinks = true,
-%     linkcolor = darkblue,
+    linkcolor = darkblue,
     linktoc = all,
 %     menucolor = darkblue,
 %     urlcolor = darkblue
@@ -45,49 +48,54 @@
   captionpos = b,
   basicstyle = \ttfamily\small,
   breaklines = true,
-  frame = single,
+  frame = lines,
   numbers = left,
   numberstyle = \tiny,
   showstringspaces = false
 }
 
-\makeglossaries
-
 \title{AntScout-Dokumentation}
 
 \begin{document}
 
+\pagenumbering{Roman}
+
 \maketitle
 
+% Verzeichnisse
+\tableofcontents
+\listoffigures
+\listoftables
+\renewcommand{\lstlistlistingname}{Listingsverzeichnis}
+\lstlistoflistings
 \include{Akronyme}
 
-\printglossary[
-  title = Abkürzungsverzeichnis,
-  toctitle = Abkürzungsverzeichnis
-]
+\clearpage
+
+\pagenumbering{arabic}
 
 \chapter{Typografische Konventionen}
 \label{chap:typografische-konventionen}
 
-Konsolen-Kommandos, URLs oder Quellcode-Ausschnitte im Fließtext werden in einer \texttt{Nicht-Proportionalschrift} dargestellt.
+Konsolenkommandos, URLs oder Quellcodeausschnitte im Fließtext werden in einer \texttt{Nicht-Proportionalschrift} dargestellt.
 
 \chapter{Allgemeine Problemstellung}
 \label{chap:allgemeine-problemstellung}
 
-Im Rahmen des Master-Projektes und der -Thesis soll eine Anwendung erstellt werden, in der der Ameisen-Algorithmus \textit{AntNet} auf realen Strassen-Karten für das dynamische Routing implementiert wird.
-Die Daten werden von \gls{osm} abgerufen und in einen Graphen umgewandelt, auf dem \textit{AntNet} operieren kann.
+Im Rahmen des Masterprojekts und der -thesis soll eine Anwendung erstellt werden, in der der Ameisenaalgorithmus AntNet auf realen Straßenkarten für dynamisches Routing implementiert wird.
+Die Daten werden von \ac{osm} abgerufen und in einen Graphen umgewandelt, auf dem AntNet operieren kann.
 Die Erstellung der Anwendung ist in zwei Schritte unterteilt:
 
 \begin{enumerate}
-  \item Abruf und Aufbereitung der Daten sowie die Bereitstellung des Software-Werkzeugs zur Parametrisierung der Problemstellung
-  \item \textit{AntNet}-Implementierung und Einstellung der Parameter
+  \item Abruf und Aufbereitung der Daten sowie die Bereitstellung des Softwarewerkzeugs zur Parametrisierung der Problemstellung
+  \item AntNet-Implementierung und Einstellung der Parameter
 \end{enumerate}
 
-Der erste Schritt ist das Ziel des Master-Projektes und der zweite das Ziel der Master-Thesis.
+Der erste Schritt ist das Ziel des Masterprojekts und der zweite das Ziel der Masterthesis.
 
-\include{Benutzer-Handbuch}
+\include{Benutzerhandbuch}
 
-\include{Entwickler-Handbuch}
+\include{Entwicklerhandbuch}
 
 \bibliography{Literatur}
 
