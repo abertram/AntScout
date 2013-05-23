@@ -103,7 +103,7 @@ object AntScoutBuild extends Build {
     if (preprocessedMaps exists { case (_, _, preprocessedMap) => !preprocessedMap.exists }) {
       s.log.info("Preprocessing maps")
       // Pfad zu Osmosis, mit dem die Karten vorverarbeitet werden
-      val command = "maps/osmosis-0.40.1/bin/osmosis" + (if (sys.props("os.name").startsWith("Win")) ".bat" else "")
+      val command = "maps/osmosis/bin/osmosis" + (if (sys.props("os.name").startsWith("Win")) ".bat" else "")
       // Osmosis als ausführbar setzen
       file(command).setExecutable(true, true)
       // Über die zu vorberarbeitende Karten iterieren
