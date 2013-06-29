@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import com.github.siasia.{WebPlugin, PluginKeys}
+import com.earldouglas.xsbtwebplugin.{WebPlugin, PluginKeys}
 import sbt._
 import Keys._
 

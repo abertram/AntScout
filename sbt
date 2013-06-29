@@ -1,6 +1,26 @@
 #!/usr/bin/env bash
 
-. $(dirname $0)/sbt-launch-lib.bash
+realpath () {
+(
+  TARGET_FILE=$1
+
+  cd $(dirname $TARGET_FILE)
+  TARGET_FILE=$(basename $TARGET_FILE)
+
+  COUNT=0
+  while [ -L "$TARGET_FILE" -a $COUNT -lt 100 ]
+  do
+      TARGET_FILE=$(readlink $TARGET_FILE)
+      cd $(dirname $TARGET_FILE)
+      TARGET_FILE=$(basename $TARGET_FILE)
+      COUNT=$(($COUNT + 1))
+  done
+
+  echo $(pwd -P)/$TARGET_FILE
+)
+}
+
+. $(dirname $(realpath $0))/sbt-launch-lib.bash
 
 
 declare -r noshare_opts="-Dsbt.global.base=project/.sbtboot -Dsbt.boot.directory=project/.boot -Dsbt.ivy.home=project/.ivy"
@@ -43,7 +63,7 @@ Usage: $script_name [options]
   -Dkey=val          pass -Dkey=val directly to the java runtime
   -J-X               pass option -X directly to the java runtime 
                      (-J is stripped)
-  -S-X               add -X to sbt's scalacOptions (-J is stripped)
+  -S-X               add -X to sbt's scalacOptions (-S is stripped)
 
 In the case of duplicated or conflicting options, the order above
 shows precedence: JAVA_OPTS lowest, command line options highest.
@@ -81,4 +101,4 @@ loadConfigFile() {
 [[ -f "$etc_sbt_opts_file" ]] && set -- $(loadConfigFile "$etc_sbt_opts_file") "$@"
 [[ -f "$sbt_opts_file" ]] && set -- $(loadConfigFile "$sbt_opts_file") "$@"
 
-run $@
+run "$@"
