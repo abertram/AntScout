@@ -30,7 +30,7 @@ libraryDependencies ++= {
   val jettyVersion = "8.1.7.v20120910"
   val liftVersion = "2.5"
   Seq(
-    "ch.qos.logback" % "logback-classic" % "1.0.7" % "compile->default",
+    "ch.qos.logback" % "logback-classic" % "1.0.13" % "compile->default",
     "com.typesafe" % "config" % "1.0.2",
     "com.typesafe.akka" % "akka-actor" % akkaVersion,
     "com.typesafe.akka" % "akka-agent" % akkaVersion,
