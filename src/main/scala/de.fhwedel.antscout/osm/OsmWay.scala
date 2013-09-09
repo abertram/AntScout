@@ -55,7 +55,7 @@ class OsmWay(val highway: String, id: String, val name: String, override val nod
    *
    * @return True, wenn der Weg ein Kreis-Weg ist.
    */
-  def isCircle = nodes.head == nodes.last
+  def isCircle = nodes.size > 1 && nodes.head == nodes.last
 
   /**
    * Berechnet, ob der übergebene Knoten der End-Knoten ist.
