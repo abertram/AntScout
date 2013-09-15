@@ -27,7 +27,7 @@ resolvers ++= Seq(
 
 libraryDependencies ++= {
   val akkaVersion = "2.0.5"
-  val jettyVersion = "8.1.7.v20120910"
+  val jettyVersion = "8.1.12.v20130726"
   val liftVersion = "2.5"
   Seq(
     "ch.qos.logback" % "logback-classic" % "1.0.13" % "compile->default",
