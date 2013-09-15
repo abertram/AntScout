@@ -63,7 +63,8 @@ object AntScoutBuild extends Build {
     (originalMap, (9.926, 53.5518, 9.9559, 53.54), file("%s/%s" format (mapDirectory, "Altona-50-Knoten.osm"))),
     (originalMap, (9.9362, 53.55131, 9.949, 53.5468), file("%s/%s" format (mapDirectory, "Altona-Kreis.osm"))),
     (originalMap, (9.69, 53.5856, 9.892, 53.5464), file("%s/%s" format (mapDirectory, "Othmarschen-Wedel.osm"))),
-    (originalMap, (9.693, 53.595, 9.78, 53.56), file("%s/%s" format (mapDirectory, "Wedel.osm")))
+    (originalMap, (9.693, 53.595, 9.78, 53.56), file("%s/%s" format (mapDirectory, "Wedel.osm"))),
+    (originalMap, (9.9693, 53.551, 10.0066, 53.54), file("%s/%s" format (mapDirectory, "HafenCity.osm")))
   )
 
   /**
